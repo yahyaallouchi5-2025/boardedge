@@ -110,3 +110,12 @@ class PortafogliConAzioni(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class BorseNonUe(unittest.TestCase):
+    """v6.57: titoli di India e Cina continentale esclusi dalle 5 azioni (non acquistabili dall'Europa)."""
+    def test_esclusi(self):
+        from cot_radar import satellite as S
+        self.assertEqual(S.carica("/cartella/inesistente", [{"t": "RELIANCE.NS", "nome": "x", "s": "ener"},
+                                                             {"t": "600519.SS", "nome": "y", "s": "cstap"}]), [])
+        self.assertTrue("TCS.NS".endswith(S.NON_UE) and not "AAPL".endswith(S.NON_UE))

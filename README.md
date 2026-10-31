@@ -232,6 +232,14 @@ Uso: `python -m cot_radar.confronto storico` (con la cartella dell'archivio). Il
 - **Statistica**: per ogni strumento quante volte, dopo 5 candele, il prezzo era nella direzione del segnale.
 - **Anomalia**: Yahoo fermo -> restano i segnali del giro prima, popup di manutenzione, mail di GitHub all'admin.
 
+### v6.57 - portafogli versione 4
+- +5% materie prime in tutti e tre i profili (2,5% rame + 2,5% petrolio WTI, con filtro di trend), presi dall'S&P 500;
+  in Europa: WisdomTree Copper (GB00B15KXQ89) e WisdomTree WTI Crude Oil (GB00B15KXV33).
+- Statistiche anche in euro senza copertura del cambio (card del profilo, confronto dei 3 profili; "10.000 EUR nel
+  2006" ora calcolato in euro).
+- Azioni scelte: esclusi i titoli di India e Cina continentale (di solito non acquistabili dai broker europei).
+- Studio in tools/backtest_ottimizza.py: scartati filtro di trend sull'oro, oro al 10% e freno di volatilita'.
+
 ### v6.56
 - Portafogli: nuovo blocco **Confronto dei 3 profili** (ultimi mesi chiusi affiancati: conservativo, moderato,
   aggressivo), con interruttore del profilo in evidenza, motivo automatico di ogni mese negativo, totale del

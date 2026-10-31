@@ -215,3 +215,13 @@ class DettaglioMesi(unittest.TestCase):
         self.assertEqual(spy["c"], 5.0)
         self.assertEqual(spy["dd"], -5.0)
         self.assertEqual(gen["r"], 5.0)
+
+
+class InEuro(unittest.TestCase):
+    """v6.57: statistiche in euro senza copertura (valore in dollari / cambio EUR-USD)."""
+    def test_curva_in_euro(self):
+        from cot_radar import portafogli as PF
+        curva = [("2020-01-02", 100.0), ("2020-01-03", 110.0), ("2020-01-06", 110.0)]
+        fx = {"2020-01-02": 1.0, "2020-01-03": 1.1}            # il 6 manca: si usa l'ultimo cambio noto
+        self.assertEqual([round(v, 4) for _, v in PF.in_euro(curva, fx)], [100.0, 100.0, 100.0])
+        self.assertIsNone(PF.stat_eur(curva, fx))                # troppo pochi giorni

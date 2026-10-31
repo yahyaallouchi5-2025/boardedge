@@ -102,6 +102,8 @@ STRUMENTI_UE = {
     "US10Y": ("iShares $ Treasury Bond 7-10yr UCITS ETF (Acc)", "IE00B3VWN518", None),
     "GOLD": ("iShares Physical Gold ETC", "IE00B4ND3602", None),
     "BTC": ("iShares Bitcoin ETP", "XS2940466316", None),
+    "COPPER": ("WisdomTree Copper (ETC)", "GB00B15KXQ89", "segue i future sul rame: il prezzo include il costo del rinnovo dei contratti"),
+    "WTI": ("WisdomTree WTI Crude Oil (ETC)", "GB00B15KXV33", "segue i future sul petrolio WTI: il prezzo include il costo del rinnovo dei contratti"),
     "CASH": ("Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C", "LU0290358497",
              "liquidità in euro al tasso BCE (il modello usa i Treasury USA 1-3 anni in dollari)"),
 }
@@ -116,19 +118,27 @@ STRUMENTI_UE = {
 #     il turnover scende molto (conservativo da circa 150% a 56% l'anno) = meno costi e meno tasse.
 #   Rendimento/rischio 2006-2026 (dollari, senza tasse): conservativo 5,7%/5,0% caduta max -13,7%; moderato 7,4%/6,3%
 #   -16,9%; aggressivo 11,8%/9,0% -19,8%. La versione 2 (az 10/20/40%) resta nel registro rotazioni_v2.json.
+# VERSIONE 4 (31/10/2026, prima della prima rotazione live; studio tools/backtest_ottimizza.py):
+#   - +5% materie prime (2,5% rame + 2,5% petrolio WTI, con il filtro di trend) presi dall'S&P 500: dal 2016 migliora
+#     rendimento/volatilita' e drawdown in tutti e tre i profili, in dollari e in euro (peggior mese del moderato da
+#     -7,1% a -5,4%). Onesta': nel 2006-2015 il rapporto rendimento/volatilita' era un po' piu' basso (drawdown
+#     comunque migliore): e' un'assicurazione contro l'inflazione (2022), non un motore di rendimento.
+#   - SCARTATE nello stesso studio: filtro di trend sull'oro, oro al 10%, freno di volatilita' (riducevano il
+#     rapporto rendimento/volatilita' fuori campione).
+#   - statistiche anche IN EURO senza copertura del cambio (stat_eur), come le vede un investitore italiano.
 PROFILI = [
     {"id": "conservativo", "nome": "Conservativo", "rischio": "Basso", "dd": 14, "az": .05,
-     "base": {"SP500": .20, "EAFE": .10, "US10Y": .225, "GOLD": .15, "CASH": .325},
+     "base": {"SP500": .15, "EAFE": .10, "COPPER": .025, "WTI": .025, "US10Y": .225, "GOLD": .15, "CASH": .325},
      "descr": "Protezione del capitale prima di tutto: liquidità, Treasury e oro come cuscinetto sempre presente, "
-              "azioni globali e una piccola quota di 5 azioni scelte."},
+              "azioni globali, un 5% di rame e petrolio contro l'inflazione e una piccola quota di 5 azioni scelte."},
     {"id": "moderato", "nome": "Moderato", "rischio": "Medio", "dd": 17, "az": .10,
-     "base": {"SP500": .35, "EAFE": .10, "EM": .05, "US10Y": .15, "GOLD": .15, "CASH": .20},
-     "descr": "Equilibrio tra crescita e difesa: azioni USA, Europa/Asia ed emergenti bilanciate da Treasury, oro e "
-              "liquidità, più un 10% in 5 azioni scelte ogni mese."},
+     "base": {"SP500": .30, "EAFE": .10, "EM": .05, "COPPER": .025, "WTI": .025, "US10Y": .15, "GOLD": .15, "CASH": .20},
+     "descr": "Equilibrio tra crescita e difesa: azioni USA, Europa/Asia ed emergenti bilanciate da Treasury, oro, "
+              "liquidità e un 5% di rame e petrolio, più un 10% in 5 azioni scelte ogni mese."},
     {"id": "aggressivo", "nome": "Aggressivo", "rischio": "Alto", "dd": 20, "az": .15,
-     "base": {"SP500": .40, "NASDAQ": .15, "EAFE": .10, "EM": .10, "US10Y": .05, "GOLD": .15, "BTC": .05},
-     "descr": "Massima crescita: indici azionari con tecnologia, emergenti e una piccola quota di Bitcoin, più il 15% "
-              "in 5 azioni scelte. Drawdown più ampi, ripagati da un rendimento più alto."},
+     "base": {"SP500": .35, "NASDAQ": .15, "EAFE": .10, "EM": .10, "COPPER": .025, "WTI": .025, "US10Y": .05, "GOLD": .15, "BTC": .05},
+     "descr": "Massima crescita: indici azionari con tecnologia, emergenti, un 5% di rame e petrolio e una piccola quota "
+              "di Bitcoin, più il 15% in 5 azioni scelte. Drawdown più ampi, ripagati da un rendimento più alto."},
 ]
 # Mercati SENZA filtro di trend: la difesa resta sempre in portafoglio (il filtro li faceva entrare e uscire di
 # continuo: tanti scambi, tasse e costi per un beneficio che nello studio non c'era).
@@ -465,6 +475,35 @@ def statistiche(curva):
     }
 
 
+def cambio_eur(cartella=CARTELLA):
+    """{data: dollari per 1 euro} dall'archivio FRED (storico/DEXUSEU.csv). Vuoto se manca: niente statistiche in euro."""
+    try:
+        with open(os.path.join(cartella, "DEXUSEU.csv"), encoding="utf-8") as f:
+            rd = csv.reader(f)
+            next(rd, None)
+            return {r[0]: float(r[1]) for r in rd if len(r) == 2 and r[1]}
+    except (OSError, ValueError):
+        return {}
+
+
+def in_euro(curva, fx):
+    """Curva in dollari -> in euro SENZA copertura: valore / cambio EUR/USD del giorno (o dell'ultimo disponibile)."""
+    out, ult = [], None
+    for d, v in curva or []:
+        ult = fx.get(d, ult)
+        if ult:
+            out.append((d, v / ult))
+    return out
+
+
+def stat_eur(curva, fx):
+    """Statistiche in euro (tutto il periodo e dal 2016) oppure None se il cambio non c'e'."""
+    e = in_euro(curva, fx)
+    if len(e) < 250:
+        return None
+    return {"totale": statistiche(e), "oos": statistiche(_tagli(e, dal=OOS_DAL))}
+
+
 def _settimanale(curva):
     """Un punto per settimana (l'ultimo giorno di ogni settimana): basta per il grafico e pesa poco."""
     out, sett = [], None
@@ -771,6 +810,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
     # benchmark 60/40 ribilanciato ogni mese
     bench = simula(g, {i: dict(BENCH) for i in giorni}, giorni[0]) if "IEF" in px else None
 
+    fx = cambio_eur(cartella)                       # v4: per le statistiche in euro
     rotazioni = leggi_rotazioni(cartella)
     out_prof, composizioni = [], {}
     corrente, chiusi = [], {}
@@ -848,6 +888,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
                      "oos": statistiche(_tagli(curva, dal=OOS_DAL)),
                      "totale": statistiche(curva),
                      "live": statistiche(live) if live else None},
+            "stat_eur": stat_eur(curva, fx),
             "curva": _settimanale(curva), "live_dal": live[0][0] if live else None,
             "rotazioni": list(reversed(cambi)),
             "mesi_chiusi": dettaglio_mesi(g, piani, giorni, curva, sat),
@@ -864,7 +905,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
         "profili": out_prof, "chiusure": chiusure,
         "bench": {"nome": "60/40 (S&P 500 + Treasury 10 anni)", "curva": _settimanale(bench),
                   "stat": {"storico": statistiche(_tagli(bench, al=OOS_DAL)),
-                           "oos": statistiche(_tagli(bench, dal=OOS_DAL)), "totale": statistiche(bench)}} if bench else None,
+                           "oos": statistiche(_tagli(bench, dal=OOS_DAL)), "totale": statistiche(bench)},
+                  "stat_eur": stat_eur(bench, fx)} if bench else None,
         "avviso": avviso,
         "azioni": {"live_dal": (sat or {}).get("live_dal"), "nota": (sat or {}).get("nota"),
                    "disponibili": bool(ss)},

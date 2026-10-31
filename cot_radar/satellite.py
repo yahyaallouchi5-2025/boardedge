@@ -42,6 +42,9 @@ DAL = "2005-01"                # primo mese di decisione dello storico simulato
 LIVE_DAL = "2026-11"           # primo mese registrato dal vivo
 MIN_ANNI = A.MIN_ANNI_STAG     # anni minimi di stagionalita' (8)
 REGISTRO = "satellite_registro.json"
+# v6.57: borse di solito NON accessibili ai privati dai broker europei (India, Cina continentale): i loro titoli
+# restano nell'Azionario ma non entrano nelle 5 azioni dei portafogli (non si potrebbero comprare davvero).
+NON_UE = (".NS", ".BO", ".SS", ".SZ")
 
 
 # --------------------------------------------------------------------------- mesi come numeri interi
@@ -119,6 +122,8 @@ def carica(cartella, titoli=None):
     """[Titolo] dalle copie grezze (cartella/grezzi/<T>.json). Senza storico mensile valido il titolo e' escluso."""
     out = []
     for x in titoli if titoli is not None else A.elenco():
+        if x["t"].endswith(NON_UE):
+            continue
         rec = A._leggi(os.path.join(cartella, "grezzi", A._nome_file(x["t"]) + ".json"))
         s = serie_mensile(rec) if rec else None
         if s:
