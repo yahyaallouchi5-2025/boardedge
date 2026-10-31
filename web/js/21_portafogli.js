@@ -232,7 +232,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      <tr><td>Correlazione con ${esc(pe.nome)}</td>${PR.map(x=>{const c=x.id==pe.id?1:corr(x,pe);return `<td class="num${x.id==evid?" ev":""}">${c==null?"n/d":fx(c,2)}</td>`;}).join("")}<td class="pcfw small">1 = si muovono uguale</td></tr>
      <tr class="pcfsto"><td>Storico dal ${esc((PR[0].stat.totale.dal||"").slice(0,4))}: mesi positivi</td>${PR.map(x=>`<td class="num${x.id==evid?" ev":""}">${x.stat.totale.mesi_pos??"n/d"}%</td>`).join("")}<td class="pcfw small">la regola, su tutta la storia</td></tr>
      <tr><td>Storico: max drawdown</td>${PR.map(x=>`<td class="num down${x.id==evid?" ev":""}">${pc(x.stat.totale.maxdd)}</td>`).join("")}<td class="pcfw"></td></tr>
-     <tr><td>Storico: rendimento annuo</td>${PR.map(x=>`<td class="num up${x.id==evid?" ev":""}">${pc(x.stat.totale.cagr)}</td>`).join("")}<td class="pcfw"></td></tr></table></div>
+     <tr><td>Storico: rendimento annuo</td>${PR.map(x=>`<td class="num up${x.id==evid?" ev":""}">${pc(x.stat.totale.cagr)}</td>`).join("")}<td class="pcfw"></td></tr>
+     ${PR.some(x=>x.stat_eur)?`<tr class="pcfsto"><td>In euro: rendimento annuo</td>${PR.map(x=>`<td class="num up${x.id==evid?" ev":""}">${x.stat_eur?pc(x.stat_eur.totale.cagr):"n/d"}</td>`).join("")}<td class="pcfw small">senza copertura del cambio</td></tr>
+     <tr><td>In euro: max drawdown</td>${PR.map(x=>`<td class="num down${x.id==evid?" ev":""}">${x.stat_eur?pc(x.stat_eur.totale.maxdd):"n/d"}</td>`).join("")}<td class="pcfw"></td></tr>`:""}</table></div>
     <p class="small pcfnota">Un mese negativo su tre &egrave; normale per un portafoglio diversificato: nello storico i mesi positivi sono circa due su tre. Il risultato si misura sull'anno, non sul singolo mese. ${pe.live_dal?`Prima del ${gg(pe.live_dal)} i mesi sono calcolati applicando le regole attuali al passato (simulazione), non operazioni reali.`:""} Non &egrave; un consiglio di investimento.</p></div>`;}
 
  // --- AVVISO DATI NON AGGIORNATI (P.avviso dal backend): solo il popup comune di manutenzione (manutenzione.js),
@@ -242,14 +244,16 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  // --- CARD PRINCIPALE del profilo scelto: rischio, descrizione, numeri chiave, composizione per classe, 5 azioni
  function hero(p){const t=p.stat.totale||{},rk=RISK[p.id]||["",""];
   const cl={};p.composizione.forEach(c=>{cl[c.classe]=(cl[c.classe]||0)+c.peso;});
-  const finale=t.totale!=null?10000*(1+t.totale/100):null,anno=(t.dal||"").slice(0,4);
+  const te=p.stat_eur&&p.stat_eur.totale,finale=te&&te.totale!=null?10000*(1+te.totale/100):t.totale!=null?10000*(1+t.totale/100):null   /* v6.57: 10.000 EURO -> si usa la curva in euro */,anno=(t.dal||"").slice(0,4);
   const az=p.composizione.find(c=>c.k=="AZ"),pausa=p.esclusi.find(x=>x.k=="AZ");
   return `<div class="card phero"><div class="phtesta"><h3>${esc(p.nome)}</h3><span class="prisk ${rk[1]}">Rischio ${rk[0].toLowerCase()}</span></div>
    <p class="phdesc">${esc(p.descr)}</p>
    <div class="phnum"><div><em>Rendimento annuo</em><b class="up">${pc(t.cagr)}</b><span>media dal ${anno}</span></div>
     <div><em>Max drawdown</em><b class="down">${pc(t.maxdd)}</b><span>dal picco al minimo</span></div>
-    <div><em>10.000 € nel ${anno}</em><b>${eur(finale)}</b><span>valore di oggi</span></div>
+    <div><em>10.000 € nel ${anno}</em><b>${eur(finale)}</b><span>valore di oggi${p.stat_eur&&p.stat_eur.totale?" (in euro)":""}</span></div>
     <div><em>Mesi positivi</em><b>${t.mesi_pos??"n/d"}%</b><span>su tutti i mesi</span></div></div>
+   ${(()=>{const e=p.stat_eur&&p.stat_eur.totale,o=p.stat_eur&&p.stat_eur.oos;if(!e)return "";   /* v6.57: come lo vede chi investe in euro */
+    return `<div class="pheur"><span class="pheurl">&euro; In euro</span><span>senza copertura del cambio: rendimento annuo <b class="up">${pc(e.cagr)}</b></span><span>max drawdown <b class="down">${pc(e.maxdd)}</b></span>${o?`<span>dal 2016 <b class="${o.cagr>=0?"up":"down"}">${pc(o.cagr)}</b> l'anno</span>`:""}</div>`;})()}
    <div class="phcomp"><h4>Composizione del mese</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;background:${CL[x[0]]}"></s></i></div>`).join("")}</div>
    <div class="phaz"><h4>Le 5 azioni del mese <span class="small">(${p.az}% del portafoglio${az&&az.titoli&&az.titoli.length?`, ${fx(az.peso_titolo,1)}% ciascuna`:""})</span></h4>
     ${pausa?`<div class="small">${esc(pausa.motivo)}.</div>`:az&&az.titoli&&az.titoli.length?`<div class="ptit">${az.titoli.map(x=>`<button class="pchip clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">${esc(x.t)} <small>${esc(x.n)}</small></button>`).join("")}</div>`
