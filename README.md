@@ -232,6 +232,11 @@ Uso: `python -m cot_radar.confronto storico` (con la cartella dell'archivio). Il
 - **Statistica**: per ogni strumento quante volte, dopo 5 candele, il prezzo era nella direzione del segnale.
 - **Anomalia**: Yahoo fermo -> restano i segnali del giro prima, popup di manutenzione, mail di GitHub all'admin.
 
+### v6.58
+- Portafogli: la pagina resta ferma quando si cambia profilo, periodo del grafico o profilo nel confronto (prima
+  saliva/sfarfallava: le spiegazioni "(i)" si chiudevano un attimo dopo il ridisegno). Periodi del grafico: "Tutto"
+  e "Dal 2016" (tolto "Live", che finche' non ci sono mesi reali mostrava lo stesso tratto).
+
 ### v6.57 - portafogli versione 4
 - +5% materie prime in tutti e tre i profili (2,5% rame + 2,5% petrolio WTI, con filtro di trend), presi dall'S&P 500;
   in Europa: WisdomTree Copper (GB00B15KXQ89) e WisdomTree WTI Crude Oil (GB00B15KXV33).

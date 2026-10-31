@@ -268,7 +268,19 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <p class="small">${esc((P.azioni||{}).nota||"")} Storico fino al 2015, fuori campione dal 2016. Prezzi in dollari di ETF ed ETC equivalenti e azioni in valuta locale (cambi non inclusi).</p></details></div>`;}
 
  // ridisegna mantenendo la posizione della pagina (v6.52: prima ogni tocco riportava in cima)
- function ridisegna(){const y=window.scrollY;disegna();window.scrollTo(0,y);}
+ // v6.58: la pagina NON deve muoversi al clic. Due cause del "salto": (1) mentre si riscrive la scheda l'altezza
+ //   cala per un istante e il browser accorcia lo scorrimento; (2) html{scroll-behavior:smooth} faceva ANIMARE il
+ //   ritorno (sfarfallio). Soluzione: si blocca l'altezza durante il ridisegno e si riporta il pulsante cliccato
+ //   esattamente dov'era (ancora), con scorrimento istantaneo.
+ function ridisegna(ancora){const a=ancora&&el.querySelector(ancora),y0=a?a.getBoundingClientRect().top:null,sy=window.scrollY;
+  el.style.minHeight=el.offsetHeight+"px";disegna();
+  // i sottotitoli diventano subito "(i)" chiusi (01_base.js): senza questa riga lo farebbe un attimo DOPO,
+  // accorciando la pagina di ~200 px dopo il riposizionamento = il salto che si vedeva
+  try{if(typeof etichetteInfo=="function")etichetteInfo(el);}catch(e){}
+  const b=ancora&&el.querySelector(ancora);
+  if(b&&y0!=null)window.scrollTo({top:window.scrollY+b.getBoundingClientRect().top-y0,behavior:"instant"});
+  else window.scrollTo({top:sy,behavior:"instant"});
+  requestAnimationFrame(()=>{el.style.minHeight="";});}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Ogni profilo ha una base fissa di mercati e pesi; un mercato azionario resta in portafoglio finch&eacute; il prezzo &egrave; sopra la media a 200 giorni, altrimenti il suo peso va in pausa nella liquidit&agrave; fino a quando torna sopra; Treasury e oro restano sempre come difesa. Nei test sullo storico questo filtro di trend ha ridotto molto i drawdown, mentre il posizionamento COT non migliorava i risultati: per questo il COT &egrave; mostrato accanto a ogni mercato solo come informazione. Regole di base decise sullo storico fino al 2015 e verificate dal 2016; la revisione di ottobre 2026 (meno azioni singole, difesa sempre presente, meno scambi) ha guardato tutto lo storico, quindi la prova davvero pulita &egrave; la linea live, che riparte dalla rotazione del 2 novembre 2026. Il rischio si legge mese per mese: a ogni rotazione la scheda mostra come si &egrave; comportata la composizione del mese nello stesso mese di tutti gli anni dello storico. Prezzi in dollari di ETF ed ETC equivalenti (il cambio euro/dollaro non &egrave; incluso), costi 0,10% a ogni rotazione.</p>
    <div class="pdate"><span><i></i>Rotazione del <b>${gg(P.rotazione)}</b></span><span class="pcount" data-t="${P.prossima||""}" title="Prossimo ribilanciamento: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">Prossimo ribilanciamento <b class="pcd">${gg(P.prossima)}</b></span></div>
@@ -277,19 +289,19 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${corso(p)}
    <div class="pgrid">${composizione(p)}${contro(p)}</div>
    <h3 class="vft">Andamento del capitale <span class="small">(base 100, scala logaritmica: la stessa percentuale ha la stessa altezza in ogni periodo. Linea turchese = portafoglio, tratteggio = 60/40 di confronto, linea luminosa = live dalla prima rotazione pubblicata)</span></h3>
-   <div class="vfswitch pper">${[["tutto","Tutto"],["oos","Fuori campione"],["live","Live"]].map(x=>`<button data-per="${x[0]}" class="${per==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
+   <div class="vfswitch pper">${[["tutto","Tutto"],["oos","Dal 2016"]].map(x=>`<button data-per="${x[0]}" class="${per==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
    <div class="card pgraf">${curva(p)}</div>
    ${tabella(p)}
    ${confronto()}
    <div class="grid k2 pbasso"><div><h3 class="vft">Ultime rotazioni <span class="small">(+ entrati, &minus; usciti, = rimasti)</span></h3>${rotazioni(p)}</div>
     <div><h3 class="vft">In pausa questo mese <span class="small">(mercati della base sotto la media a 200 giorni: il loro peso &egrave; nella liquidit&agrave; e rientra quando il trend torna positivo)</span></h3>
     <div class="card pescl">${p.esclusi.length?p.esclusi.map(x=>`<div class="pesr"><b>${esc(nomeK(x.k))}</b><span>${x.motivo}</span><em>base ${fx(x.base,0)}% &middot; trend ${pc(x.trend)} &middot; COT ${x.score!=null?sg(x.score,0):"n/d"}</em></div>`).join(""):'<div class="small">Nessun mercato in pausa: tutta la base &egrave; investita.</div>'}</div></div></div>`;
-  el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna();});
+  el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
   // clic su un titolo delle azioni scelte: apre la sua scheda nell'Azionario (azioni.js)
   el.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>{if(window.ebApriTitolo)window.ebApriTitolo(b.dataset.az);});
-  el.querySelectorAll(".pper button").forEach(b=>b.onclick=()=>{per=b.dataset.per;ridisegna();});
-  el.querySelectorAll(".pcfsw button").forEach(b=>b.onclick=()=>{cfrSel=b.dataset.c;ridisegna();});
-  const bt=el.querySelector(".ptutte");if(bt)bt.onclick=()=>{tutteRot=!tutteRot;ridisegna();};
+  el.querySelectorAll(".pper button").forEach(b=>b.onclick=()=>{per=b.dataset.per;ridisegna(".pper");});
+  el.querySelectorAll(".pcfsw button").forEach(b=>b.onclick=()=>{cfrSel=b.dataset.c;ridisegna(".pcfsw");});
+  const bt=el.querySelector(".ptutte");if(bt)bt.onclick=()=>{tutteRot=!tutteRot;ridisegna(".ptutte");};
   // copia dell'ISIN: feedback "Copiato" per 1,5 secondi
   el.querySelectorAll(".pisin").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.isin);}catch(e){}
    b.classList.add("ok");b.querySelector("code").textContent="Copiato";setTimeout(()=>{b.classList.remove("ok");b.querySelector("code").textContent=b.dataset.isin;},1500);});
