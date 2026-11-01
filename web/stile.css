@@ -1394,3 +1394,8 @@ html.azaperto,html.azaperto body{overflow:hidden}                       /* la pa
 .crtassi{margin-top:18px}.crbreve{display:none}.crold{color:var(--warn)}
 @media (max-width:600px){.crmob{display:none}.crbreve{display:inline}.crtot{margin-left:0;width:100%}.vfswitch{flex-wrap:wrap}.vfswitch button{flex:1 1 40%}
  .crtab td,.crtab th{padding-left:6px;padding-right:6px}}
+
+/* ===== v6.62 · Portafogli: rotazione decisa in attesa del primo giorno di borsa ===== */
+.pdate .pnew b{color:var(--acc)}
+.pbasso{margin-top:8px}
+.protr .prisul .pmc-b{font-size:12px}

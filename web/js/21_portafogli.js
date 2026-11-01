@@ -161,6 +161,11 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <p class="pmc-fr">Rispetto ai <b>${m.n}</b> ${m.mese} passati con questa composizione, il mese va <b>${c.r>=m.media?"sopra":"sotto"}</b> la media storica.</p>`;}
   const wr=m&&m.n?Math.round(100*m.positivi/m.n):null;
   const k=(t,v,cls="")=>`<div><small>${t}</small><b class="${cls}">${v}</b></div>`;
+  if(c.attesa)return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in partenza <span class="pbprof">${esc(p.nome)}</span></h3>
+    <span class="pmc-b">Composizione decisa &middot; si entra il ${gg(c.dal)}</span></div>
+   <p class="pmc-fr">La nuova composizione &egrave; qui sotto: decisa con i prezzi di chiusura del ${gg(P.decisa_al)}, si compra all'apertura del ${gg(c.dal)}. Il risultato del mese si misura dalla chiusura di quel giorno.</p>
+   <div class="pmc-k">${k("Giorni di borsa nel mese",c.tot)}${k("Mesi storici in positivo",wr==null?"n/d":wr+"%")}${k("Media storica del mese",m&&m.media!=null?pc(m.media):"n/d",m&&m.media>=0?"up":"down")}</div>
+   ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}</div>`;
   return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in corso <span class="pbprof">${esc(p.nome)}</span></h3>
     <span class="pmc-b${c.live?"":" sim"}">${c.live?"Provvisorio &middot; si chiude a fine mese":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
    <div class="pmc-g"><b class="${cl}">${pc(r)}</b><span>da inizio mese &middot; ingresso alla chiusura del ${gg(c.dal)}</span></div>
@@ -195,7 +200,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return `<div class="prot${tutteRot?" aperta":""}">${p.rotazioni.map((r,i)=>`<div class="protr${i>=6?" pextra":""}"><b>${gg(r.data)}</b><div>
    ${r.entrati.length?`<div class="pin">+ ${r.entrati.map(ch).join("")}</div>`:""}${r.usciti.length?`<div class="pout">&minus; ${r.usciti.map(ch).join("")}</div>`:""}
    ${r.tenuti.length?`<div class="pten">= ${r.tenuti.map(ch).join("")}</div>`:""}${!r.entrati.length&&!r.usciti.length&&!r.tenuti.length?'<div class="small">tutto in liquidit&agrave;</div>':""}</div>
-   <span class="small">${r.liquidita?`liquidit&agrave; ${r.liquidita}%`:""}</span>${dettMese(perMese[r.data.slice(0,7)])}</div>`).join("")}
+   <span class="small">${r.liquidita?`liquidit&agrave; ${r.liquidita}%`:""}</span>${r.attesa?`<div class="prisul small"><span class="pmc-b">si esegue all'apertura del ${gg(r.data)}</span></div>`:dettMese(perMese[r.data.slice(0,7)])}</div>`).join("")}
    ${p.rotazioni.length>6?`<button class="ptutte">${tutteRot?"Mostra meno":`Mostra tutte (${p.rotazioni.length})`}</button>`:""}</div>`;}
 
  // --- CONFRONTO DEI 3 PROFILI mese per mese (v6.56): stessi mesi chiusi delle rotazioni, i tre profili affiancati,
@@ -283,7 +288,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   requestAnimationFrame(()=>{el.style.minHeight="";});}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Ogni profilo ha una base fissa di mercati e pesi; un mercato azionario resta in portafoglio finch&eacute; il prezzo &egrave; sopra la media a 200 giorni, altrimenti il suo peso va in pausa nella liquidit&agrave; fino a quando torna sopra; Treasury e oro restano sempre come difesa. Nei test sullo storico questo filtro di trend ha ridotto molto i drawdown, mentre il posizionamento COT non migliorava i risultati: per questo il COT &egrave; mostrato accanto a ogni mercato solo come informazione. Regole di base decise sullo storico fino al 2015 e verificate dal 2016; la revisione di ottobre 2026 (meno azioni singole, difesa sempre presente, meno scambi) ha guardato tutto lo storico, quindi la prova davvero pulita &egrave; la linea live, che riparte dalla rotazione del 2 novembre 2026. Il rischio si legge mese per mese: a ogni rotazione la scheda mostra come si &egrave; comportata la composizione del mese nello stesso mese di tutti gli anni dello storico. Prezzi in dollari di ETF ed ETC equivalenti (il cambio euro/dollaro non &egrave; incluso), costi 0,10% a ogni rotazione.</p>
-   <div class="pdate"><span><i></i>Rotazione del <b>${gg(P.rotazione)}</b></span><span class="pcount" data-t="${P.prossima||""}" title="Prossimo ribilanciamento: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">Prossimo ribilanciamento <b class="pcd">${gg(P.prossima)}</b></span></div>
+   <div class="pdate">${P.attesa?`<span class="pnew"><i></i>Nuova rotazione del <b>${gg(P.rotazione)}</b> &middot; decisa sulla chiusura del ${gg(P.decisa_al)}</span>`:`<span><i></i>Rotazione del <b>${gg(P.rotazione)}</b></span>`}<span class="pcount" data-t="${P.prossima||""}" title="${P.attesa?"Si esegue":"Prossimo ribilanciamento"}: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"} <b class="pcd">${gg(P.prossima)}</b></span></div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
    ${hero(p)}
    ${corso(p)}
@@ -293,9 +298,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="card pgraf">${curva(p)}</div>
    ${tabella(p)}
    ${confronto()}
-   <div class="grid k2 pbasso"><div><h3 class="vft">Ultime rotazioni <span class="small">(+ entrati, &minus; usciti, = rimasti)</span></h3>${rotazioni(p)}</div>
-    <div><h3 class="vft">In pausa questo mese <span class="small">(mercati della base sotto la media a 200 giorni: il loro peso &egrave; nella liquidit&agrave; e rientra quando il trend torna positivo)</span></h3>
-    <div class="card pescl">${p.esclusi.length?p.esclusi.map(x=>`<div class="pesr"><b>${esc(nomeK(x.k))}</b><span>${x.motivo}</span><em>base ${fx(x.base,0)}% &middot; trend ${pc(x.trend)} &middot; COT ${x.score!=null?sg(x.score,0):"n/d"}</em></div>`).join(""):'<div class="small">Nessun mercato in pausa: tutta la base &egrave; investita.</div>'}</div></div></div>`;
+   <div class="pbasso"><h3 class="vft">Ultime rotazioni <span class="small">(+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato)</span></h3>${rotazioni(p)}</div>`;
   el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
   // clic su un titolo delle azioni scelte: apre la sua scheda nell'Azionario (azioni.js)
   el.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>{if(window.ebApriTitolo)window.ebApriTitolo(b.dataset.az);});
