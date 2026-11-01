@@ -26,7 +26,7 @@ from .cot import cot_series
 from .fonti import get_cftc_tutto, get_fred, load_all, scarica_archivio
 from .log import log, raccoglitore
 from .mercato import fed_liquidity
-from . import agenda, backtest, correlazioni, notizie, portafogli, registro, stagionalita, storico, volatilita
+from . import agenda, backtest, carry, correlazioni, notizie, portafogli, registro, stagionalita, storico, volatilita
 from .admin import pubblico
 
 
@@ -156,6 +156,13 @@ def build(data_source=load_all, demo=False, sito=False):
             except Exception:
                 log.warning("archivio %s non aggiornato:\n%s", nome, traceback.format_exc())
                 rie_extra[nome] = {"stato": "errore"}
+    # CARRY TRADE (carry.py, v6.61): tassi d'interesse delle valute in un archivio a parte (storico/tassi.json).
+    # Isolato: se FRED non da' i tassi manca solo il carry, il resto del sito non cambia.
+    if not demo:
+        try:
+            carry.aggiorna_tassi(get_fred)
+        except Exception:
+            log.warning("carry: tassi non aggiornati:\n%s", traceback.format_exc())
     # VOLATILITA' di ogni strumento (giorni, settimane, mesi, anni, regime attuale): vedi volatilita.py
     vol = {}
     try:

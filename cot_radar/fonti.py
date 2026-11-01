@@ -115,7 +115,7 @@ def get_fred(sid, since):
         for o in data.get("observations", []):
             if valid_date(o.get("date", "")):
                 try:
-                    out.append([o["date"], float(o["value"]) * FRED_IDS[sid]])
+                    out.append([o["date"], float(o["value"]) * FRED_IDS.get(sid, 1)])
                 except (ValueError, KeyError):
                     pass
     else:
@@ -124,7 +124,7 @@ def get_fred(sid, since):
             p = [x.strip().strip('"') for x in line.split(",")]
             if len(p) >= 2 and len(p[0]) == 10 and valid_date(p[0]):   # scarta intestazione e righe non valide
                 try:
-                    out.append([p[0], float(p[1]) * FRED_IDS[sid]])
+                    out.append([p[0], float(p[1]) * FRED_IDS.get(sid, 1)])
                 except ValueError:
                     pass
         if not out and "Site Maintenance" in text[:600]:
