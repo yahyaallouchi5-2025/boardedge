@@ -59,7 +59,16 @@ try{
    - Si ferma passando il mouse o toccando (per leggere), riparte uscendo. Ai bordi sfuma.
    - Chi ha chiesto "riduci animazioni" nel sistema operativo vede le pillole ferme, una accanto all'altra (a capo).
    - Si ricalcola quando cambia la larghezza della finestra. La spiegazione sta nel tasto (i). */
-try{const ev=D.eventi||[],VEL=38;
+try{const VEL=38,SC=(D.agenda&&D.agenda.scenari)||{};
+ /* v6.73 EVENTI: tutta l'agenda ad alto impatto dei prossimi 7 giorni (financecalendar: NFP, CPI, PCE, ISM, banche
+    centrali di tutte le valute...). Orario UTC -> ora di Roma. Senza agenda: i 4 eventi principali di D.eventi.
+    senzaora = la fonte non da' l'orario (es. CPI Eurozona flash): si mostra solo il giorno. */
+ const romaTxt=u=>{const p={};new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Rome",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})
+   .formatToParts(new Date(u.replace("Z",":00Z"))).forEach(x=>{p[x.type]=x.value;});return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;};
+ const AG=((D.agenda&&D.agenda.eventi)||[]).filter(e=>!e.uscito&&(e.impatto||"high")=="high");
+ const ev=AG.length?AG.map(e=>({quando:e.utc?romaTxt(e.utc):e.data+" 23:59",senzaora:!e.utc,nome:e.nome.replace(/\s*\(.*\)$/,""),
+   nomeL:e.nome,valuta:e.valuta,tipo:e.tipo,cod:e.codice})).filter(e=>Date.parse(e.quando.slice(0,10))-Date.now()<7.5*864e5)
+   .sort((a,b)=>a.quando<b.quando?-1:1):(D.eventi||[]);
  const GG=["dom","lun","mar","mer","gio","ven","sab"];
  /* ORA DI ROMA: gli orari degli eventi sono "ora di Roma"; li confrontiamo con l'adesso di Roma (non del dispositivo),
     cosi' chi guarda da un altro fuso vede comunque lo stato giusto. Tutto in "minuti da epoca" fittizia (UTC finto). */
@@ -69,14 +78,14 @@ try{const ev=D.eventi||[],VEL=38;
  /* SCADENZA: dall'ora dell'evento la pillola e' "IN CORSO" (il mercato si muove proprio ora), poi sparisce:
     dopo 60 minuti per un dato macro, 90 per una banca centrale (conferenza stampa). */
  const FINESTRA=e=>e.tipo=="banca"?90:60;
- const attivi=()=>{const n=adessoRoma();return ev.filter(e=>n.m-minEv(e.quando)<=FINESTRA(e));};
+ const attivi=()=>{const n=adessoRoma();return ev.filter(e=>n.m-minEv(e.quando)<=(e.senzaora?0:FINESTRA(e)));};
  const pill=e=>{const n=adessoRoma(),q=new Date(e.quando.replace(" ","T")),dm=minEv(e.quando)-n.m;
   const diff=Math.round((Date.UTC(...e.quando.slice(0,10).split("-").map((v,i)=>i==1?v-1:+v))-Date.UTC(...n.g.split("-").map((v,i)=>i==1?v-1:+v)))/864e5);
   const incorso=dm<=0,quando=incorso?"IN CORSO":diff<=0?"OGGI":diff==1?"DOMANI":`tra ${diff} giorni`;
-  return `<span class="evp ${e.tipo=="banca"?"banca":"dato"}${incorso?" incorso":diff<=0?" oggi":diff==1?" domani":""}" title="${e.tipo=="banca"?"Banca centrale":"Dato macro"}">
-   <span class="evv">${esc(e.valuta)}</span><b>${esc(e.nome)}</b><span class="evq">${GG[q.getDay()]} ${e.quando.slice(8,10)}/${e.quando.slice(5,7)} <b>${e.quando.slice(11)}</b></span><em>${incorso?"<i class='evlive'></i>":""}${quando}</em></span>`;};
+  return `<span class="evp ${e.tipo=="banca"?"banca":"dato"}${incorso&&!e.senzaora?" incorso":diff<=0?" oggi":diff==1?" domani":""}" data-i="${ev.indexOf(e)}">
+   <span class="evv">${esc(e.valuta)}</span><b>${esc(e.nome)}</b><span class="evq">${GG[q.getDay()]} ${e.quando.slice(8,10)}/${e.quando.slice(5,7)}${e.senzaora?"":` <b>${e.quando.slice(11)}</b>`}</span><em>${incorso&&!e.senzaora?"<i class='evlive'></i>IN CORSO":incorso?"OGGI":quando}</em></span>`;};
  $("eventi").innerHTML=attivi().length?`<div class="card eventi"><div class="evhead"><h3>Prossimi eventi ad alto impatto</h3>
-  <details class="info"><summary title="Come usarli" aria-label="Informazioni">i</summary><div>Il giorno del dato la volatilit&agrave; sale: per lo swing conviene valutare l'ingresso <b>dopo</b> l'uscita. Dopo il dato la riga "Notizie" delle card mostra se la sorpresa rafforza o penalizza il segnale.</div></details>
+  <details class="info"><summary title="Come usarli" aria-label="Informazioni">i</summary><div>Il giorno del dato la volatilit&agrave; sale: per lo swing conviene valutare l'ingresso <b>dopo</b> l'uscita. Dopo il dato la riga "Notizie" delle card mostra se la sorpresa rafforza o penalizza il segnale.<br><br><b>Passa il mouse (o tocca) un evento</b> per lo scenario: cosa misura, dato precedente, cosa succede alla valuta se esce sopra o sotto e quanto reagisce di solito il mercato. Il confronto &egrave; con il dato precedente, non con le attese degli analisti (non disponibili gratis). Reazione tipica = quante delle ultime uscite hanno mosso il tasso USA a 2 anni pi&ugrave; di una giornata normale (solo dati USA).</div></details>
   ${D.agenda&&String(D.agenda.fonte||"").startsWith("financecalendar")?`<span class="small evfonte">Calendario: <a href="https://www.financecalendar.com" target="_blank" rel="noopener">financecalendar.com</a></span>`:""}</div>
   <div class="evnastro" role="marquee" aria-label="Prossimi eventi"><div class="evtrack"></div></div></div>`:"";
  const nastro=$("eventi").querySelector(".evnastro"),track=nastro&&nastro.querySelector(".evtrack");
@@ -121,7 +130,37 @@ try{const ev=D.eventi||[],VEL=38;
   nastro.addEventListener("click",e=>{if(mosso>6){e.preventDefault();e.stopPropagation();}},true);   // un trascinamento non e' un clic
   nastro.addEventListener("keydown",e=>{if(e.key=="ArrowLeft"||e.key=="ArrowRight"){x+=(e.key=="ArrowLeft"?1:-1)*140;cicla();applica();e.preventDefault();}});
   nastro.tabIndex=0;
-  document.addEventListener("visibilitychange",()=>{ultimoT=0;});}
+  document.addEventListener("visibilitychange",()=>{ultimoT=0;});
+  /* SCENARIO DELL'EVENTO (v6.73): un solo fumetto #evpop nel body (fuori dal nastro che scorre e taglia),
+     posizionato sotto la pillola. PC: compare al passaggio del mouse. Telefono: tocco apre/chiude, tocco fuori chiude. */
+  const pop=document.body.appendChild(Object.assign(document.createElement("div"),{id:"evpop",className:"evpop",hidden:true}));
+  pop.setAttribute("role","tooltip");
+  const LIV={forte:["Forte","up"],media:["Media","flat"],debole:["Debole","down"]};
+  const testo=e=>{const s=SC[e.cod]||{},V=esc(e.valuta),r=s.reaz,q=new Date(e.quando.replace(" ","T"));
+   return `<div class="eptesta"><span class="evv">${V}</span><b>${esc(e.nomeL||e.nome)}</b></div>
+   <div class="small">${GG[q.getDay()]} ${e.quando.slice(8,10)}/${e.quando.slice(5,7)}${e.senzaora?"":" ore "+e.quando.slice(11)}${s.cosa?" &middot; "+esc(s.cosa):""}</div>
+   ${s.prec?`<div class="eprec">Precedente: <b>${esc(s.prec)}</b>${s.periodo?` <span class="small">(${esc(s.periodo)})</span>`:""}</div>`:""}
+   ${s.alto?`<div class="epcaso"><span class="up">&#9650; ${e.tipo=="banca"?"Falco":"Sopra"}</span><span><b class="up">${V} pi&ugrave; forte</b>: ${esc(s.alto)}</span></div>
+   <div class="epcaso"><span class="down">&#9660; ${e.tipo=="banca"?"Colomba":"Sotto"}</span><span><b class="down">${V} pi&ugrave; debole</b>: ${esc(s.basso)}</span></div>`:""}
+   ${r?`<div class="epreaz">Reazione tipica <b class="${LIV[r.livello][1]}">${LIV[r.livello][0]}</b> <span class="small">${r.quota}% delle ultime ${r.n} uscite</span></div>`:""}`;};
+  let aperto=null;
+  const mostra=el=>{const e=ev[+el.dataset.i];if(!e)return;pop.innerHTML=testo(e);pop.className="evpop"+(e.tipo=="banca"?" banca":"");pop.hidden=false;aperto=el;
+   // dentro i bordi del riquadro eventi (mai sopra la barra laterale), e comunque dentro lo schermo
+   const r=el.getBoundingClientRect(),c=nastro.closest(".card").getBoundingClientRect(),w=pop.offsetWidth,h=pop.offsetHeight,M=12;
+   const sx=Math.max(M,c.left),dx=Math.min(innerWidth-M,c.right);
+   let L=Math.min(Math.max(sx,r.left+r.width/2-w/2),dx-w),T=r.bottom+10;L=Math.max(M,L);
+   if(T+h>innerHeight-M)T=Math.max(M,r.top-h-10);                     // poco spazio sotto: sopra la pillola
+   pop.style.left=L+"px";pop.style.top=T+"px";};
+  const nascondi=()=>{pop.hidden=true;aperto=null;};
+  nastro.addEventListener("pointerover",e=>{if(e.pointerType!="mouse"||trascina)return;const el=e.target.closest(".evp");if(el&&el!==aperto)mostra(el);});
+  nastro.addEventListener("pointerleave",e=>{if(e.pointerType=="mouse")nascondi();});
+  nastro.addEventListener("click",e=>{if(mosso>6)return;const el=e.target.closest(".evp");if(!el)return;
+   if(aperto===el&&matchMedia("(hover:none)").matches){nascondi();return;}mostra(el);sopra=true;});   // tocco: si ferma per leggere
+  document.addEventListener("pointerdown",e=>{if(aperto&&!e.target.closest(".evp,#evpop")){nascondi();sopra=false;}});
+  addEventListener("scroll",()=>{if(aperto&&matchMedia("(hover:none)").matches){nascondi();sopra=false;}},{passive:true});
+  document.addEventListener("keydown",e=>{if(e.key=="Escape")nascondi();});
+  // il fumetto segue la pillola mentre il nastro rallenta e si ferma
+  (function segui(){if(aperto&&!pop.hidden&&aperto.isConnected)mostra(aperto);requestAnimationFrame(segui);})();}
 }catch(e){fail("Prossimi eventi","eventi",e);}
 $("sectors").innerHTML=SEC.filter(g=>byS[g]).map(g=>{const l=byS[g],avg=l.reduce((x,a)=>x+a.score,0)/l.length;
  const up=l.filter(a=>a.score>=M.normal).length,dn=l.filter(a=>a.score<=-M.normal).length;

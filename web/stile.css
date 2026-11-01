@@ -1566,3 +1566,18 @@ html.ridotta .sagg{display:none}
 #sig>h2,#sig>#peblocco>h2:first-child{margin-top:48px}
 #sig h2+p.sub.infotesto:not(.aperta)+*{margin-top:22px}
 @media (max-width:600px){#sig>h2,#sig>#peblocco>h2:first-child{margin-top:40px}#sig h2+p.sub.infotesto:not(.aperta)+*{margin-top:18px}}
+
+/* --- v6.73 SCENARIO DEGLI EVENTI (04_dashboard.js): fumetto sotto la pillola, stesso stile delle card --- */
+.evp{cursor:pointer}
+.evpop{position:fixed;z-index:60;width:min(340px,calc(100vw - 24px));padding:14px 16px;border-radius:14px;
+ background:linear-gradient(180deg,var(--card),var(--card2));border:1px solid var(--acc);box-shadow:0 14px 36px rgba(0,0,0,.55);
+ font-size:13px;line-height:1.45;pointer-events:none}
+.evpop[hidden]{display:none}
+.eptesta{display:flex;align-items:center;gap:8px;margin-bottom:2px}.eptesta b{font-size:14.5px}
+.eprec{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+.epcaso{display:grid;grid-template-columns:76px 1fr;gap:8px;margin-top:8px;color:var(--ink2)}
+.epcaso>span:first-child{font-weight:800;font-size:12px;white-space:nowrap}
+.epreaz{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
+@media (hover:none){.evpop{pointer-events:auto}}
+.evpop{--bc:var(--c1)}.evpop.banca{--bc:var(--warn)}
+.evpop .evv{font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;color:var(--bc);border:1px solid color-mix(in srgb,var(--bc) 55%,transparent)}
