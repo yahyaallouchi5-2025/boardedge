@@ -19,11 +19,13 @@ COSA CALCOLA per ogni paese (anno = anno solare in corso):
   inf      inflazione dell'anno in corso
   stato    "crescita" se pil > 0, "decrescita" se pil <= 0 (PIL che si riduce = recessione)
 
+AGGIORNAMENTO AUTOMATICO: si riscarica a ogni giro del sito (piu' volte al giorno), con 3 tentativi.
 SICUREZZA DEI DATI: copia dell'ultimo download in dati/paesi_fmi.json; se il FMI non risponde si usa quella
 (con la sua data), se manca anche la copia il riquadro sparisce. Mai bloccante per il resto del sito.
 """
 import json
 import os
+import time
 import urllib.request
 from datetime import datetime, timezone
 
@@ -48,11 +50,21 @@ PAESI = [
 ]
 
 
+TENTATIVI = 3                # il FMI a volte risponde lento: 3 prove con attesa crescente (2 s, 6 s) prima della copia
+
+
 def _scarica(ind, timeout=30):
-    """{ISO3: {anno: valore}} di un indicatore FMI. User-Agent dichiarato del progetto."""
+    """{ISO3: {anno: valore}} di un indicatore FMI. User-Agent dichiarato del progetto. Riprova fino a TENTATIVI."""
     req = urllib.request.Request(API.format(ind=ind), headers={"User-Agent": "cot-radar/paesi"})
-    with urllib.request.urlopen(req, timeout=timeout) as r:
-        return json.load(r)["values"][ind]
+    for n in range(TENTATIVI):
+        try:
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.load(r)["values"][ind]
+        except Exception as e:
+            if n == TENTATIVI - 1:
+                raise                                  # ultimo tentativo fallito: carica() passa alla copia salvata
+            log.info("paesi: FMI %s non risponde (%s), nuovo tentativo %d/%d", ind, type(e).__name__, n + 2, TENTATIVI)
+            time.sleep(2 * 3 ** n)
 
 
 def _leggi_copia():

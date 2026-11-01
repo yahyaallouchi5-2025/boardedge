@@ -184,7 +184,10 @@ function acard(a){const v=verb(a.score),m=a.mkt;return `<div class="card clic" d
  <div class="tags">${mtag(a.cot,a.macro)}${a.new?`<span class="tag new">Nuovo (prima ${a.prev_label})</span>`:''}${a.crowded?'<span class="tag ko">affollato</span>':''}${ctag(a.comm_acc)}${stagtag(a.stag,a.score)}</div>
  <div class="why">Speculatori: <b class="${v[1]}">${v[0]}</b>, ${fmt(a.d_net)} contratti in settimana, ${fmt(a.d_net4)} in 4 settimane.${m?` Mercato: ${m.status.toLowerCase()}.`:''}${NOTE[a.key]||NOTE[a.group]?' '+(NOTE[a.key]||NOTE[a.group]):''}</div></div>`;}
 var oth=Object.values(D.assets).filter(a=>a.group!="Valute"&&a.label!="NEUTRO").sort((x,y)=>Math.abs(y.score)-Math.abs(x.score));
-$("acards").innerHTML=oth.length?oth.map(acard).join(""):`<div class="card">Nessun segnale attivo.</div>`;
+// v6.72: una griglia per famiglia (stesso ordine dei titoli in pagina); famiglia senza segnali = riga breve
+const FAM=[["ac-mp",["Energia","Metalli","Cereali","Soft","Bestiame"]],["ac-ind",["Indici azionari"]],["ac-tas",["Tassi USA"]],["ac-cry",["Crypto"]]];
+FAM.forEach(([id,gr])=>{const el=$(id);if(!el)return;const v=oth.filter(a=>gr.includes(a.group));
+ el.innerHTML=v.length?v.map(acard).join(""):`<div class="card vuota">Nessun segnale attivo questa settimana.</div>`;});
 /* ANELLI ALLINEATI: il diametro dell'anello = altezza del blocco a sinistra (nome + pillola).
    ResizeObserver ricalcola quando la scheda diventa visibile, cambia larghezza o il nome va a capo. */
 (function(){const allinea=sx=>{const a=sx.parentElement.querySelector(".anello"),h=Math.round(sx.getBoundingClientRect().height);

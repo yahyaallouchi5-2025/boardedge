@@ -161,7 +161,7 @@ html.bloccato,html.bloccato body{overflow:hidden;overscroll-behavior:none}
 
 
 /* schede segnali: piu' larghe, cosi' i tre riquadri stanno affiancati */
-#cards,#acards{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
+#cards,.agrid{grid-template-columns:repeat(auto-fill,minmax(340px,1fr))}
 /* anello del punteggio (vedi web/js, anello): cerchio di fondo + arco colorato, numero al centro */
 /* misura iniziale; web/js (allineaAnelli) la rende uguale all'altezza di nome + pillola,
    cosi' il bordo basso dell'anello e' allineato alla pillola SELL/BUY */
@@ -1536,3 +1536,27 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .sagg .dataagg{padding:0;border:0;background:none;font-size:13px;font-weight:700;color:var(--ink)}
 html.ridotta .sagg{display:none}
 .topdx{display:none}                  /* in alto restano solo marchio e sottotitolo */
+
+/* --- v6.72 PAESI EMERGENTI (31_paesi.js): schede compatte, 2 colonne su telefono --- */
+.filters button small{font-weight:500;opacity:.7;margin-left:3px}
+.pegrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:14px}
+.pecard{padding:16px 18px;display:flex;flex-direction:column;gap:4px;transition:transform .15s,border-color .15s}
+.pecard:hover{transform:translateY(-2px);border-color:var(--acc)}
+.petesta{display:flex;justify-content:space-between;align-items:baseline;gap:8px}.petesta b{font-size:15.5px}
+.petesta .small{font-size:11.5px;text-align:right}
+.pepil{font-size:28px;font-weight:800;letter-spacing:-.5px;line-height:1.1;margin-top:6px;font-variant-numeric:tabular-nums}
+.perighe{display:flex;flex-direction:column;gap:3px;margin-top:8px;padding-top:8px;border-top:1px solid var(--line);font-size:12.5px;color:var(--mute)}
+.perighe span{white-space:nowrap;display:flex;justify-content:space-between;gap:8px}.perighe b{color:var(--ink2);font-variant-numeric:tabular-nums}.perighe b.up{color:var(--b)}.perighe b.down{color:var(--s)}
+.pefonte{margin-top:12px}
+@media (max-width:600px){.pegrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.pecard{padding:13px 12px}
+ .pepil{font-size:23px}.petesta{flex-direction:column;gap:0}.petesta .small{text-align:left}}
+
+/* --- v6.72 PC: niente marchio doppione nella barra laterale (il titolo BoardEdge e' gia' accanto) e pulsante
+   riduci/espandi centrato sull'altezza del titolo: centro titolo = 36px + 35/2 ~ 53,5px dall'alto della pagina,
+   pulsante alto 32px -> parte a 37,5px; la barra ha 20px di margine sopra, quindi 17,5px in piu'.
+   Su telefono (<=900px) la barra e' un cassetto sopra la pagina: li' il marchio resta. */
+@media (min-width:901px){
+ .side .blogo{display:none}
+ .sbrand{justify-content:flex-end;margin-top:17.5px}
+ html.ridotta .sbrand{align-items:center;justify-content:center}
+}
