@@ -57,23 +57,32 @@ try{(function(){const el=$("pattern");if(!el)return;
  //     con stop all'estremo, target 1R/2R, costi e filtro trend; VERDETTO automatico in cima, senza giri di parole.
  // v6.59b: testo breve in pagina, spiegazione completa nella (i). Verdetto: "peggio" se il risultato e' SICURAMENTE
  //   sotto zero (anche il limite alto dell'intervallo al 95% e' negativo), "si" se sicuramente sopra, altrimenti "no".
+ /* v6.76 STUDIO STORICO in italiano semplice (prima: "DA SOLO, PEGGIO DEL CASO" e colonne in "R").
+    Il risultato si mostra in % del RISCHIO: 100% = quanto si perde se scatta lo stop (1 R). -4% = in media si perde
+    il 4% di quanto si rischia a ogni operazione, costi inclusi. Esito: "in perdita" se e' sotto zero anche nel caso
+    migliore (limite alto dell'intervallo al 95% negativo), "utile" se sopra zero anche nel caso peggiore, altrimenti
+    "nessun vantaggio". Numeri da cot_radar/pattern.py studio(); la riga "a cicli" e' lo studio offline
+    tools/studio_pattern_cicli.py del 02/11/2026 (ingresso con il COT, uscita al pattern opposto). */
  function studio(st){if(!st||!st.varianti)return "";
-  const r=v=>v==null?"n/d":(v>0?"+":"")+fx(v,2)+" R",V=st.varianti;
-  const ETV={si:"s&igrave;",no:"no",peggio:"peggio"},ETS={si:"VANTAGGIO IN ALMENO UNA VARIANTE",no:"NESSUN VANTAGGIO DIMOSTRATO",ko:"DA SOLO, PEGGIO DEL CASO"};
+  const pr=v=>v==null?"n/d":(v>0?"+":"\u2212")+fx(Math.abs(v*100),0)+"%",V=st.varianti;
+  const ETV={si:"utile",no:"nessun vantaggio",peggio:"in perdita"},ETC={si:"utile",no:"no",peggio:"perdita"},ETS={si:"Vantaggio in almeno una variante",no:"Nessun vantaggio dimostrato",ko:"Da solo non conviene"};
   const esito=x=>!x||!x.ic?"no":x.ic[0]>0?"si":x.ic[1]<0?"peggio":"no";
   const tutte=[V["1R"].tutti,V["2R"].tutti,V["1R"].trend,V["2R"].trend,V["1R"].contro_trend,V["2R"].contro_trend];
   const stato=tutte.some(x=>esito(x)=="si")?"si":tutte.some(x=>esito(x)=="peggio")?"ko":"no";
   const riga=(nome,x)=>x?`<tr><td>${nome}</td><td class="num ptmob">${x.n.toLocaleString("it-IT")}</td><td class="num ptmob">${x.vinte}%</td>
-   <td class="num ${x.r_medio>=0?"up":"down"}"><b>${r(x.r_medio)}</b></td><td class="num ptmob">${x.ic?`${r(x.ic[0])} &hellip; ${r(x.ic[1])}`:"n/d"}</td>
-   <td class="num"><span class="ptv ${esito(x)}">${ETV[esito(x)]}</span></td></tr>`:"";
-  const t1=V["1R"].tutti;
+   <td class="num ${x.r_medio>=0?"up":"down"}"><b>${pr(x.r_medio)}</b></td><td class="num ptmob">${x.ic?`da ${pr(x.ic[0])} a ${pr(x.ic[1])}`:"n/d"}</td>
+   <td class="num"><span class="ptv ${esito(x)}"><span class="ptlg">${ETV[esito(x)]}</span><span class="ptsh">${ETC[esito(x)]}</span></span></td></tr>`:"";
+  const t1=V["1R"].tutti,anno=esc((t1&&t1.dal||"").slice(0,4));
+  const frase=t1?`Operando <b>ogni</b> pattern dal ${anno} (${t1.n.toLocaleString("it-IT")} operazioni), con stop all'estremo e obiettivo pari al rischio, in media ${t1.r_medio<0?"si perde":"si guadagna"} il <b>${fx(Math.abs(t1.r_medio*100),0)}% di quanto si rischia</b> a operazione, costi inclusi.`:"";
   return `<div class="card ptstudio ${stato}"><div class="ptsth"><span class="ptverd">${ETS[stato]}</span>
-    <span class="small">Studio Daily dal ${esc((t1&&t1.dal||"").slice(0,4))} &middot; ${t1?t1.n.toLocaleString("it-IT"):"n/d"} pattern &middot; ${ST.d.strumenti.length} strumenti</span>
+    <span class="small">Studio Daily dal ${anno} &middot; ${ST.d.strumenti.length} strumenti</span>
     <button type="button" class="info" data-apri="ptinfo" data-k="ptstudio" aria-label="Mostra o nascondi la spiegazione">i</button></div>
-   <p id="ptinfo" class="sub infotesto${infoAperte.has("ptstudio")?" aperta":""}">Ogni pattern operato come un trade vero: ingresso alla chiusura della candela 3, stop all'estremo del pattern (rischio = 1 R), target a 1 R o 2 R, uscita dopo ${st.regole.uscita_max} candele, costi inclusi; stop e target nella stessa candela = stop. R = multipli del rischio. Trend = media a 200 candele. Intervallo al 95% corretto per 10 confronti, segnali delle stesse 2 settimane contati insieme. &laquo;Peggio&raquo; = sotto zero anche nel caso migliore. Usa il pattern come lettura del grafico, non come segnale da solo. Statistica del passato, non un consiglio.</p>
-   <div class="tablewrap"><table class="compatta"><tr><th>Variante</th><th class="num ptmob">Pattern</th><th class="num ptmob">Vinti</th><th class="num">Medio</th><th class="num ptmob">Intervallo 95%</th><th class="num">Vantaggio</th></tr>
-    ${riga("1R, tutti",V["1R"].tutti)}${riga("1R, con il trend",V["1R"].trend)}${riga("1R, contro il trend",V["1R"].contro_trend)}
-    ${riga("2R, tutti",V["2R"].tutti)}${riga("2R, con il trend",V["2R"].trend)}${riga("2R, contro il trend",V["2R"].contro_trend)}</table></div></div>`;}
+   <p class="ptfrase">${frase} Usalo per leggere il grafico, non come segnale da solo.</p>
+   <p id="ptinfo" class="sub infotesto${infoAperte.has("ptstudio")?" aperta":""}">Ogni pattern operato come un trade vero: ingresso alla chiusura della candela 3, stop all'estremo del pattern, obiettivo a 1 o 2 volte il rischio, uscita dopo ${st.regole.uscita_max} candele al massimo, costi inclusi; stop e obiettivo nella stessa candela = stop. <b>Risultato medio</b> in % del rischio: 100% = quanto perdi se scatta lo stop. <b>Range probabile</b>: dove sta davvero la media con il 95% di sicurezza (corretto per 10 confronti, operazioni delle stesse 2 settimane contate insieme). <b>In perdita</b> = sotto zero anche nel caso migliore. Trend = media a 200 candele. <b>A cicli con il COT</b> (studio del 02/11/2026): ingresso solo nel verso del segnale COT, uscita al pattern opposto, rientro finch&eacute; il COT resta attivo: dal 2001 fa peggio che tenere il segnale COT per tutta la sua durata. Statistica del passato, non un consiglio.</p>
+   <div class="tablewrap"><table class="compatta"><tr><th>Come si opera</th><th class="num ptmob">Operazioni</th><th class="num ptmob">Vincenti</th><th class="num"><span class="ptlg">Risultato medio</span><span class="ptsh">Medio</span></th><th class="num ptmob">Range probabile</th><th class="num">Esito</th></tr>
+    ${riga("<span class=\"ptob\">Obiettivo </span>1&times; rischio &middot; tutti",V["1R"].tutti)}${riga("<span class=\"ptob\">Obiettivo </span>1&times; rischio &middot; a favore del trend",V["1R"].trend)}${riga("<span class=\"ptob\">Obiettivo </span>1&times; rischio &middot; contro il trend",V["1R"].contro_trend)}
+    ${riga("<span class=\"ptob\">Obiettivo </span>2&times; rischio &middot; tutti",V["2R"].tutti)}${riga("<span class=\"ptob\">Obiettivo </span>2&times; rischio &middot; a favore del trend",V["2R"].trend)}${riga("<span class=\"ptob\">Obiettivo </span>2&times; rischio &middot; contro il trend",V["2R"].contro_trend)}</table></div>
+   <p class="small ptcicli">Provato anche <b>a cicli con il COT</b> (entri con il segnale COT, esci al pattern opposto, rientri finch&eacute; il COT &egrave; attivo): peggio che tenere il segnale COT.</p></div>`;}
 
  function disegna(){const d=ST.d,tf=ST.tf;
   const S=d.strumenti.filter(s=>ST.g=="tutti"||s.g==ST.g);

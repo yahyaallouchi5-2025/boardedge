@@ -1598,3 +1598,12 @@ html.ridotta .sagg{display:none}
  html.ridotta .stit{justify-content:center;margin-bottom:14px}
  html.ridotta .sitem{padding:9px 0}
 }
+/* v6.76 studio del Pattern Detector in parole semplici */
+.ptstudio .ptverd{letter-spacing:.02em;font-size:13.5px}
+.ptfrase{margin:12px 0 4px;font-size:14.5px;line-height:1.55;color:var(--ink2);max-width:980px}
+.ptcicli{margin:4px 0 0}.ptv{white-space:nowrap}
+@media(max-width:640px){.ptfrase{font-size:14px}}
+@media(max-width:640px){.ptstudio .ptob{display:none}.ptstudio table{width:100%;table-layout:auto}
+ .ptstudio td:first-child{white-space:normal;line-height:1.35}}
+.ptsh{display:none}
+@media(max-width:640px){.ptstudio .ptlg{display:none}.ptstudio .ptsh{display:inline}}
