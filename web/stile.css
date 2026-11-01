@@ -1487,3 +1487,28 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 .tzsc-piede .tzsp{flex:1;height:38px;color:var(--warn)}
 .tzsc-piede .tzapri{flex:none}
 @media (max-width:900px){.tzsc-g{grid-template-columns:1fr}}
+
+/* ===== v6.67 · respiro tra i blocchi della Dashboard (multipli di 8) e schede raggruppate in menu ===== */
+#sig>#eventi:not(:empty){margin-bottom:24px}
+#sig>#eventi .card{margin:0}
+#topaz .tz{margin-bottom:24px}
+#topaz .tzsc{margin:0 0 32px}
+.kzg{gap:24px;margin-bottom:40px}
+@media (max-width:600px){#topaz .tzsc{margin-bottom:24px}.kzg{gap:16px;margin-bottom:32px}}
+/* menu delle schede */
+.ngrp{position:relative;flex:none}
+.ngb{display:inline-flex;align-items:center;gap:6px}
+.ngfr{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s;opacity:.8}
+.ngrp.aperto .ngfr{transform:rotate(180deg)}
+.ngsel{font-weight:500;opacity:.85}.ngsel:not(:empty):before{content:"\00b7";margin:0 6px 0 2px}
+.ngrp.att>.ngb{background:var(--acc);color:#04211e}
+.ngrp.aperto>.ngb{background:var(--soft);color:var(--ink)}.ngrp.att.aperto>.ngb{background:var(--acc);color:#04211e}
+.ngm{display:none}
+.ngmenu{position:fixed;z-index:40;display:flex;flex-direction:column;gap:2px;padding:6px;border-radius:14px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);animation:ngin .15s ease-out}
+.ngmenu[hidden]{display:none}
+.ngmenu button{background:none;border:0;text-align:left;border-radius:9px;padding:10px 14px;width:100%;font:600 14.5px system-ui;color:var(--mute);cursor:pointer;white-space:nowrap;transition:background .15s,color .15s}
+.ngmenu button:hover{background:var(--soft);color:var(--ink)}
+.ngmenu button.on{background:color-mix(in srgb,var(--acc) 16%,transparent);color:var(--acc)}
+@keyframes ngin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (max-width:600px){.ngsel{display:none}}
+@media (max-width:600px){nav button{padding:8px 11px;font-size:14px}nav{gap:4px}}

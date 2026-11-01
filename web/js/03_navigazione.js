@@ -1,8 +1,33 @@
 /* ---------- navigazione ----------
    Le schede sono <section>: si mostra solo quella con la classe "on". */
 try{
-document.querySelectorAll("#nav button").forEach(b=>b.onclick=()=>{document.querySelectorAll("#nav button,section").forEach(x=>x.classList.remove("on"));
- b.classList.add("on");const sez=$(b.dataset.t);if(sez)sez.classList.add("on");window.scrollTo({top:0});});
+// v6.67 SCHEDE RAGGRUPPATE: Dashboard, Portafogli e Azionario sempre visibili; le altre in tre menu (Mercati, Analisi,
+// Ricerca). I bottoni veri delle schede restano dentro la barra (nascosti): link diretti, go(), feedback e statistiche
+// funzionano come prima. Il menu che si vede e' una COPIA disegnata in fondo alla pagina (#ngmenu) sotto il bottone
+// del gruppo: dentro la barra verrebbe tagliato (la barra scorre di lato sul telefono e ha lo sfondo sfocato).
+// Si chiude scegliendo una scheda, cliccando fuori, con Esc o scorrendo la pagina. Il bottone del gruppo si colora
+// quando la scheda aperta e' sua e ne mostra il nome.
+const NGR=[...document.querySelectorAll("#nav .ngrp")];
+const NGM=document.createElement("div");NGM.id="ngmenu";NGM.className="ngmenu";NGM.setAttribute("role","menu");NGM.hidden=true;document.body.appendChild(NGM);
+let ngAperto=null;
+function chiudiMenu(){ngAperto=null;NGM.hidden=true;NGR.forEach(g=>{g.classList.remove("aperto");g.querySelector(".ngb").setAttribute("aria-expanded","false");});}
+function posiziona(){if(!ngAperto)return;const r=ngAperto.querySelector(".ngb").getBoundingClientRect(),w=Math.max(r.width,220);
+ NGM.style.minWidth=w+"px";NGM.style.top=(r.bottom+6)+"px";NGM.style.left=Math.min(Math.max(8,r.left),window.innerWidth-NGM.offsetWidth-8)+"px";}
+function apriMenu(g){chiudiMenu();ngAperto=g;g.classList.add("aperto");g.querySelector(".ngb").setAttribute("aria-expanded","true");
+ // solo le schede visibili (es. "Registro" sparisce se il registro admin non e' pubblicato)
+ NGM.innerHTML=[...g.querySelectorAll(".ngm button[data-t]")].filter(b=>b.style.display!="none")
+  .map(b=>`<button type="button" role="menuitem" data-ng="${b.dataset.t}" class="${b.classList.contains("on")?"on":""}">${b.innerHTML}</button>`).join("");
+ NGM.hidden=false;posiziona();
+ NGM.querySelectorAll("[data-ng]").forEach(x=>x.onclick=()=>{const v=document.querySelector(`#nav button[data-t=${x.dataset.ng}]`);if(v)v.click();});}
+function segnaGruppi(){NGR.forEach(g=>{const on=g.querySelector(".ngm button.on");g.classList.toggle("att",!!on);
+ g.querySelector(".ngsel").textContent=on?on.textContent.trim():"";});}
+NGR.forEach(g=>{g.querySelector(".ngb").onclick=e=>{e.stopPropagation();ngAperto==g?chiudiMenu():apriMenu(g);};});
+document.addEventListener("click",e=>{if(ngAperto&&!e.target.closest("#ngmenu"))chiudiMenu();});
+document.addEventListener("keydown",e=>{if(e.key=="Escape")chiudiMenu();});
+window.addEventListener("scroll",chiudiMenu,{passive:true});window.addEventListener("resize",chiudiMenu);
+$("nav").addEventListener("scroll",posiziona,{passive:true});      // la barra che scorre di lato riallinea il menu
+document.querySelectorAll("#nav button[data-t]").forEach(b=>b.onclick=()=>{document.querySelectorAll("#nav button[data-t],section").forEach(x=>x.classList.remove("on"));
+ b.classList.add("on");const sez=$(b.dataset.t);if(sez)sez.classList.add("on");chiudiMenu();segnaGruppi();window.scrollTo({top:0});});
 var go=t=>document.querySelector(`#nav button[data-t=${t}]`).click();
 document.addEventListener("click",ev=>{const a=ev.target.closest("[data-vai]");if(!a)return;ev.preventDefault();
  try{if(!$("tvmodal").hidden)chiudiGrafico();}catch(e){}go(a.dataset.vai);});
