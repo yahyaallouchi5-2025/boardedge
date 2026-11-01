@@ -1581,3 +1581,9 @@ html.ridotta .sagg{display:none}
 @media (hover:none){.evpop{pointer-events:auto}}
 .evpop{--bc:var(--c1)}.evpop.banca{--bc:var(--warn)}
 .evpop .evv{font-size:11px;font-weight:800;padding:2px 7px;border-radius:6px;color:var(--bc);border:1px solid color-mix(in srgb,var(--bc) 55%,transparent)}
+/* v6.73 ISIN delle azioni scelte (Portafogli): piccolo e copiabile sotto il nome */
+.paz-isin{display:inline-flex;align-items:center;gap:5px;margin-top:3px;font-size:11px;color:var(--mute);cursor:copy;width:max-content;
+ padding:1px 7px;border-radius:6px;border:1px solid var(--line);background:var(--soft);transition:border-color .15s,color .15s}
+.paz-isin code{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.3px;color:var(--ink2)}
+.paz-isin svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
+.paz-isin:hover{border-color:var(--acc);color:var(--ink)}.paz-isin.ok{border-color:var(--b);color:var(--b)}

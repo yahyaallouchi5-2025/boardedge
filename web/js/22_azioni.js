@@ -271,8 +271,12 @@ try{(function(){const el=$("azioni");if(!el)return;
     ${p.desc?`<p class="azdesc"><span class="dtesto">${esc(p.desc.testo)}</span>${p.desc.lingua!="it"?` <button type="button" class="trad" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h9M8.5 3v2M6 5c.6 3.4 2.6 6 6 7.5M11 5c-.8 3.6-3.3 6.6-7 8M13 21l4.5-10L22 21M14.5 18h6"/></svg>Traduci</button>`:""}</p>`:""}
     <div class="azmini azfatti">${f("Settore",esc(nomeSet(t.s)))}${f("Fondata",esc(p.fondata||""))}${f("Sede",esc([p.sede,p.paese].filter(Boolean).join(", ")))}
      ${f((p.ceo||[]).length>1?"Amministratori delegati":"Amministratore delegato",esc((p.ceo||[]).join(", ")))}${f("Dipendenti",dip)}
-     ${f("Quotata su",esc((p.borse||[]).join(", ")||t.l.map(nomeList).join(", ")))}${acq?f("Acquisita da",esc(acq.nome)+` <em>(${acq.anno})</em>`):""}</div>
+     ${f("Quotata su",esc((p.borse||[]).join(", ")||t.l.map(nomeList).join(", ")))}${acq?f("Acquisita da",esc(acq.nome)+` <em>(${acq.anno})</em>`):""}
+     ${p.isin?`<div><span>ISIN</span><b><button type="button" class="pisin" data-isin="${esc(p.isin)}" title="Copia l'ISIN da cercare nell'app del broker"><code>${esc(p.isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></b></div>`:""}</div>
     <p class="small azfonte">Fonte: Wikidata e Wikipedia${p.desc&&p.desc.url?` &middot; <a href="${esc(p.desc.url)}" target="_blank" rel="noopener">voce completa</a>`:""}${p.sito?` &middot; <a href="${esc(p.sito)}" target="_blank" rel="noopener">sito ufficiale</a>`:""}.</p>`;
+   // v6.73: ISIN copiabile (per cercare il titolo nell'app del broker)
+   const bi=box.querySelector(".pisin");if(bi)bi.onclick=async()=>{try{await navigator.clipboard.writeText(p.isin);}catch(e){}
+    const c=bi.querySelector("code");bi.classList.add("ok");c.textContent="Copiato";setTimeout(()=>{bi.classList.remove("ok");c.textContent=p.isin;},1500);};
    /* v6.54c: "Traduci" al posto di "(da Wikipedia in inglese)": un tocco mostra l'italiano, un altro torna all'originale */
    const bt=box.querySelector(".trad"),dt=box.querySelector(".dtesto");
    if(bt)bt.onclick=()=>{const on=bt.getAttribute("aria-pressed")=="true",et=bt.lastChild;

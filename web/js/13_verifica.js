@@ -22,12 +22,17 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
  function cella(t){return t?`<td class="num"><b class="${col(t.res)}">${pc(t.res)}</b></td><td class="num up">${pc(t.mfe)}</td><td class="num down">${pc(t.mae)}</td><td>${t.provvisorio?'<span class="vfic" title="ancora in corso">&#9719;</span>':t.vinto?'<span class="vfok">&#10003;</span>':'<span class="vfko">&#10007;</span>'}</td>`
   :`<td class="num small" colspan="4">in attesa</td>`;}
 
+ /* v6.73 ATTESA DEL PREZZO: i cambi FRED (tassi di mezzogiorno di New York) escono UNA volta a settimana, il lunedi'
+    sera, per tutta la settimana prima. Un segnale su una coppia nato dopo il fixing del venerdi' aspetta quindi fino a
+    10 giorni il primo prezzo: non e' un errore, lo diciamo chiaramente. Gli altri strumenti hanno prezzi giornalieri. */
+ const FXC=/^(EUR|USD|GBP|JPY|CHF|CAD|AUD|NZD|MXN|BRL|ZAR){2}$/;
+ const attesa=(s,m)=>m.stato&&m.stato!="ok"?(FXC.test(s.strumento)?"in attesa del cambio FRED (esce il luned\u00ec)":m.stato):"prezzo non disponibile";
  /* scheda di un segnale nel formato approvato */
  function scheda(s,sim){const m=s.m||{},A=m.A||{},ing=m.ingresso;
   const testa=`<div class="vfh"><span class="pair">${esc(s.strumento)}</span> ${badge(s.etichetta)}${s.iniziale?' <span class="tag" title="Era gia\' attivo quando il registro e\' partito: escluso dalle statistiche">gi&agrave; attivo all\'avvio</span>':''}${s.padre?' <span class="tag" title="Fase STRONG di un segnale gia\' aperto">fase STRONG</span>':''}${volTag(s.vol)}</div>`;
   let h=`<div class="vfr"><span>Segnale generato</span><b>${esc(s.generato_it)}</b></div>`+
    (ing?`<div class="vfr"><span>Ingresso</span><b>${prezzo(ing.prezzo)} <span class="small">&middot; ${oraIt(ing.utc)}</span></b></div>`
-       :`<div class="vfr"><span>Ingresso</span><span class="small">${esc(m.stato||"prezzo non disponibile")}</span></div>`);
+       :`<div class="vfr"><span>Ingresso</span><span class="small">${esc(attesa(s,m))}</span></div>`);
   if(ing){const f=A.fine,fm=m.fine||{},chiuso=!!(s.chiuso||fm.motivo);
    const nf=f?`${chiuso?"Al cambio":"Finora"}<small class="vfsett">${sett(ing.data,f.data)} sett.</small>`:"Al cambio";
    h+=`<table class="vftab"><tr><th></th><th class="num">Risultato</th><th class="num">Max</th><th class="num">Min</th><th></th></tr>
@@ -42,7 +47,7 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
    const att='<td class="num small" colspan="4">in attesa</td>';
    h+=`<table class="vftab vfattesa"><tr><th></th><th class="num">Risultato</th><th class="num">Max</th><th class="num">Min</th><th></th></tr>
     <tr><td>1 settimana</td>${att}</tr><tr><td>2 settimane</td>${att}</tr><tr><td>4 settimane</td>${att}</tr>
-    <tr class="vffine"><td>Finora</td>${att}</tr></table><div class="small vfnota">Ingresso B (ritracciamento): in attesa del primo prezzo</div>`;}
+    <tr class="vffine"><td>Finora</td>${att}</tr></table><div class="small vfnota">Ingresso B (ritracciamento): ${esc(attesa(s,m))}</div>`;}
   return `<div class="card vfcard${sim?" vfsim":""}">${testa}<div class="vfrighe">${h}</div></div>`;}
 
  /* ---- VOLATILITA' PER ASSET (D.vol, calcolata da cot_radar/volatilita.py) ----

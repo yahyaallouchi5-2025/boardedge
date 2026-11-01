@@ -86,7 +86,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    const quota=lista.length?c.peso/lista.length:0;
    if(lista.length)tit=`<div class="paz">${reg?"":`<div class="paz-ante"><b>Anteprima per ${MESI[+an.mese.slice(5,7)-1]}</b> &middot; calcolata il ${gg(an.al)} con i prezzi di oggi. La lista definitiva si fissa l'ultimo giorno di borsa dopo la chiusura ed entra il ${gg(P.prossima)}.</div>`}
     ${lista.map(x=>{const b=borsa(x.t),sett=(SETT[x.s]||[x.s||""])[0];return `<button class="paz-r clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">
-     <span class="paz-id"><b>${esc(x.t)}</b><span class="paz-n">${esc(x.n)}</span></span><span class="paz-s">${esc(sett)}</span><span class="paz-b${b[1]?"":" no"}" title="${b[1]?"Borsa di quotazione":"Di solito non acquistabile dai broker europei per privati"}">${b[0]}</span><span class="paz-p"><b>${fx(quota,1)}%</b><em data-peso="${quota}">${eur(capitale*quota/100)}</em></span></button>`;}).join("")}</div>`;
+     <span class="paz-id"><b>${esc(x.t)}</b><span class="paz-n">${esc(x.n)}</span><span class="paz-isin" data-isinaz="${esc(x.t)}" hidden></span></span><span class="paz-s">${esc(sett)}</span><span class="paz-b${b[1]?"":" no"}" title="${b[1]?"Borsa di quotazione":"Di solito non acquistabile dai broker europei per privati"}">${b[0]}</span><span class="paz-p"><b>${fx(quota,1)}%</b><em data-peso="${quota}">${eur(capitale*quota/100)}</em></span></button>`;}).join("")}</div>`;
    else tit=`<div class="small paz-vuoto">I 5 titoli si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.</div>`;}
   // l'elenco dei titoli sta su una riga a parte della griglia, a tutta larghezza (leggibile anche su telefono)
   return `<div class="prow${c.k=="AZ"?" prow-az":""}"><i style="background:${col}"></i><div class="pnome"><b>${esc(c.nome)}</b>${ue}<em>${mot}</em></div>
@@ -305,6 +305,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   el.querySelectorAll(".pper button").forEach(b=>b.onclick=()=>{per=b.dataset.per;ridisegna(".pper");});
   el.querySelectorAll(".pcfsw button").forEach(b=>b.onclick=()=>{cfrSel=b.dataset.c;ridisegna(".pcfsw");});
   const bt=el.querySelector(".ptutte");if(bt)bt.onclick=()=>{tutteRot=!tutteRot;ridisegna(".ptutte");};
+  isinAzioni(el);
   // copia dell'ISIN: feedback "Copiato" per 1,5 secondi
   el.querySelectorAll(".pisin").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.isin);}catch(e){}
    b.classList.add("ok");b.querySelector("code").textContent="Copiato";setTimeout(()=>{b.classList.remove("ok");b.querySelector("code").textContent=b.dataset.isin;},1500);});
@@ -314,6 +315,16 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   tipMesi(el.querySelector(".pcontro"),p);
   conto();
   suggerimento(el.querySelector(".pgraf"),p);}
+ // --- v6.73 ISIN DELLE AZIONI SCELTE: dal profilo dell'azienda (Wikidata, cot_radar/profili.py), per cercare il titolo
+ //     nell'app del broker anche quando il ticker di Yahoo (es. 2801.T) non c'e'. Tocco = copia (non apre la scheda).
+ const ISIN_AZ={};
+ function isinAzioni(el){el.querySelectorAll("[data-isinaz]").forEach(sp=>{const t=sp.dataset.isinaz;
+  const p=ISIN_AZ[t]||(ISIN_AZ[t]=fetch("../azioni/profili/"+encodeURIComponent(t.replace("^","_"))+".json",{cache:"no-cache"})
+   .then(r=>r.ok?r.json():null).catch(()=>null).then(x=>x&&x.isin));
+  p.then(isin=>{if(!isin||!sp.isConnected)return;sp.hidden=false;sp.title="Copia l'ISIN da cercare nell'app del broker";
+   sp.innerHTML=`ISIN <code>${esc(isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`;
+   sp.onclick=async e=>{e.stopPropagation();try{await navigator.clipboard.writeText(isin);}catch(_){}
+    const c=sp.querySelector("code");sp.classList.add("ok");c.textContent="Copiato";setTimeout(()=>{sp.classList.remove("ok");c.textContent=isin;},1500);};});});}
  // --- CONTO ALLA ROVESCIA al prossimo ribilanciamento: primo giorno di borsa del mese alle 09:00 ora italiana
  //     (apertura di Xetra/Borsa Italiana, dove si comprano gli strumenti UCITS). Un solo timer per tutta la pagina,
  //     fermo quando la scheda del browser non e' visibile; se la data manca o e' passata mostra un testo fisso.
