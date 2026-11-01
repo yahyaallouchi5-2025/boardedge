@@ -172,7 +172,7 @@ def build(data_source=load_all, demo=False, sito=False):
         log.warning("volatilita' non calcolata:\n%s", traceback.format_exc())
     # PORTAFOGLI MODELLO a rotazione mensile (portafogli.py): conservativo, moderato, aggressivo.
     # Isolati come il resto: se Yahoo o il calcolo falliscono manca solo la scheda "Portafogli".
-    port, px = None, None
+    port, px, sat = None, None, None
     try:
         righe = righe_cot or cache["cot"]["data"]
         px = portafogli.prezzi_demo() if demo else portafogli.prezzi()
@@ -198,6 +198,16 @@ def build(data_source=load_all, demo=False, sito=False):
         port = portafogli.di_riserva()
         if port:
             log.error("portafogli: mostrata l'ultima scheda salvata (%s) con avviso di manutenzione", port.get("aggiornato"))
+    # FORECASTER (forecaster.py, v6.65): previsioni e sfidanti registrati PRIMA di ogni mese e verificati dopo.
+    # Isolato: se fallisce manca solo la scheda "Forecaster". Scrive nel registro solo sul sito (mai in demo).
+    fore = None
+    try:
+        if px:
+            from . import forecaster
+            fore = forecaster.calcola(righe_cot or cache["cot"]["data"], px, sat if not demo else None,
+                                      scrivi=sito and not demo)
+    except Exception:
+        log.error("forecaster non calcolato:\n%s", traceback.format_exc())
     # CORRELAZIONI DEI PREZZI (correlazioni.py): stessi prezzi dei portafogli + settori USA e dollaro. Isolate.
     corr_px = None
     try:
@@ -233,7 +243,7 @@ def build(data_source=load_all, demo=False, sito=False):
     data = {"meta": meta, "sources": sources,
             "assets": assets, "pairs": pairs, "corr": corr, "corr_px": corr_px, "market": market, "fed": fed,
             "order": [a[0] for a in ASSETS] + ["USD"], "sectors": SECTORS, "stato": pubblico(stato), "admin": "__ADMIN__", "eventi": news["prossimi"], "agenda": agenda_out,
-            "stag": stag, "stag_meta": stag_meta, "reg": reg, "bt": bt, "vol": vol, "port": port,
+            "stag": stag, "stag_meta": stag_meta, "reg": reg, "bt": bt, "vol": vol, "port": port, "fore": fore,
             "carry": carry_pag, "carry_st": carry_st,
             "tv": {k: {"s": v[0], "inv": v[1]} for k, v in TV_SYMBOLS.items()}, "tvp": TV_PAIRS}
     # "stato" pubblico = solo esito e fonti; "admin" = segnaposto che main.py sostituisce con il registro

@@ -1399,3 +1399,57 @@ html.azaperto,html.azaperto body{overflow:hidden}                       /* la pa
 .pdate .pnew b{color:var(--acc)}
 .pbasso{margin-top:8px}
 .protr .prisul .pmc-b{font-size:12px}
+
+/* ===== v6.65 · FORECASTER: previsioni e sfidanti registrati prima, verificati dopo (web/js/30_forecaster.js) ===== */
+.fckpi{margin-bottom:22px}
+.fck{display:flex;flex-direction:column;gap:2px}
+.fck h3{display:flex;align-items:center;gap:6px}.fck h3 .info{width:18px;height:18px;font-size:11.5px;margin:0 0 0 auto}
+.fck .big{margin:10px 0 2px}.fck .note{margin-bottom:10px}
+.fck p.sub.infotesto.aperta{margin:10px 0 0;font-size:13px}
+.fcv{align-self:flex-start;display:inline-block;padding:3px 10px;border-radius:99px;font-size:12px;font-weight:700;white-space:nowrap;background:rgba(255,255,255,.06);color:var(--mute)}
+.fcv.meglio{background:rgba(74,222,128,.14);color:#4ade80}.fcv.peggio{background:rgba(248,113,113,.14);color:#f87171}
+.fcv.uguale{background:rgba(233,180,76,.14);color:var(--warn)}.fcv.camp{background:rgba(46,196,182,.14);color:var(--acc)}
+.fcprev,.fcsfid,.fcarch{margin-bottom:22px;padding:18px 20px}
+.fchead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:12px 18px;margin-bottom:14px}
+.fchead>div:first-child{display:flex;flex-direction:column;gap:3px;min-width:0}
+.fchead-dx{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.fchead-dx .vfswitch{margin:0}
+.fctit{font-size:17px;letter-spacing:-.2px}
+.fcstato{display:inline-flex;align-items:center;gap:7px;padding:5px 12px;border-radius:99px;font-size:12.5px;font-weight:700;background:var(--soft);border:1px solid var(--line);color:var(--ink2)}
+.fcstato.live i{width:8px;height:8px;border-radius:50%;background:var(--acc);box-shadow:0 0 0 0 rgba(46,196,182,.6);animation:fcpulse 1.8s infinite}
+.fcstato.attesa{color:var(--warn)}.fcstato.chiuso{color:var(--mute)}
+@keyframes fcpulse{70%{box-shadow:0 0 0 8px rgba(46,196,182,0)}100%{box-shadow:0 0 0 0 rgba(46,196,182,0)}}
+.fcrit{color:var(--warn)}.fcint{color:#4ade80;font-weight:700}
+.fctab{box-shadow:none;background:var(--card2)}
+.fctab td.fcnome{font-weight:600}
+.fctab td.fcnome span{display:block;font-weight:400;font-size:12.5px;color:var(--mute);margin-top:2px;max-width:420px;line-height:1.4}
+.fcc{display:table-cell}.fcc em{font-style:normal;font-size:12.5px;color:var(--mute);margin-left:6px;font-variant-numeric:tabular-nums}
+.fcd{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:7px;font-size:11px;vertical-align:middle}
+.fcd.su{background:rgba(31,196,140,.16);color:var(--sb)}.fcd.giu{background:rgba(242,113,107,.16);color:var(--s)}.fcd.no{color:var(--n)}
+.fcok,.fcko{font-style:normal;font-size:12px;font-weight:800;margin-left:6px}.fcok{color:#4ade80}.fcko{color:#f87171}
+.fcnd{color:var(--n)}
+.fctab tr.fcr{transition:background .15s}.fctab tr.fcr:hover td{background:var(--soft)}
+.fctab tr.camp td{background:rgba(46,196,182,.06)}.fctab tr.camp td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+.fctab tr.aperta td{background:var(--soft)}
+.fctab tr.fcdett td{white-space:normal;background:var(--soft);padding-top:4px}
+.fcpesi{display:flex;flex-wrap:wrap;gap:8px}
+.fcdbox{display:flex;flex-direction:column;gap:10px}.fcdescr,.fctit10{margin:0;font-size:13px;color:var(--ink2);line-height:1.5}
+.fcdescr{display:none}.fctit10{color:var(--mute);overflow-wrap:anywhere}
+.fcpeso{display:inline-flex;align-items:baseline;gap:6px;padding:5px 10px;border-radius:10px;border:1px solid var(--line);background:var(--card2);font-size:13px;color:var(--ink2)}
+.fcpeso b{font-variant-numeric:tabular-nums;color:var(--ink)}
+.fcpeso.piu{border-color:rgba(74,222,128,.45)}.fcpeso.piu b{color:#4ade80}.fcpeso.meno{border-color:rgba(248,113,113,.45)}.fcpeso.meno b{color:#f87171}
+.fcmesi{display:grid;gap:8px}
+.fcmese{display:grid;grid-template-columns:minmax(120px,auto) 1fr auto;align-items:center;gap:6px 16px;padding:10px 14px;border-radius:12px;border:1px solid var(--line);background:var(--card2)}
+.fcmese b{text-transform:capitalize}.fcesito{font-size:13px;color:var(--ink2);font-variant-numeric:tabular-nums}
+.fcprova{text-decoration:none;white-space:nowrap}
+.fcarch code{font-size:12px;color:var(--ink2)}
+.fcvuoto{display:flex;flex-direction:column;gap:6px;padding:20px 22px}
+@media (max-width:900px){.fctab td.fcnome span{max-width:260px}}
+@media (max-width:600px){.grid.k4.fckpi{grid-template-columns:1fr 1fr;gap:10px}.fck{padding:14px}.fck .big{font-size:22px}.fck h3{font-size:11px}.fck .note{font-size:12px}
+ .fcprev,.fcsfid,.fcarch{padding:14px}.fchead{margin-bottom:10px}.fchead-dx{width:100%;justify-content:space-between}
+ .fchead-dx .vfswitch{flex:1;display:flex}.fchead-dx .vfswitch button{flex:1;justify-content:center;padding:7px 4px;font-size:13px}
+ .fctab td.fcnome span{display:none}.fcdescr{display:block}
+ .fcdbox{position:sticky;left:14px;width:calc(100vw - 72px)}
+ .fctab td:first-child,.fctab th:first-child{position:sticky;left:0;z-index:1;background:var(--card2);box-shadow:1px 0 0 var(--line)}
+ .fctab td.fcnome{min-width:140px;max-width:160px;white-space:normal}
+ .fcmese{grid-template-columns:1fr;gap:2px}}
