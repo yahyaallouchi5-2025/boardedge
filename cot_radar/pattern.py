@@ -12,8 +12,9 @@ IL PATTERN (come nelle immagini dell'admin)
   Somiglia al "Three Outside Up/Down", ma l'assorbimento qui avviene in due candele invece che in una.
 
 DATI: Yahoo Finance, candele orarie (ultimi 60 giorni) aggregate in H4 e candele giornaliere (2 anni).
-  - H4 allineate alle ore UTC 00-04-08-12-16-20: possono differire di qualche ora dalle H4 del proprio broker
-    (MT4/MT5 usano l'ora del server, di solito UTC+2/+3);
+  - v6.70 H4 allineate alla chiusura di New York (17:00 NY = 23:00 in Italia), come MT4/MT5 (server UTC+2/+3):
+    17-21, 21-01, 01-05, 05-09, 09-13, 13-17 ora di New York; prima erano allineate alla mezzanotte UTC e il weekend
+    creava candele di 1-2 ore;
   - si usano SOLO candele chiuse: la candela in corso non genera segnali;
   - oro e argento: spot se Yahoo lo fornisce (XAUUSD=X), altrimenti il future (GC=F) come approssimazione.
 
@@ -37,7 +38,11 @@ import urllib.parse
 import urllib.request
 from datetime import date, datetime, timedelta, timezone
 
+from zoneinfo import ZoneInfo
+
 from .log import log
+
+NY = ZoneInfo("America/New_York")        # chiusura del forex: 17:00 di New York (H4 e giornata dei broker)
 
 YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/{t}?{q}"
 TENTATIVI = 3
@@ -100,11 +105,21 @@ def scarica(ticker, intervallo, periodo, timeout=20, tentativi=TENTATIVI, attesa
 
 
 def h4(orarie, adesso=None):
-    """Aggrega candele orarie in H4 allineate a UTC 00/04/08/12/16/20. Scarta la H4 non ancora chiusa."""
+    """Aggrega candele orarie in H4 ALLINEATE ALLA CHIUSURA DI NEW YORK (v6.70), come MT4/MT5 e i grafici dei broker:
+    la giornata forex finisce alle 17:00 di New York (23:00 in Italia), quindi le H4 vanno 17-21, 21-01, 01-05,
+    05-09, 09-13, 13-17 ora di New York (con l'ora legale USA gestita da sola). Cosi' ogni candela dura davvero 4
+    ore: niente candele "monche" di 1-2 ore la domenica sera e il venerdi' (prima, allineate alla mezzanotte UTC,
+    entravano nei pattern). Scarta la H4 non ancora chiusa."""
     adesso = adesso or time.time()
     gruppi = {}
     for ts, o, h, l, c in orarie:
-        b = ts - ts % (4 * 3600)
+        d = datetime.fromtimestamp(ts, NY).replace(minute=0, second=0, microsecond=0)
+        # mercato chiuso (venerdi' dalle 17 a domenica alle 17 di New York): Yahoo a volte ha ancora una barra
+        # oraria dopo la chiusura del venerdi'; i broker non la mostrano, quindi si scarta (niente candele di 1 ora)
+        if (d.weekday() == 4 and d.hour >= 17) or d.weekday() == 5 or (d.weekday() == 6 and d.hour < 17):
+            continue
+        inizio = d - timedelta(hours=(d.hour - 17) % 4)      # 17, 21, 01, 05, 09, 13 di New York
+        b = int(inizio.timestamp())
         g = gruppi.get(b)
         gruppi[b] = (b, o, h, l, c) if g is None else (b, g[1], max(g[2], h), min(g[3], l), c)
     return [g for b, g in sorted(gruppi.items()) if b + 4 * 3600 <= adesso]

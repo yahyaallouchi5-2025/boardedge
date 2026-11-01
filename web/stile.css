@@ -1512,5 +1512,27 @@ html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 @keyframes ngin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
 @media (max-width:600px){.ngsel{display:none}}
 @media (max-width:600px){nav button{padding:8px 11px;font-size:14px}nav{gap:4px}}
-/* v6.68 telefono: senza il bottone Telegram la data va a destra, sotto titolo e sottotitolo */
-@media (max-width:600px){.top{gap:10px}.topdx{margin-left:auto;flex:none;width:auto}.topdx .updated{font-size:12px;padding:6px 10px}}
+
+/* ===== v6.70 · Portafogli: intestazione della rotazione ordinata (etichetta, data, sottotitolo | conto alla rovescia)
+   PC: due blocchi sulla stessa riga, centrati in verticale. Telefono: uno sotto l'altro, il conto alla rovescia a
+   tutta larghezza con l'etichetta a sinistra e il tempo a destra. ===== */
+.pdate{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:16px 24px;margin:0 0 24px;padding:16px 20px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg,var(--card),var(--card2))}
+.pdinfo{display:flex;align-items:center;gap:14px;min-width:0}
+.pdinfo i{flex:none;width:10px;height:10px;border-radius:50%;background:var(--sb);box-shadow:0 0 10px var(--sb)}
+.pdinfo>div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.pdinfo .pdl{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);display:block}
+.pdinfo b{font-size:20px;line-height:1.2;color:var(--ink);font-variant-numeric:tabular-nums}
+.pdinfo.pnew b{color:var(--acc)}
+.pdinfo .pdsub{font-size:13px;color:var(--mute);display:block}
+.pdate .pcount{flex:none}
+@media (max-width:600px){
+ .pdate{flex-direction:column;align-items:stretch;padding:14px 16px;gap:14px}
+ .pdate .pcount{display:flex;justify-content:space-between;width:100%}
+ .pdinfo b{font-size:18px}}
+
+/* ===== v6.71 · data e ora dell'ultimo aggiornamento nel menu laterale, sotto "Stato dati" ===== */
+.sagg{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 12px;padding:8px 10px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--card) 70%,transparent)}
+.sagg>span{font-size:12px;color:var(--mute)}
+.sagg .dataagg{padding:0;border:0;background:none;font-size:13px;font-weight:700;color:var(--ink)}
+html.ridotta .sagg{display:none}
+.topdx{display:none}                  /* in alto restano solo marchio e sottotitolo */

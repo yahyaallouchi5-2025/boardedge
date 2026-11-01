@@ -33,9 +33,24 @@ class Pattern(unittest.TestCase):
         self.assertEqual(P.trova(c), [])
 
     def test_h4_scarta_la_candela_aperta(self):
-        ore = [(h * 3600, 1, 2, 0.5, 1.5) for h in range(10)]   # 10 ore: H4 00-04, 04-08 chiuse, 08-12 aperta
-        x = P.h4(ore, adesso=10 * 3600)
-        self.assertEqual([g[0] for g in x], [0, 4 * 3600])
+        # v6.70: H4 allineate a New York. 5 gennaio 2026 (ora solare, NY = UTC-5): 17:00 NY = 22:00 UTC.
+        t0 = 1767650400                                        # lunedi' 5/1/2026 22:00 UTC = 17:00 New York
+        ore = [(t0 + h * 3600, 1, 2, 0.5, 1.5) for h in range(10)]   # 17-21 e 21-01 NY chiuse, 01-05 aperta
+        x = P.h4(ore, adesso=t0 + 10 * 3600)
+        self.assertEqual([g[0] for g in x], [t0, t0 + 4 * 3600])
+
+    def test_h4_ora_legale_e_weekend(self):
+        # ora legale (luglio, NY = UTC-4): le candele partono alle 21 UTC; la domenica sera (apertura forex alle 17 NY)
+        # la prima H4 e' intera: nessuna candela di un'ora sola
+        dom = 1783890000                                       # domenica 12/7/2026 21:00 UTC = 17:00 New York
+        ore = [(dom + h * 3600, 1, 2, 0.5, 1.5) for h in range(8)]
+        x = P.h4(ore, adesso=dom + 8 * 3600)
+        self.assertEqual([g[0] for g in x], [dom, dom + 4 * 3600])
+        # barra oraria del venerdi' dopo le 17 di New York (Yahoo): scartata, il venerdi' finisce con la H4 13-17
+        ven = dom - 2 * 86400 - 4 * 3600                       # venerdi' 10/7 13:00 New York
+        ore = [(ven + h * 3600, 1, 2, 0.5, 1.5) for h in range(5)]  # 13, 14, 15, 16 e 17 (fuori orario)
+        x = P.h4(ore, adesso=dom)
+        self.assertEqual([g[0] for g in x], [ven])
 
     def test_quotidiane_scarta_le_mensili(self):
         # v6.59b: Yahoo con range=max restituisce candele mensili: vanno riconosciute e scartate
