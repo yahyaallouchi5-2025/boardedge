@@ -65,6 +65,7 @@ PESI = {"v1a": 0.30, "v3m": 0.20, "t200": 0.15, "st_media": 0.20, "st_pos": 0.15
 MESI_IT = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
            "novembre", "dicembre"]
 TOP_N = 5                      # titoli nella vetrina della Dashboard (al massimo 1 per settore)
+SCONTO_N = 3                   # v6.66: titoli "in sconto" sotto la vetrina (settori diversi da quelli della vetrina)
 MIN_ANNI_STAG = 8              # anni minimi di storico mensile perche' la stagionalita' conti
 
 
@@ -355,7 +356,8 @@ def pubblica(cartella, stato=None, titoli=None):
     # file piccolo per la vetrina della Dashboard (si carica all'apertura del terminale, ~3 KB)
     _scrivi(os.path.join(cartella, "pubblico", "top.json"),
             {"aggiornato": ultimo, "mese": ora_italia().month, "anomalia": indice["anomalia"],
-             "settori": {i: n for i, n, _ in SETTORI}, "listini": LISTINI, "titoli": top})
+             "settori": {i: n for i, n, _ in SETTORI}, "listini": LISTINI, "titoli": top,
+             "sconto": in_sconto(righe, top)})
     _scrivi(os.path.join(cartella, "stato.json"), dict(stato or {}, pubblicati=len(righe)))
     log.info("azioni: %d titoli pubblicati (%d schede dettaglio), dati al %s", len(righe), dettagli, ultimo)
     return indice
@@ -393,6 +395,29 @@ def vetrina(righe, n=TOP_N):
         settori.add(r["s"])
         out.append({k: r.get(k) for k in ("t", "n", "s", "l", "val", "p", "v1g", "v1m", "v3m", "v1a", "t200", "dmax",
                                           "st_media", "st_pos", "st_n", "pt", "rk", "sp")})
+        if len(out) == n:
+            break
+    return out
+
+
+def in_sconto(righe, top, n=SCONTO_N):
+    """v6.66 TITOLI IN SCONTO per la Dashboard ("da tenere d'occhio", NON una selezione dei portafogli: nello studio
+    lo Smart Discount usato come filtro toglieva rendimento). Regole fissate prima:
+      - Smart Discount >= 60 (scontato rispetto alla SUA storia) e almeno -10% dal massimo delle ultime 12 chiusure;
+      - non un crollo: sconto non oltre -35% (oltre di solito c'e' un problema dell'azienda, non uno sconto);
+      - trend di fondo ancora sano: ultimi 12 mesi positivi;
+      - in passato comprare a questo sconto e' andato almeno come comprare a caso (qualita' >= 50);
+      - settori diversi tra loro e da quelli della vetrina (diversificazione); ordine per punteggio di sconto."""
+    usati = {r["s"] for r in top}
+    ok = [r for r in righe if (r.get("sd") or 0) >= 60 and -35 <= (r.get("sdo") or 0) <= -10
+          and (r.get("v1a") or -1) > 0 and (r.get("sdq") or 0) >= 50]
+    out = []
+    for r in sorted(ok, key=lambda x: (-x["sd"], -(x.get("pt") or 0))):
+        if r["s"] in usati:
+            continue
+        usati.add(r["s"])
+        out.append({k: r.get(k) for k in ("t", "n", "s", "l", "val", "p", "v1g", "v1a", "pt", "sd", "sdo", "sdr", "sdq",
+                                          "sdn", "sdv", "sdb", "sdx", "sp")})
         if len(out) == n:
             break
     return out

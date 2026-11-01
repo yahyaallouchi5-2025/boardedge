@@ -72,6 +72,19 @@ class Azioni(unittest.TestCase):
         self.assertEqual(len({r["s"] for r in top}), len(top))                 # al massimo un titolo per settore
         self.assertEqual(top[0]["t"], "A9")                                     # il piu' forte del suo settore
 
+    def test_in_sconto(self):
+        # v6.66: scontati ma sani, settori diversi da quelli della vetrina e tra loro
+        b = {"sd": 80, "sdo": -20, "v1a": 10, "sdq": 60, "pt": 50}
+        righe = [dict(b, t="T1", s="tech"),                  # settore gia' in vetrina: escluso
+                 dict(b, t="F1", s="fin", sd=90), dict(b, t="F2", s="fin", sd=85),   # un solo finanziario (il piu' scontato)
+                 dict(b, t="CROLLO", s="ener", sdo=-60),     # oltre -35%: escluso
+                 dict(b, t="GIU", s="mat", v1a=-5),          # 12 mesi negativi: escluso
+                 dict(b, t="CASO", s="util", sdq=40),        # storicamente peggio del caso: escluso
+                 dict(b, t="POCO", s="imm", sdo=-5),         # meno del 10% dal massimo: non e' sconto
+                 dict(b, t="U1", s="salute", sd=70), dict(b, t="U2", s="ind", sd=65), dict(b, t="U3", s="cdis", sd=61)]
+        out = [r["t"] for r in A.in_sconto(righe, [{"s": "tech"}])]
+        self.assertEqual(out, ["F1", "U1", "U2"])
+
     def test_yahoo_fermo_copia_e_anomalia(self):
         A.aggiorna(self.dir, ["AAA"], oggi=date(2026, 10, 23), scarica=finto, pausa=0)
         chiesti = []
