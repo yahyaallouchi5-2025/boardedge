@@ -44,6 +44,13 @@ class Tassi(unittest.TestCase):
         chiamate = []
         C.aggiorna_tassi(lambda s, i: chiamate.append(s) or [], cartella=self.d, oggi=date(2026, 1, 11))
         self.assertEqual(chiamate, [])
+        # una serie candidata NUOVA (mai provata) fa scaricare subito, anche nello stesso giorno
+        C.CANDIDATI["EUR"].append("PROVA_NUOVA")
+        try:
+            C.aggiorna_tassi(lambda s, i: chiamate.append(s) or [], cartella=self.d, oggi=date(2026, 1, 11))
+            self.assertIn("PROVA_NUOVA", chiamate)
+        finally:
+            C.CANDIDATI["EUR"].remove("PROVA_NUOVA")
 
     def test_mensili_preferita_vince_e_buchi_riempiti(self):
         arch = {"serie": {"IR3TIB01JPM156N": mesi("2020-01", 12, 0.1),        # interbancario: fino a dic 2020

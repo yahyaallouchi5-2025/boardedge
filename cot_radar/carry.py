@@ -66,9 +66,10 @@ def aggiorna_tassi(scarica, cartella=CARTELLA, oggi=None, forza=False):
     arriva, resta la copia salvata. Restituisce l'archivio aggiornato."""
     oggi = (oggi or date.today()).isoformat()
     a = leggi(cartella)
-    if a.get("scaricato") == oggi and a["serie"] and not forza:
-        return a
     tutte = [sid for lista in CANDIDATI.values() for sid in lista]
+    nuove_serie = [sid for sid in tutte if sid not in a["serie"] and sid not in (a.get("errori") or {})]
+    if a.get("scaricato") == oggi and a["serie"] and not forza and not nuove_serie:   # serie aggiunte: subito
+        return a
 
     def una(sid):
         try:
