@@ -50,7 +50,7 @@ from bisect import bisect_left
 from datetime import date, datetime, timedelta, timezone
 
 from .backtest import punteggi
-from .config import ASSETS, NORMAL, ROOT
+from .config import ASSETS, NORMAL, PREZZI_YAHOO, ROOT
 from .cot import cot_series
 from .log import log
 
@@ -245,7 +245,9 @@ def prezzi(scarica=scarica_yahoo, cartella=CARTELLA, oggi=None, pausa=0.8):
     ESITO.clear()
     ESITO.update({"falliti": [], "copia": []})
     di_fila = 0                                        # fallimenti consecutivi: a 3 Yahoo e' giu', si smette
-    for t in [u[1] for u in UNIVERSO] + [LIQUIDITA[1]] + EXTRA:
+    # v6.59: in coda anche i prezzi dei mercati COT che FRED non copre (storico.prezzi_usd li legge da qui)
+    gia = set(u[1] for u in UNIVERSO) | {LIQUIDITA[1]} | set(EXTRA)
+    for t in [u[1] for u in UNIVERSO] + [LIQUIDITA[1]] + EXTRA + sorted({v[0] for v in PREZZI_YAHOO.values()} - gia):
         vecchi = _leggi(cartella, t)
         if meta.get(t) != oggi and scarica:
             # Yahoo fermo: niente altri tentativi in questo giro (il workflow non resta appeso per mezz'ora),
@@ -281,7 +283,9 @@ def prezzi_demo(inizio="2000-01-03", fine=None):
             giorni.append(d.isoformat())
         d += timedelta(days=1)
     out = {}
-    for t in [u[1] for u in UNIVERSO] + [LIQUIDITA[1]] + EXTRA:
+    # v6.59: in coda anche i prezzi dei mercati COT che FRED non copre (storico.prezzi_usd li legge da qui)
+    gia = set(u[1] for u in UNIVERSO) | {LIQUIDITA[1]} | set(EXTRA)
+    for t in [u[1] for u in UNIVERSO] + [LIQUIDITA[1]] + EXTRA + sorted({v[0] for v in PREZZI_YAHOO.values()} - gia):
         v, pts = 100.0, []
         mu, sg = (0.0001, 0.001) if t == LIQUIDITA[1] else (0.0003, 0.011)
         for g in giorni:
@@ -494,6 +498,47 @@ def in_euro(curva, fx):
         if ult:
             out.append((d, v / ult))
     return out
+
+
+def tassi_eur(cartella=CARTELLA):
+    """{data: tasso BCE sui depositi in %} dall'archivio FRED (storico/ECBDFR.csv, v6.59). Vuoto se manca."""
+    try:
+        with open(os.path.join(cartella, "ECBDFR.csv"), encoding="utf-8") as f:
+            rd = csv.reader(f)
+            next(rd, None)
+            return {r[0]: float(r[1]) for r in rd if len(r) == 2 and r[1]}
+    except (OSError, ValueError):
+        return {}
+
+
+def simula_eur(g, piani, dal_i, fx, tassi):
+    """v6.59: il portafoglio COME LO TIENE UN INVESTITORE EUROPEO. Ogni mercato rende (1 + rendimento in dollari) x
+    (variazione del cambio EUR/USD); la LIQUIDITA' invece e' in euro (ETF overnight indicato nella scheda) e matura il
+    tasso BCE sui depositi del giorno. Stessi ribilanciamenti e costi di simula()."""
+    valore, curva, quote, ult_fx, ult_t = 100.0, [], {}, None, 0.0
+    cambio, tasso = [], []
+    for d in g.date:
+        ult_fx = fx.get(d, ult_fx)
+        ult_t = tassi.get(d, ult_t)
+        cambio.append(ult_fx)
+        tasso.append(ult_t)
+    for i in range(dal_i, len(g.date)):
+        if i in piani:
+            nuovi = piani[i]
+            tot = sum(quote.values()) or 1.0
+            vecchi = {k: v / tot for k, v in quote.items()}
+            scambio = sum(abs(nuovi.get(k, 0) - vecchi.get(k, 0)) for k in set(nuovi) | set(vecchi))
+            valore *= (1 - COSTO * scambio)
+            quote = {k: valore * w for k, w in nuovi.items()}
+        elif quote and cambio[i] and cambio[i - 1]:
+            f = cambio[i - 1] / cambio[i]                       # se l'euro sale, i dollari valgono meno euro
+            gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
+            r_eur = (1 + tasso[i] / 100) ** (gg / 365) - 1
+            quote = {k: v * (1 + r_eur) if k == "CASH" else v * (1 + g.rend(_ticker(k), i)) * f
+                     for k, v in quote.items()}
+            valore = sum(quote.values())
+        curva.append((g.date[i], valore))
+    return curva
 
 
 def stat_eur(curva, fx):
@@ -811,6 +856,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
     bench = simula(g, {i: dict(BENCH) for i in giorni}, giorni[0]) if "IEF" in px else None
 
     fx = cambio_eur(cartella)                       # v4: per le statistiche in euro
+    te = tassi_eur(cartella)                       # v6.59: tasso BCE per la liquidita' in euro
     rotazioni = leggi_rotazioni(cartella)
     out_prof, composizioni = [], {}
     corrente, chiusi = [], {}
@@ -888,7 +934,9 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
                      "oos": statistiche(_tagli(curva, dal=OOS_DAL)),
                      "totale": statistiche(curva),
                      "live": statistiche(live) if live else None},
-            "stat_eur": stat_eur(curva, fx),
+            # v6.59: con il tasso BCE in archivio la liquidita' e' davvero in euro; senza, conversione semplice
+            "stat_eur": (stat_eur(simula_eur(g, piani, giorni[0], fx, te), {d: 1.0 for d in g.date}) if te and fx
+                         else stat_eur(curva, fx)),
             "curva": _settimanale(curva), "live_dal": live[0][0] if live else None,
             "rotazioni": list(reversed(cambi)),
             "mesi_chiusi": dettaglio_mesi(g, piani, giorni, curva, sat),
