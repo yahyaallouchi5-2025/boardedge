@@ -1359,3 +1359,20 @@ html.azaperto,html.azaperto body{overflow:hidden}                       /* la pa
 .vfverd p{margin:10px 0 0;color:var(--ink2)}
 .vfvb{display:inline-block;font-weight:800;letter-spacing:.06em;font-size:13px;padding:5px 12px;border-radius:99px;background:rgba(245,158,11,.14);color:#fbbf24}
 .vfverd.si .vfvb{background:rgba(74,222,128,.14);color:#4ade80}.vfverd.ko .vfvb{background:rgba(248,113,113,.14);color:#f87171}
+
+/* ===== v6.60 · grafico "Giorno per giorno": sottile, zoom, dettaglio al passaggio ===== */
+.vfgraf .vfgtesta b{display:flex;align-items:center;gap:8px}
+.vfgzoom{display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;margin:2px 0 6px}
+.vfgzoom .filters{margin:0;gap:4px}.vfgzoom button{padding:3px 10px;font-size:12px;min-width:30px}
+.vfgzoom button:disabled{opacity:.35;cursor:default}
+.vfgarea{position:relative}.vfgraf svg.vfgsvg{width:100%;display:block;touch-action:pan-y}
+.vfgl{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4;opacity:.7}.vfg0{stroke:var(--mute);stroke-width:1;opacity:.55}
+.vfgln{fill:none;stroke-width:1.6;stroke-linejoin:round;stroke-linecap:round}.vfgp{stroke-width:1.2;stroke-dasharray:4 4;opacity:.75}
+.vfgar{fill:var(--acc);opacity:.06}.vfgcur{stroke:var(--mute);stroke-width:1;stroke-dasharray:3 3}.vfghit{cursor:crosshair}
+.vfgtip{position:absolute;top:8px;pointer-events:none;background:var(--card2);border:1px solid var(--line);border-radius:10px;padding:8px 10px;
+ font-size:12px;display:flex;flex-direction:column;gap:3px;box-shadow:0 8px 24px rgba(0,0,0,.35);min-width:150px;z-index:2}
+.vfgtip[hidden]{display:none}
+.vfgtip span{display:flex;align-items:center;gap:6px;font-variant-numeric:tabular-nums}.vfgtip i{display:inline-block;width:10px;height:2px;border-radius:2px}
+.vfgtip i.tratt{background:repeating-linear-gradient(90deg,var(--s) 0 3px,transparent 3px 5px)}.vfgtip em{color:var(--mute);font-style:normal;font-size:11px}
+.vfleg i{height:2px}.vfgnop90{color:var(--mute);font-style:italic}
+.vfax{font-size:11px}
