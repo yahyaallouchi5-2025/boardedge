@@ -300,3 +300,86 @@ def aggiorna(cartella, oggi=None, el=None, scarica=None, pausa=PAUSA):
         log.warning("bilanci SEC: %d titoli senza dati (%s%s)", len(falliti), ", ".join(falliti[:15]), "..." if len(falliti) > 15 else "")
     log.info("bilanci SEC: %d titoli con bilancio, %d aggiornati oggi", len(indice), aggiornati)
     return {"ok": len(indice), "aggiornati": aggiornati, "falliti": falliti, "saltato": False}
+
+
+# --------------------------------------------------------------------------- STORICO COMPLETO (v6.64, per gli studi)
+# Per i backtest sulla QUALITA' dei bilanci serve tutta la storia (dal 2009 circa) e soprattutto la DATA in cui ogni
+# bilancio e' stato PUBBLICATO: un dato si puo' usare solo da quel giorno in poi (niente sguardi al futuro).
+# Per ogni anno fiscale si tiene il valore PUBBLICATO PER PRIMO (il 10-K originale), non le correzioni arrivate anni
+# dopo: e' quello che un investitore vedeva davvero in quel momento. File: pubblico/bilanci_storia/<T>.json
+# {"t", "agg", "serie": {voce: [[fine anno fiscale, valore, depositato il], ...]}}. Non cambia nulla nel sito.
+FLUSSO_CASSA = ["NetCashProvidedByUsedInOperatingActivities",
+                "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"]
+VOCI_STORIA = {"ricavi": (RICAVI, True), "utile": (UTILE, True), "fco": (FLUSSO_CASSA, True),
+               "debito": (DEBITO_TOT, False), "debito_lungo": (DEBITO_LUNGO, False), "debito_breve": (DEBITO_BREVE, False),
+               "cassa": (CASSA, False), "pn": (PN, False)}
+STORIA_GIORNI = 30              # ogni azienda si riscarica al massimo una volta al mese
+STORIA_MAX_SECONDI = 1500       # tetto di tempo per giro (25 minuti): le altre aziende al giro dopo
+
+
+def _prima_pubblicazione(fatti, concetti, durata):
+    """[[fine, valore, depositato]] per anno fiscale: il valore del PRIMO deposito (10-K) che lo riporta.
+    I concetti sono in ordine di preferenza: uno dopo riempie solo gli anni che mancano ai precedenti."""
+    usgaap = (fatti or {}).get("facts", {}).get("us-gaap", {})
+    out = {}
+    for c in concetti:
+        trovati = {}
+        for f in (usgaap.get(c) or {}).get("units", {}).get("USD") or []:
+            if not str(f.get("form", "")).startswith("10-K") or f.get("val") is None or not f.get("end") or not f.get("filed"):
+                continue
+            if durata:                                     # flussi: solo periodi di circa un anno
+                if not f.get("start"):
+                    continue
+                g = (date.fromisoformat(f["end"]) - date.fromisoformat(f["start"])).days
+                if not 330 <= g <= 400:
+                    continue
+            fine = f["end"]
+            if fine not in trovati or f["filed"] < trovati[fine][1]:
+                trovati[fine] = (f["val"], f["filed"])
+        for fine, (v, dep) in trovati.items():
+            out.setdefault(fine, [fine, v, dep])          # il concetto preferito non viene sovrascritto
+    return [out[k] for k in sorted(out)]
+
+
+def estrai_storia(fatti):
+    """{voce: [[fine, valore, depositato]]} per tutte le VOCI_STORIA (voci assenti = lista vuota)."""
+    return {k: _prima_pubblicazione(fatti, c, d) for k, (c, d) in VOCI_STORIA.items()}
+
+
+def storia(cartella, oggi=None, el=None, scarica=None, pausa=PAUSA, max_secondi=STORIA_MAX_SECONDI):
+    """Scarica lo storico completo dei bilanci delle aziende USA (al massimo una volta al mese ciascuna, entro un tetto
+    di tempo). Restituisce {ok, nuove, mancanti}. Mai bloccante: un'azienda che fallisce non ferma le altre."""
+    oggi = oggi or date.today()
+    ua = _ua()
+    if not ua and scarica is None:
+        return {"ok": 0, "nuove": 0, "mancanti": 0, "saltato": True}
+    get = scarica or (lambda url: _get(url, ua))
+    mappa = _cik(cartella, ua, oggi) if scarica is None else (scarica("CIK") or {})
+    inizio, ok, nuove, mancanti = time.time(), 0, 0, 0
+    for x in titoli_usa(el):
+        t = x["t"]
+        f = os.path.join(cartella, "pubblico", "bilanci_storia", A._nome_file(t) + ".json")
+        vecchio = A._leggi(f) or {}
+        if vecchio.get("agg", "") >= (oggi - timedelta(days=STORIA_GIORNI)).isoformat():
+            ok += 1
+            continue
+        if time.time() - inizio > max_secondi:            # tempo finito: le altre al prossimo giro
+            mancanti += 1
+            continue
+        cik = mappa.get(t.upper()) or mappa.get(t.upper().replace("-", "."))
+        fatti = get(URL_FATTI.format(cik=cik)) if cik else None
+        if pausa and cik:
+            time.sleep(pausa)
+        try:
+            serie = estrai_storia(fatti) if fatti else None
+        except Exception as e:
+            log.warning("storico bilanci: %s non elaborato (%s: %s)", t, type(e).__name__, e)
+            serie = None
+        if serie and serie["ricavi"]:
+            A._scrivi(f, {"t": t, "agg": oggi.isoformat(), "serie": serie, "fonte": "SEC EDGAR companyfacts (10-K)"})
+            ok += 1
+            nuove += 1
+        else:
+            mancanti += 1
+    log.info("storico bilanci: %d aziende pronte (%d scaricate ora), %d da completare", ok, nuove, mancanti)
+    return {"ok": ok, "nuove": nuove, "mancanti": mancanti}

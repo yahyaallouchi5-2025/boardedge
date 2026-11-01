@@ -232,6 +232,9 @@ Uso: `python -m cot_radar.confronto storico` (con la cartella dell'archivio). Il
 - **Statistica**: per ogni strumento quante volte, dopo 5 candele, il prezzo era nella direzione del segnale.
 - **Anomalia**: Yahoo fermo -> restano i segnali del giro prima, popup di manutenzione, mail di GitHub all'admin.
 
+### v6.64
+- Azionario: storico COMPLETO dei bilanci annuali USA (SEC, dal 2009 circa) con la data di prima pubblicazione, in pubblico/bilanci_storia/ (per lo studio sulla qualita' delle Azioni scelte). Al massimo una volta al mese per azienda, tetto di 25 minuti per giro. Il sito non cambia.
+
 ### v6.63
 - Azioni scelte: il mese e' chiuso anche nel weekend dopo l'ultimo giorno di borsa (prima ottobre restava fuori dallo storico e nel portafoglio la quota risultava piatta, 0%).
 - Portafogli: se per un mese mancano i dati delle 5 azioni il dettaglio dice "dati in arrivo" invece di un falso 0%.

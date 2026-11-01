@@ -456,6 +456,13 @@ def main(argv):
     except Exception:
         import traceback
         log.error("bilanci SEC non aggiornati:\n%s", traceback.format_exc())
+    # v6.64 storico COMPLETO dei bilanci USA con le date di pubblicazione (per gli studi sulla qualita'): mai bloccante
+    try:
+        from . import fondamentali
+        fondamentali.storia(cartella, el=titoli)
+    except Exception:
+        import traceback
+        log.error("storico bilanci non aggiornato:\n%s", traceback.format_exc())
     # profilo delle aziende da Wikidata/Wikipedia (profili.py): ognuno al massimo una volta al mese, mai bloccante
     try:
         from . import profili

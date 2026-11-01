@@ -120,3 +120,41 @@ class Trimestrali(unittest.TestCase):
         self.assertEqual(c["ultimo"], "2026-10-30")
         self.assertEqual(c["prossimo"], "2027-01-29")       # niente 8-K 2.02 di gennaio: ultimo + 91 giorni
         self.assertIsNone(F.conti({}, date(2026, 10, 31)))
+
+
+class StoriaBilanci(unittest.TestCase):
+    """v6.64: storico completo con la data di PRIMA pubblicazione (niente sguardi al futuro)."""
+
+    def test_valore_originale_non_la_correzione(self):
+        from cot_radar import fondamentali as Fo
+        fatti = {"facts": {"us-gaap": {"Revenues": {"units": {"USD": [
+            # 10-K 2021: anno 2020 = 100 (originale)
+            {"form": "10-K", "start": "2020-01-01", "end": "2020-12-31", "val": 100, "filed": "2021-02-20", "fp": "FY"},
+            # 10-K 2022: ripete il 2020 corretto a 90 come confronto, e il 2021 = 120
+            {"form": "10-K", "start": "2020-01-01", "end": "2020-12-31", "val": 90, "filed": "2022-02-18", "fp": "FY"},
+            {"form": "10-K", "start": "2021-01-01", "end": "2021-12-31", "val": 120, "filed": "2022-02-18", "fp": "FY"},
+            # trimestre dentro un 10-K: non e' un anno, va ignorato
+            {"form": "10-K", "start": "2021-10-01", "end": "2021-12-31", "val": 30, "filed": "2022-02-18", "fp": "FY"},
+            # 10-Q: ignorato
+            {"form": "10-Q", "start": "2022-01-01", "end": "2022-03-31", "val": 31, "filed": "2022-05-01", "fp": "Q1"}]}}}}}
+        s = Fo.estrai_storia(fatti)
+        self.assertEqual(s["ricavi"], [["2020-12-31", 100, "2021-02-20"], ["2021-12-31", 120, "2022-02-18"]])
+        self.assertEqual(s["utile"], [])
+
+    def test_giro_con_tetto_di_tempo_e_mensile(self):
+        import tempfile, shutil
+        from cot_radar import fondamentali as Fo
+        d = tempfile.mkdtemp()
+        try:
+            fatti = {"facts": {"us-gaap": {"Revenues": {"units": {"USD": [
+                {"form": "10-K", "start": "2020-01-01", "end": "2020-12-31", "val": 1, "filed": "2021-02-01"}]}}}}}
+            el = [{"t": "AAA", "l": ["sp500"], "s": "tech", "nome": "A"}, {"t": "BBB", "l": ["sp500"], "s": "tech", "nome": "B"}]
+            scar = lambda u: {"AAA": 1, "BBB": 2} if u == "CIK" else fatti
+            r = Fo.storia(d, oggi=date(2026, 11, 2), el=el, scarica=scar, pausa=0)
+            self.assertEqual((r["nuove"], r["mancanti"]), (2, 0))
+            r = Fo.storia(d, oggi=date(2026, 11, 20), el=el, scarica=scar, pausa=0)   # meno di un mese: niente download
+            self.assertEqual(r["nuove"], 0)
+            r = Fo.storia(d, oggi=date(2026, 12, 25), el=el, scarica=scar, pausa=0, max_secondi=-1)  # tempo finito
+            self.assertEqual((r["nuove"], r["mancanti"]), (0, 2))
+        finally:
+            shutil.rmtree(d)
