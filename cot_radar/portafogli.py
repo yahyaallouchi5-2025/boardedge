@@ -442,6 +442,9 @@ def _ticker(k):
 def simula(g, pianificati, dal_i, al_i=None):
     """Valore del portafoglio giorno per giorno. pianificati = {indice giorno: {chiave: peso}}.
     I pesi derivano liberamente tra un ribilanciamento e l'altro (come in un conto reale)."""
+    # v6.69 GIORNO DI ROTAZIONE: la composizione e' decisa sulla chiusura del giorno prima (i-1) ed eseguita
+    # all'apertura del giorno i, quindi il movimento del giorno i appartiene al portafoglio NUOVO. Prima di v6.69 il
+    # rendimento di quel giorno non veniva contato a nessuno (spariva un giorno di borsa a ogni ribilanciamento).
     al_i = len(g.date) - 1 if al_i is None else al_i
     valore, curva, quote = 100.0, [], {}
     for i in range(dal_i, al_i + 1):
@@ -452,7 +455,7 @@ def simula(g, pianificati, dal_i, al_i=None):
             scambio = sum(abs(nuovi.get(k, 0) - vecchi.get(k, 0)) for k in set(nuovi) | set(vecchi))
             valore *= (1 - COSTO * scambio)
             quote = {k: valore * w for k, w in nuovi.items()}
-        elif quote:
+        if quote:
             quote = {k: v * (1 + g.rend(_ticker(k), i)) for k, v in quote.items()}
             valore = sum(quote.values())
         curva.append((g.date[i], valore))
@@ -540,7 +543,7 @@ def simula_eur(g, piani, dal_i, fx, tassi):
             scambio = sum(abs(nuovi.get(k, 0) - vecchi.get(k, 0)) for k in set(nuovi) | set(vecchi))
             valore *= (1 - COSTO * scambio)
             quote = {k: valore * w for k, w in nuovi.items()}
-        elif quote and cambio[i] and cambio[i - 1]:
+        if quote and cambio[i] and cambio[i - 1]:          # v6.69: anche il giorno di rotazione (vedi simula)
             f = cambio[i - 1] / cambio[i]                       # se l'euro sale, i dollari valgono meno euro
             gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
             r_eur = (1 + tasso[i] / 100) ** (gg / 365) - 1
@@ -584,7 +587,8 @@ MESI = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", 
 
 def rischio_mese(g, pesi, mese, fino_a):
     """IL MESE DI CALENDARIO della rotazione (es. ottobre) in TUTTI gli anni dello storico, tenendo la composizione
-    di oggi: per ogni anno rendimento del mese (dal primo giorno di borsa al primo del mese dopo) e caduta massima
+    di oggi: per ogni anno rendimento del mese (dalla chiusura dell'ultimo giorno del mese prima a quella dell'ultimo
+    giorno del mese, v6.69) e drawdown massimo
     DENTRO il mese (dal punto piu' alto al piu' basso). Un mercato non ancora quotato quell'anno conta come
     liquidita' (o 0 se manca anche quella). fino_a = 'AAAA-MM' della rotazione attuale (esclusa: non e' finita).
     Restituisce {mese, anni: [{a, r, dd}], peggiore, media, positivi, n, dd_max, mercati: [{k, media, pos, n}]}."""
@@ -596,7 +600,8 @@ def rischio_mese(g, pesi, mese, fino_a):
     for j, ym in enumerate(chiavi[:-1]):
         if ym[5:] != mese or ym >= fino_a:
             continue
-        i0, i1 = inizi[ym], inizi[chiavi[j + 1]]
+        # v6.69: dalla chiusura dell'ultimo giorno del mese prima alla chiusura dell'ultimo giorno del mese
+        i0, i1 = max(inizi[ym] - 1, 0), inizi[chiavi[j + 1]] - 1
         quote = []                                           # (peso, colonna prezzi) con prezzo noto al via
         for k, w in pesi.items():
             col = g.p.get(_ticker(k))
@@ -617,8 +622,9 @@ def rischio_mese(g, pesi, mese, fino_a):
         if k == "CASH":
             continue
         col = g.p.get(_ticker(k))
-        rr = [col[inizi[chiavi[j + 1]]] / col[inizi[ym]] - 1 for j, ym in enumerate(chiavi[:-1])
-              if ym[5:] == mese and ym < fino_a and col and col[inizi[ym]] is not None and g.n[_ticker(k)][inizi[ym]] > 20]
+        rr = [col[inizi[chiavi[j + 1]] - 1] / col[inizi[ym] - 1] - 1 for j, ym in enumerate(chiavi[:-1])
+              if ym[5:] == mese and ym < fino_a and inizi[ym] > 0 and col and col[inizi[ym] - 1] is not None
+              and g.n[_ticker(k)][inizi[ym] - 1] > 20]
         if len(rr) >= 3:
             mercati.append({"k": k, "media": round(sum(rr) / len(rr) * 100, 1),
                             "pos": round(100 * sum(x > 0 for x in rr) / len(rr)), "n": len(rr)})
@@ -639,11 +645,11 @@ def dettaglio_mesi(g, piani, giorni, curva, sat=None, n=12):
     for i in range(giorni[0], len(g.date)):
         if i in piani:
             quote = dict(piani[i])
-        elif quote:
-            quote = {k: v * (1 + g.rend(_ticker(k), i)) for k, v in quote.items()}
-        if i in tutti_g:
+        if i in tutti_g:                     # pesi a inizio mese: alla chiusura del giorno prima (v6.69)
             tot = sum(quote.values()) or 1.0
             pesi[i] = {k: v / tot for k, v in quote.items()}
+        if quote:
+            quote = {k: v * (1 + g.rend(_ticker(k), i)) for k, v in quote.items()}
     st = {m[0]: m for m in (sat or {}).get("storico") or []}
     # mesi in cui la quota "Azioni scelte" ha DATI VERI (storico mensile o indice live): negli altri il prezzo
     # sintetico resta fermo e mostrerebbe un falso 0%, quindi il dettaglio dice "dati in arrivo"
@@ -656,14 +662,15 @@ def dettaglio_mesi(g, piani, giorni, curva, sat=None, n=12):
         voci = []
         for k, w in sorted(pesi.get(a, {}).items(), key=lambda x: -x[1]):
             col = g.p.get(_ticker(k))
-            if not col or col[a] is None or col[b - 1] is None or w < 0.001:
+            a0 = max(a - 1, 0)                   # v6.69: il mese parte dalla chiusura del giorno prima della rotazione
+            if not col or col[a0] is None or col[b - 1] is None or w < 0.001:
                 continue
-            picco, dd = col[a], 0.0
+            picco, dd = col[a0], 0.0
             for j in range(a, b):
                 if col[j] is not None:
                     picco = max(picco, col[j])
                     dd = min(dd, col[j] / picco - 1)
-            r = col[b - 1] / col[a] - 1
+            r = col[b - 1] / col[a0] - 1
             v = {"k": k, "nome": TUTTI[k][2] if k in TUTTI else k, "w": round(w * 100, 1), "r": round(r * 100, 1),
                  "c": round(w * r * 100, 2), "dd": round(dd * 100, 1)}
             if k == "AZ" and sat is not None and g.date[a][:7] not in mesi_sat:
@@ -682,9 +689,10 @@ def dettaglio_mesi(g, piani, giorni, curva, sat=None, n=12):
 
 # --------------------------------------------------------------------------- MESE IN CORSO e chiusure mensili
 def mese_tratto(curva, off, i0, i1):
-    """Rendimento % e drawdown peggiore % del portafoglio tra il giorno i0 (ingresso, alla chiusura) e il giorno i1
-    compreso. curva = simula() (parte dal giorno 'off'). Il drawdown e' misurato dal punto piu' alto raggiunto nel mese."""
-    base = curva[i0 - off][1]
+    """Rendimento % e drawdown peggiore % del portafoglio dalla chiusura del giorno prima di i0 (decisione) alla
+    chiusura del giorno i1 compreso. curva = simula() (parte dal giorno 'off'). Il drawdown e' misurato dal punto piu' alto raggiunto nel mese."""
+    # v6.69: base = chiusura del giorno PRIMA della rotazione (il primo giorno del mese conta nel mese)
+    base = curva[i0 - 1 - off][1] if i0 - 1 >= off else 100.0
     picco, dd = base, 0.0
     for j in range(i0 - off, i1 - off + 1):
         v = curva[j][1]

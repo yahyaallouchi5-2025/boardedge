@@ -203,10 +203,19 @@ class MeseInCorso(unittest.TestCase):
         self.assertAlmostEqual(dd, -10.0)
 
     def test_ingresso_non_dal_primo_giorno_della_curva(self):
+        # v6.69: rotazione al giorno 2 -> il mese parte dalla chiusura del giorno 1 (base 100) e conta il giorno 2
         curva = [("a", 50.0), ("b", 100.0), ("c", 90.0)]
-        r, dd = P.mese_tratto(curva, 0, 1, 2)                  # parte dal secondo giorno: base 100
+        r, dd = P.mese_tratto(curva, 0, 2, 2)
         self.assertAlmostEqual(r, -10.0)
         self.assertAlmostEqual(dd, -10.0)
+
+    def test_il_giorno_di_rotazione_conta(self):
+        # v6.69: SPY +10% proprio il giorno della rotazione: prima spariva, ora va al portafoglio nuovo
+        date_ = ["2026-01-02", "2026-01-30", "2026-02-02", "2026-02-27"]
+        px = {"SPY": [(d, v) for d, v in zip(date_, [100, 100, 110, 110])], "SHY": [(d, 50) for d in date_]}
+        g = P.Griglia(px)
+        curva = P.simula(g, {0: {"SP500": 1.0}, 2: {"SP500": 1.0}}, 0)
+        self.assertAlmostEqual(curva[-1][1], 100 * (1 - P.COSTO) * 1.10, places=6)
 
     def test_giorni_feriali(self):
         self.assertEqual(P.giorni_feriali("2026-11"), 21)
@@ -243,7 +252,7 @@ class DettaglioMesi(unittest.TestCase):
         self.assertEqual(spy["r"], 10.0)
         self.assertEqual(spy["c"], 5.0)
         self.assertEqual(spy["dd"], -5.0)
-        self.assertEqual(gen["r"], 5.0)
+        self.assertEqual(gen["r"], 4.9)                     # +5% meno lo 0,10% di costo del primo acquisto
 
 
 class InEuro(unittest.TestCase):
