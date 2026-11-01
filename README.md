@@ -232,6 +232,10 @@ Uso: `python -m cot_radar.confronto storico` (con la cartella dell'archivio). Il
 - **Statistica**: per ogni strumento quante volte, dopo 5 candele, il prezzo era nella direzione del segnale.
 - **Anomalia**: Yahoo fermo -> restano i segnali del giro prima, popup di manutenzione, mail di GitHub all'admin.
 
+### v6.63
+- Azioni scelte: il mese e' chiuso anche nel weekend dopo l'ultimo giorno di borsa (prima ottobre restava fuori dallo storico e nel portafoglio la quota risultava piatta, 0%).
+- Portafogli: se per un mese mancano i dati delle 5 azioni il dettaglio dice "dati in arrivo" invece di un falso 0%.
+
 ### v6.62
 - Portafogli, ROTAZIONE IN ATTESA: dal primo del mese al primo giorno di borsa la nuova composizione (decisa sulla chiusura precedente) si vede subito, il mese finito risulta chiuso e il conto alla rovescia punta all'apertura di quel giorno (prima puntava al mese dopo). Il registro live e le chiusure permanenti si scrivono solo con i prezzi veri.
 - Portafogli: tolto il blocco "In pausa questo mese", "Ultime rotazioni" a tutta larghezza.

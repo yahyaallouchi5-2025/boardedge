@@ -645,6 +645,9 @@ def dettaglio_mesi(g, piani, giorni, curva, sat=None, n=12):
             tot = sum(quote.values()) or 1.0
             pesi[i] = {k: v / tot for k, v in quote.items()}
     st = {m[0]: m for m in (sat or {}).get("storico") or []}
+    # mesi in cui la quota "Azioni scelte" ha DATI VERI (storico mensile o indice live): negli altri il prezzo
+    # sintetico resta fermo e mostrerebbe un falso 0%, quindi il dettaglio dice "dati in arrivo"
+    mesi_sat = set(st) | {d[:7] for d, _ in (sat or {}).get("live") or []}
     nomi = (sat or {}).get("nomi") or {}
     reg = (sat or {}).get("registro") or {}
     out = []
@@ -663,6 +666,8 @@ def dettaglio_mesi(g, piani, giorni, curva, sat=None, n=12):
             r = col[b - 1] / col[a] - 1
             v = {"k": k, "nome": TUTTI[k][2] if k in TUTTI else k, "w": round(w * 100, 1), "r": round(r * 100, 1),
                  "c": round(w * r * 100, 2), "dd": round(dd * 100, 1)}
+            if k == "AZ" and sat is not None and g.date[a][:7] not in mesi_sat:
+                v.update({"r": None, "c": None, "dd": None, "attesa": True})
             if k == "AZ":
                 m = g.date[a][:7]
                 if m in st and len(st[m]) > 3:              # storico simulato: rendimento di ogni titolo

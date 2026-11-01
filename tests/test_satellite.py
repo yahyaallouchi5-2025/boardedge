@@ -119,3 +119,13 @@ class BorseNonUe(unittest.TestCase):
         self.assertEqual(S.carica("/cartella/inesistente", [{"t": "RELIANCE.NS", "nome": "x", "s": "ener"},
                                                              {"t": "600519.SS", "nome": "y", "s": "cstap"}]), [])
         self.assertTrue("TCS.NS".endswith(S.NON_UE) and not "AAPL".endswith(S.NON_UE))
+
+
+class MeseChiuso(unittest.TestCase):
+    def test_weekend_dopo_l_ultimo_feriale(self):
+        # v6.62: sabato 31 ottobre 2026 ottobre e' finito (prossimo giorno di borsa lunedi' 2 novembre)
+        from cot_radar import satellite as S2
+        self.assertTrue(S2.mese_chiuso(date(2026, 10, 31)))
+        self.assertFalse(S2.mese_chiuso(date(2026, 11, 1)))                  # domenica 1 novembre: novembre e' appena iniziato
+        self.assertFalse(S2.mese_chiuso(date(2026, 10, 28)))                 # mercoledi': restano giorni di borsa
+        self.assertFalse(S2.mese_chiuso(date(2026, 10, 30)))                 # venerdi' 30 in un test: ora 0, non chiuso

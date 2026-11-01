@@ -188,8 +188,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     peso, rendimento, contributo al totale (punti %) e drawdown; per le Azioni scelte anche i singoli titoli. */
  function dettMese(m){if(!m)return `<div class="prisul small">mese in corso</div>`;
   const riga=a=>`<tr><td>${esc(a.nome)}${a.titoli&&a.titoli.length?`<div class="ptit">${a.titoli.map(t=>`<span>${esc(t.n)} <em class="${t.r==null?"":t.r>=0?"up":"down"}">${t.r==null?"in corso":pc(t.r)}</em></span>`).join("")}</div>`:""}</td>
-   <td class="num">${fx(a.w,0)}%</td><td class="num ${a.r>=0?"up":"down"}">${pc(a.r)}</td><td class="num ${a.c>=0?"up":"down"}">${a.c>0?"+":""}${fx(a.c,2)}</td><td class="num down">${pc(a.dd)}</td></tr>`;
-  const peg=[...m.asset].sort((x,y)=>x.c-y.c)[0];
+   <td class="num">${fx(a.w,0)}%</td>${a.attesa?`<td class="num small" colspan="3" title="I rendimenti delle 5 azioni di questo mese arrivano con il prossimo aggiornamento dell'Azionario">dati in arrivo</td>`:`<td class="num ${a.r>=0?"up":"down"}">${pc(a.r)}</td><td class="num ${a.c>=0?"up":"down"}">${a.c>0?"+":""}${fx(a.c,2)}</td><td class="num down">${pc(a.dd)}</td>`}</tr>`;
+  const peg=m.asset.filter(x=>x.c!=null).sort((x,y)=>x.c-y.c)[0];
   return `<div class="prisul"><span>Risultato <b class="${m.r>=0?"up":"down"}">${pc(m.r)}</b></span><span>drawdown <b class="down">${pc(m.dd)}</b></span></div>
    <details class="pdet"><summary>Dettaglio del mese</summary>
     ${peg&&peg.c<0?`<p class="small">Ha pesato di pi&ugrave;: <b>${esc(peg.nome)}</b> (${fx(peg.c,2)} punti sul totale).</p>`:""}

@@ -168,6 +168,19 @@ def storico(titoli, fino):
     return out
 
 
+def mese_chiuso(oggi):
+    """True se nel mese di 'oggi' non restano giorni di borsa: weekend dopo l'ultimo feriale, oppure l'ultimo feriale
+    dopo la chiusura di Wall Street (21 UTC)."""
+    return _ultimo_giorno_mese(oggi) and (oggi.weekday() >= 5 or ora_utc(oggi) >= 21)
+
+
+def ora_utc(oggi):
+    """Ora UTC adesso se 'oggi' e' davvero oggi; 0 per date passate o future (test): niente chiusura anticipata."""
+    from datetime import datetime, timezone
+    adesso = datetime.now(timezone.utc)
+    return adesso.hour if adesso.date() == oggi else 0
+
+
 # --------------------------------------------------------------------------- live (registro immutabile)
 def _ultimo_giorno_mese(oggi):
     """True se oggi e' l'ultimo giorno feriale del mese (le festivita' di borsa non sono considerate)."""
@@ -248,7 +261,10 @@ def calcola(cartella, oggi=None, titoli=None, anomalia=False):
     if not anomalia and tt:
         reg = registra(cartella, tt, oggi)
     cur = _n(oggi.strftime("%Y-%m"))
-    fino = min(cur - 1, _n(LIVE_DAL) - 1)          # solo mesi chiusi e prima del live
+    # v6.62: il mese corrente e' CHIUSO anche prima del 1 del mese dopo se non restano giorni di borsa (es. sabato 31
+    # ottobre, o venerdi' 30 dopo la chiusura): prima ottobre restava fuori fino a novembre e nel portafoglio la quota
+    # "Azioni scelte" risultava piatta (0%) per tutto il mese.
+    fino = min(cur if mese_chiuso(oggi) else cur - 1, _n(LIVE_DAL) - 1)   # solo mesi chiusi e prima del live
     st = storico(tt, fino) if tt else []
     # ANTEPRIMA dei titoli del mese prossimo: la stessa regola applicata ai prezzi di OGGI (mese non ancora chiuso).
     # Serve a chi vuole prepararsi: e' PROVVISORIA, la lista che conta e' quella registrata l'ultimo giorno di borsa.
