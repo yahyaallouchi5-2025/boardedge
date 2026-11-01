@@ -135,8 +135,11 @@ def build(data_source=load_all, demo=False, sito=False):
     righe_cot = None
     try:
         cot_data = max((a.get("date") or "" for a in assets.values()), default="") or None
-        reg = registro.aggiorna(pairs, assets, prezzi, status, t0_utc, cot_data,
-                                scrivi=sito and not demo)
+        # v6.75: ponte Yahoo sui cambi (solo sul sito vero): FRED li pubblica una volta a settimana
+        prezzi_reg, prov = (registro.ponte_yahoo(prezzi, t0_utc.date().isoformat()) if sito and not demo
+                            else (prezzi, {}))
+        reg = registro.aggiorna(pairs, assets, prezzi_reg, status, t0_utc, cot_data,
+                                scrivi=sito and not demo, prov=prov)
     except Exception:
         log.error("registro segnali non calcolato:\n%s", traceback.format_exc())
     try:

@@ -31,7 +31,7 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
  function scheda(s,sim){const m=s.m||{},A=m.A||{},ing=m.ingresso;
   const testa=`<div class="vfh"><span class="pair">${esc(s.strumento)}</span> ${badge(s.etichetta)}${s.iniziale?' <span class="tag" title="Era gia\' attivo quando il registro e\' partito: escluso dalle statistiche">gi&agrave; attivo all\'avvio</span>':''}${s.padre?' <span class="tag" title="Fase STRONG di un segnale gia\' aperto">fase STRONG</span>':''}${volTag(s.vol)}</div>`;
   let h=`<div class="vfr"><span>Segnale generato</span><b>${esc(s.generato_it)}</b></div>`+
-   (ing?`<div class="vfr"><span>Ingresso</span><b>${prezzo(ing.prezzo)} <span class="small">&middot; ${oraIt(ing.utc)}</span></b></div>`
+   (ing?`<div class="vfr"><span>Ingresso</span><b>${prezzo(ing.prezzo)} <span class="small">&middot; ${oraIt(ing.utc)}${m.prov_dal&&ing.data>=m.prov_dal?" &middot; provvisorio":""}</span></b></div>`
        :`<div class="vfr"><span>Ingresso</span><span class="small">${esc(attesa(s,m))}</span></div>`);
   if(ing){const f=A.fine,fm=m.fine||{},chiuso=!!(s.chiuso||fm.motivo);
    const nf=f?`${chiuso?"Al cambio":"Finora"}<small class="vfsett">${sett(ing.data,f.data)} sett.</small>`:"Al cambio";
@@ -41,13 +41,15 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
    if(chiuso){const quando=s.chiuso&&fm.motivo!="12 settimane"?s.chiuso.quando_it:(f?fd(f.data):"");
     h+=`<div class="small vfnota">${s.chiuso?"Chiuso il "+esc(quando):"Misura conclusa"} &middot; ${esc(MOT[fm.motivo]||MOT[(s.chiuso||{}).motivo]||"")}</div>`;}
    const b=m.B||{};const bt=b.esito=="eseguito"?`eseguito a ${prezzo(b.limite)} il ${fd(b.data)}`:b.esito=="non eseguito"?`non eseguito (limite ${prezzo(b.limite)})`:b.esito=="in attesa"?`limite a ${prezzo(b.limite)} in attesa`:"n/d";
-   h+=`<div class="small vfnota">Ingresso B (ritracciamento): ${bt}</div>`;}
+   h+=`<div class="small vfnota">Ingresso B (ritracciamento): ${bt}</div>`;
+   // v6.75: prezzi dei cambi dal ponte Yahoo, sostituiti dai valori ufficiali FRED quando escono (il lunedì)
+   if(m.prov_dal)h+=`<div class="small vfnota vfprov">Cambi dal ${fd(m.prov_dal)}: prezzi Yahoo provvisori, FRED li conferma il luned&igrave;.</div>`;}
   else{// v6.51: senza prezzo d'ingresso la scheda ha comunque la STESSA struttura (tabella "in attesa"),
    // cosi' tutte le schede di una riga hanno la stessa altezza e la griglia resta ordinata
    const att='<td class="num small" colspan="4">in attesa</td>';
    h+=`<table class="vftab vfattesa"><tr><th></th><th class="num">Risultato</th><th class="num">Max</th><th class="num">Min</th><th></th></tr>
     <tr><td>1 settimana</td>${att}</tr><tr><td>2 settimane</td>${att}</tr><tr><td>4 settimane</td>${att}</tr>
-    <tr class="vffine"><td>Finora</td>${att}</tr></table><div class="small vfnota">Ingresso B (ritracciamento): ${esc(attesa(s,m))}</div>`;}
+    <tr class="vffine"><td>${s.chiuso?"Al cambio":"Finora"}</td>${att}</tr></table>${s.chiuso?`<div class="small vfnota">Chiuso il ${esc(s.chiuso.quando_it)} &middot; ${esc(MOT[s.chiuso.motivo]||"")}</div>`:""}<div class="small vfnota">Ingresso B (ritracciamento): ${esc(attesa(s,m))}</div>`;}
   return `<div class="card vfcard${sim?" vfsim":""}">${testa}<div class="vfrighe">${h}</div></div>`;}
 
  /* ---- VOLATILITA' PER ASSET (D.vol, calcolata da cot_radar/volatilita.py) ----

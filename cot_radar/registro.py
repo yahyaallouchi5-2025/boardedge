@@ -24,7 +24,7 @@ DEBUG: python -c "from cot_radar import registro; print(registro.verifica(regist
 import hashlib
 import json
 import os
-from datetime import timezone
+from datetime import date, timezone
 
 from . import motore, volatilita
 from .eventi import Calendario as eventi_cal
@@ -95,7 +95,54 @@ def _scrivi(cartella, eventi):
     os.replace(tmp, f)
 
 
-def strumenti(pairs, assets, prezzi):
+# --------------------------------------------------------------------------- v6.75 PONTE YAHOO per i cambi
+# FRED pubblica i cambi (H.10) UNA volta a settimana, il lunedi' sera: un segnale su una coppia aspettava fino a
+# 10 giorni il prezzo d'ingresso. Il ponte aggiunge, SOLO per i giorni non ancora pubblicati da FRED, la chiusura
+# giornaliera di Yahoo (ticker "EUR=X" = euro per 1 dollaro, quindi si inverte). Sono prezzi PROVVISORI: appena FRED
+# pubblica la settimana, il ponte si accorcia da solo e le misure si ricalcolano con i valori ufficiali (le misure
+# non sono salvate nel registro: si rifanno a ogni giro, la catena di hash contiene solo i segnali).
+YAHOO_FX = "https://query1.finance.yahoo.com/v8/finance/chart/{t}=X?range=1mo&interval=1d"
+
+
+def _yahoo_fx(cur, timeout=15):
+    """[(data, dollari per 1 unita' di valuta)] dell'ultimo mese, giorni conclusi. Stesso User-Agent del progetto."""
+    import urllib.request
+    from datetime import datetime as dt
+    req = urllib.request.Request(YAHOO_FX.format(t=cur), headers={"User-Agent": "cot-radar/registro"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        res = json.load(r)["chart"]["result"][0]
+    off = res["meta"].get("gmtoffset", 0)
+    chiusure = res["indicators"]["quote"][0]["close"]
+    out = {}
+    for ts, c in zip(res.get("timestamp") or [], chiusure):
+        if c and c > 0:
+            out[dt.fromtimestamp(ts + off, tz=timezone.utc).date().isoformat()] = 1 / c
+    return sorted(out.items())
+
+
+def ponte_yahoo(prezzi, oggi, scarica=_yahoo_fx):
+    """(prezzi con i giorni mancanti presi da Yahoo, {valuta: primo giorno provvisorio}). oggi = data ISO UTC:
+    il giorno in corso non entra mai (barra non conclusa). Errore su una valuta = quella valuta resta solo FRED."""
+    out, prov = dict(prezzi), {}
+    for cur, (sid, _) in PRICES.items():
+        if not sid.startswith("DEX") or not prezzi.get(cur):
+            continue
+        ultimo = prezzi[cur][-1][0]
+        try:
+            nuovi = [(d, v) for d, v in scarica(cur)
+                     if ultimo < d < oggi and date.fromisoformat(d).weekday() < 5]     # niente barre del weekend
+        except Exception as e:
+            log.warning("registro: ponte Yahoo %s non disponibile (%s)", cur, type(e).__name__)
+            continue
+        if nuovi:
+            out[cur] = list(prezzi[cur]) + nuovi
+            prov[cur] = nuovi[0][0]
+    if prov:
+        log.info("registro: ponte Yahoo sui cambi dal %s (%d valute)", min(prov.values()), len(prov))
+    return out, prov
+
+
+def strumenti(pairs, assets, prezzi, prov=None):
     """{nome: dati} degli strumenti VERIFICABILI (con un prezzo storico): coppie e strumenti non valutari.
     v6.59: oro, argento e platino entrano con gli ETC fisici (GLD, SLV, PPLT); i future continui no (LIVE_YAHOO)."""
     out = {}
@@ -103,8 +150,10 @@ def strumenti(pairs, assets, prezzi):
         pts = prezzo_coppia(prezzi, p["base"], p["quote"])
         if pts:
             liv, perche = motore.affidabilita(p.get("affid"), p.get("comm_acc"), p.get("stag"), p["score"])
+            pv = [x for x in ((prov or {}).get(p["base"]), (prov or {}).get(p["quote"])) if x]
             out[p["pair"]] = {"etichetta": p["label"], "punteggio": p["score"], "affid": liv, "perche": perche,
-                              "base": p["base"], "quote": p["quote"], "_pts": pts, "_cls": "fx"}
+                              "base": p["base"], "quote": p["quote"], "_pts": pts, "_cls": "fx",
+                              "_prov": min(pv) if pv else None}          # v6.75: primo giorno con prezzi Yahoo
     for k, a in assets.items():
         if k in SALTA_FX or k not in prezzi:
             continue
@@ -116,7 +165,7 @@ def strumenti(pairs, assets, prezzi):
     return out
 
 
-def aggiorna(pairs, assets, prezzi, fonti, adesso, cot_data, cartella=CARTELLA, scrivi=True):
+def aggiorna(pairs, assets, prezzi, fonti, adesso, cot_data, cartella=CARTELLA, scrivi=True, prov=None):
     """Calcola gli eventi nuovi (li tiene in attesa: li scrive salva()) e prepara la vista per la pagina.
     adesso = datetime UTC dell'aggiornamento; fonti = stato delle fonti; scrivi=False: solo lettura."""
     global _in_attesa
@@ -126,7 +175,7 @@ def aggiorna(pairs, assets, prezzi, fonti, adesso, cot_data, cartella=CARTELLA, 
     if not integra:
         log.critical("registro segnali: catena di hash NON integra dall'evento %d: non scrivo nulla finche' "
                      "non viene controllato", rotto)
-    strum = strumenti(pairs, assets, prezzi)
+    strum = strumenti(pairs, assets, prezzi, prov)
     completi = (fonti or {}).get("cot") == "online" and (fonti or {}).get("fred") == "online"
     nuovi = []
     if scrivi and integra and completi:
@@ -168,6 +217,8 @@ def vista(eventi, strum, integra, completi):
         d = strum.get(s["strumento"])
         s["vol"] = reg.al_segnale(s["strumento"], d["_pts"], s["generato"]) if d else None
         m = motore.misura(s, d["_pts"], d["_cls"]) if d else None
+        if m and d.get("_prov"):
+            m["prov_dal"] = d["_prov"]                   # v6.75: misura che usa prezzi Yahoo provvisori
         cst = motore.costo(s["strumento"], s.get("base"), s.get("quote"))
         if not s.get("iniziale"):
             misurati.append((s, m, cst))
