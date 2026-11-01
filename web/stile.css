@@ -1347,7 +1347,9 @@ html.azaperto,html.azaperto body{overflow:hidden}                       /* la pa
 .ptverd{font-weight:800;letter-spacing:.06em;font-size:13px;padding:5px 12px;border-radius:99px;background:rgba(245,158,11,.14);color:#fbbf24}
 .ptstudio.si .ptverd{background:rgba(74,222,128,.14);color:#4ade80}
 .ptv{display:inline-block;min-width:34px;text-align:center;padding:2px 8px;border-radius:99px;font-weight:700;font-size:12px}
-.ptv.si{background:rgba(74,222,128,.15);color:#4ade80}.ptv.no{background:rgba(255,255,255,.06);color:var(--mute)}
+.ptv.si{background:rgba(74,222,128,.15);color:#4ade80}.ptv.peggio{background:rgba(248,113,113,.15);color:#f87171}
+.ptstudio.ko{border-left-color:#f87171}.ptstudio.ko .ptverd{background:rgba(248,113,113,.14);color:#f87171}
+.ptstudio .infotesto,.vfverd .infotesto{margin:8px 0 0}.ptv.no{background:rgba(255,255,255,.06);color:var(--mute)}
 .ptstudio .tablewrap{margin:10px 0}
 @media(max-width:640px){.ptstudio .ptmob{display:none}.ptstudio td,.ptstudio th{padding-left:6px;padding-right:6px}}   /* telefono: solo le colonne del verdetto */
 

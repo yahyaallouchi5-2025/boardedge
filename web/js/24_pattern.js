@@ -55,19 +55,25 @@ try{(function(){const el=$("pattern");if(!el)return;
 
  // --- STUDIO STORICO (v6.59, cot_radar/pattern.py studio()): tutti i pattern daily degli ultimi 25 anni operati
  //     con stop all'estremo, target 1R/2R, costi e filtro trend; VERDETTO automatico in cima, senza giri di parole.
+ // v6.59b: testo breve in pagina, spiegazione completa nella (i). Verdetto: "peggio" se il risultato e' SICURAMENTE
+ //   sotto zero (anche il limite alto dell'intervallo al 95% e' negativo), "si" se sicuramente sopra, altrimenti "no".
  function studio(st){if(!st||!st.varianti)return "";
-  const r=v=>v==null?"n/d":(v>0?"+":"")+fx(v,2)+" R",V=st.varianti,ok=st.verdetto=="vantaggio";
+  const r=v=>v==null?"n/d":(v>0?"+":"")+fx(v,2)+" R",V=st.varianti;
+  const ETV={si:"s&igrave;",no:"no",peggio:"peggio"},ETS={si:"VANTAGGIO IN ALMENO UNA VARIANTE",no:"NESSUN VANTAGGIO DIMOSTRATO",ko:"DA SOLO, PEGGIO DEL CASO"};
+  const esito=x=>!x||!x.ic?"no":x.ic[0]>0?"si":x.ic[1]<0?"peggio":"no";
+  const tutte=[V["1R"].tutti,V["2R"].tutti,V["1R"].trend,V["2R"].trend,V["1R"].contro_trend,V["2R"].contro_trend];
+  const stato=tutte.some(x=>esito(x)=="si")?"si":tutte.some(x=>esito(x)=="peggio")?"ko":"no";
   const riga=(nome,x)=>x?`<tr><td>${nome}</td><td class="num ptmob">${x.n.toLocaleString("it-IT")}</td><td class="num ptmob">${x.vinte}%</td>
-   <td class="num ${x.r_medio>=0?"up":"down"}"><b>${r(x.r_medio)}</b></td><td class="num">${x.ic?`${r(x.ic[0])} &hellip; ${r(x.ic[1])}`:"n/d"}</td>
-   <td class="num"><span class="ptv ${x.ic&&x.ic[0]>0?"si":"no"}">${x.ic&&x.ic[0]>0?"s&igrave;":"no"}</span></td></tr>`:"";
+   <td class="num ${x.r_medio>=0?"up":"down"}"><b>${r(x.r_medio)}</b></td><td class="num ptmob">${x.ic?`${r(x.ic[0])} &hellip; ${r(x.ic[1])}`:"n/d"}</td>
+   <td class="num"><span class="ptv ${esito(x)}">${ETV[esito(x)]}</span></td></tr>`:"";
   const t1=V["1R"].tutti;
-  return `<div class="card ptstudio ${ok?"si":"no"}"><div class="ptsth"><span class="ptverd">${ok?"VANTAGGIO STATISTICO IN ALMENO UNA VARIANTE":"NESSUN VANTAGGIO DIMOSTRATO"}</span>
-    <span class="small">Studio storico Daily dal ${esc((t1&&t1.dal||"").slice(0,4))}: ${t1?t1.n.toLocaleString("it-IT"):"n/d"} pattern su ${ST.d.strumenti.length} strumenti</span></div>
-   <p class="small">Ogni pattern operato come un trader vero: ingresso alla chiusura della candela 3, stop all'estremo del pattern (rischio = 1R), target a 1R o 2R, uscita dopo ${st.regole.uscita_max} candele se nessuno dei due &egrave; toccato, costi inclusi. Se una candela tocca stop e target insieme conta come stop. ${ok?"Almeno una variante ha un risultato medio sopra zero anche nel caso peggiore dell'intervallo al 95%: guarda quale nella tabella.":"In nessuna variante il risultato medio &egrave; sicuramente sopra zero: usa il pattern come lettura del grafico, non come segnale da seguire da solo."}</p>
-   <div class="tablewrap"><table class="compatta"><tr><th>Variante</th><th class="num ptmob">Pattern</th><th class="num ptmob">Vinti</th><th class="num">Risultato medio</th><th class="num">Intervallo 95%</th><th class="num">Vantaggio</th></tr>
-    ${riga("Target 1R, tutti",V["1R"].tutti)}${riga("Target 1R, a favore del trend",V["1R"].trend)}${riga("Target 1R, contro il trend",V["1R"].contro_trend)}
-    ${riga("Target 2R, tutti",V["2R"].tutti)}${riga("Target 2R, a favore del trend",V["2R"].trend)}${riga("Target 2R, contro il trend",V["2R"].contro_trend)}</table></div>
-   <p class="small">R = multipli del rischio: +1 R vuol dire che hai guadagnato quanto rischiavi. Trend = media a ${200} candele. L'intervallo al 95% conta i segnali dello stesso giorno come uno solo (molte coppie si muovono insieme). Statistica del passato, non un consiglio.</p></div>`;}
+  return `<div class="card ptstudio ${stato}"><div class="ptsth"><span class="ptverd">${ETS[stato]}</span>
+    <span class="small">Studio Daily dal ${esc((t1&&t1.dal||"").slice(0,4))} &middot; ${t1?t1.n.toLocaleString("it-IT"):"n/d"} pattern &middot; ${ST.d.strumenti.length} strumenti</span>
+    <button type="button" class="info" data-apri="ptinfo" data-k="ptstudio" aria-label="Mostra o nascondi la spiegazione">i</button></div>
+   <p id="ptinfo" class="sub infotesto${infoAperte.has("ptstudio")?" aperta":""}">Ogni pattern operato come un trade vero: ingresso alla chiusura della candela 3, stop all'estremo del pattern (rischio = 1 R), target a 1 R o 2 R, uscita dopo ${st.regole.uscita_max} candele, costi inclusi; stop e target nella stessa candela = stop. R = multipli del rischio. Trend = media a 200 candele. Intervallo al 95% corretto per 10 confronti, segnali delle stesse 2 settimane contati insieme. &laquo;Peggio&raquo; = sotto zero anche nel caso migliore. Usa il pattern come lettura del grafico, non come segnale da solo. Statistica del passato, non un consiglio.</p>
+   <div class="tablewrap"><table class="compatta"><tr><th>Variante</th><th class="num ptmob">Pattern</th><th class="num ptmob">Vinti</th><th class="num">Medio</th><th class="num ptmob">Intervallo 95%</th><th class="num">Vantaggio</th></tr>
+    ${riga("1R, tutti",V["1R"].tutti)}${riga("1R, con il trend",V["1R"].trend)}${riga("1R, contro il trend",V["1R"].contro_trend)}
+    ${riga("2R, tutti",V["2R"].tutti)}${riga("2R, con il trend",V["2R"].trend)}${riga("2R, contro il trend",V["2R"].contro_trend)}</table></div></div>`;}
 
  function disegna(){const d=ST.d,tf=ST.tf;
   const S=d.strumenti.filter(s=>ST.g=="tutti"||s.g==ST.g);

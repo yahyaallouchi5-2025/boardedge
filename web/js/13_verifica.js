@@ -229,10 +229,11 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
   //   contrario  = resa < 0 E anche il limite alto sotto il 50%; altrimenti "non dimostrato".
   const ho=st(B.periodi.holdout.riass),tu=st(B.periodi.tutti.riass);
   const verd=!ho?null:(ho.resa>0&&ho.ic[0]>50)?["si","VANTAGGIO DIMOSTRATO"]:(ho.resa<0&&ho.ic[1]<50)?["ko","RISULTATO PEGGIORE DEL CASO"]:["no","NESSUN VANTAGGIO DIMOSTRATO"];
-  const verdetto=verd?`<div class="card vfverd ${verd[0]}"><span class="vfvb">${verd[1]}</span>
-   <p>Negli ultimi 2 anni (holdout, ${ho.n.toLocaleString("it-IT")} segnali simulati) i trade in guadagno sono stati il <b>${ho.hit}%</b> (intervallo ${ho.ic[0]}&ndash;${ho.ic[1]}%) con una resa media di <b class="${col(ho.resa)}">${pc(ho.resa)}</b> al netto dei costi${tu?`; su tutto il periodo dal ${esc(B.dal.slice(0,4))}: ${tu.hit}% e ${pc(tu.resa)}`:""}.
-   ${verd[0]=="si"?"Il vantaggio regge anche negli anni non usati per costruire il metodo.":"Il segnale COT, da solo e misurato cos&igrave;, non ha mostrato un vantaggio affidabile: usalo come contesto (chi &egrave; posizionato e quanto) insieme al trend e al rischio, non come ordine da eseguire."}</p>
-   <p class="small">Nota: il backtest usa solo COT e conferme; la parte "Mercato e macro" (30% del punteggio live) non &egrave; ricostruibile nel passato. Il registro live misura il punteggio completo.</p></div>`:"";
+  // v6.59b: una riga di numeri in pagina, la spiegazione nella (i)
+  const verdetto=verd?`<div class="card vfverd ${verd[0]}"><div class="ptsth"><span class="vfvb">${verd[1]}</span>
+   <span class="small">Holdout 2 anni: <b>${ho.hit}%</b> vinti (${ho.ic[0]}&ndash;${ho.ic[1]}%) &middot; resa <b class="${col(ho.resa)}">${pc(ho.resa)}</b>${tu?` &middot; dal ${esc(B.dal.slice(0,4))}: ${tu.hit}%, ${pc(tu.resa)}`:""}</span>
+   <button type="button" class="info" data-apri="vfinfo" data-k="vfverd" aria-label="Mostra o nascondi la spiegazione">i</button></div>
+   <p id="vfinfo" class="sub infotesto${infoAperte.has("vfverd")?" aperta":""}">Giudizio solo sugli ultimi 2 anni (${ho.n.toLocaleString("it-IT")} segnali), mai usati per costruire il metodo; resa al netto dei costi. ${verd[0]=="si"?"Il vantaggio regge fuori campione.":"Il segnale COT da solo non ha un vantaggio affidabile: usalo come contesto insieme a trend e rischio, non come ordine."} Il backtest non include &laquo;Mercato e macro&raquo; (30% del punteggio live): lo misura il registro live.</p></div>`:"";
   const ordS=Object.keys(P.strumento||{}).sort((a,b)=>((st(P.strumento[b])||{}).resa??-99)-((st(P.strumento[a])||{}).resa??-99));
   return verdetto+blocco(1,"Quanto va contro","Prima dei guadagni: quanto il trade simulato scende sotto l'ingresso, giorno per giorno.",
     bloccoDD(P,B.dd_campi,B.unita))
