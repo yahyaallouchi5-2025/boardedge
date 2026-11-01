@@ -1453,3 +1453,37 @@ html.azaperto,html.azaperto body{overflow:hidden}                       /* la pa
  .fctab td:first-child,.fctab th:first-child{position:sticky;left:0;z-index:1;background:var(--card2);box-shadow:1px 0 0 var(--line)}
  .fctab td.fcnome{min-width:140px;max-width:160px;white-space:normal}
  .fcmese{grid-template-columns:1fr;gap:2px}}
+
+/* ===== v6.66 · telefono: niente testo "gonfiato" da iPhone e card delle rotazioni sempre dentro lo schermo =====
+   - text-size-adjust: Safari su iPhone ingrandisce da solo il testo dei blocchi che crede troppo larghi (si vedeva in
+     "Dettaglio del mese"): con 100% le dimensioni restano quelle decise qui, in verticale e in orizzontale;
+   - ultime rotazioni: sotto 760px la card ha una sola colonna (prima risultato e dettaglio restavano sulla seconda
+     colonna fino a 600px e creavano una colonna "fantasma" che usciva dallo schermo); minmax(0,1fr) e min-width:0
+     lasciano che chip e tabella si adattino, la tabella del dettaglio scorre di lato dentro la card. */
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+@media (max-width:760px){
+ .protr{grid-template-columns:minmax(0,1fr)}.protr>*{min-width:0}
+ .protr>.prisul,.protr>.pdet{grid-column:1}
+ .pdet .tablewrap{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+ .pdett th,.pdett td{padding:8px 8px;font-size:13px}
+ .pdett td:first-child,.pdett th:first-child{position:sticky;left:0;z-index:1;background:var(--card2);box-shadow:1px 0 0 var(--line);white-space:normal;min-width:130px}
+ .protr:hover{transform:none}}
+
+/* ===== v6.66 · Dashboard: riquadro "In sconto" sotto la vetrina (web/js/23_vetrina_top5.js) ===== */
+.tzsc{margin-top:16px}
+.tzsc .tztesta h3{display:flex;align-items:center;gap:6px}.tzsc .tztesta h3 .info{margin-left:4px}
+.tzsc-chip{color:var(--warn)!important;background:rgba(233,180,76,.12)!important}.tzsc-chip i{background:var(--warn)!important}
+.tzsc p.sub.infotesto.aperta{margin:12px 0 4px}
+.tzsc-g{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:14px}
+.tzsc-c{display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg,var(--soft),var(--card2));transition:border-color .2s,transform .2s,box-shadow .2s}
+.tzsc-c:hover{border-color:color-mix(in srgb,var(--warn) 55%,transparent);transform:translateY(-2px);box-shadow:var(--shadow)}
+.tzsc-c h4{margin:4px 0 0;font-size:16px;line-height:1.3}
+.tzsc-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tzsc-sc{font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;background:rgba(242,113,107,.14);color:#ffb3ae;white-space:nowrap}
+.tzsc-pt{font-size:20px;font-weight:800;color:var(--warn);font-variant-numeric:tabular-nums}.tzsc-pt small{font-size:11px;color:var(--mute);font-weight:600}
+.tzsc-l{list-style:none;margin:6px 0 0;padding:0;display:flex;flex-direction:column;gap:5px;font-size:13px;color:var(--ink2);line-height:1.4}
+.tzsc-l li{padding-left:14px;position:relative}.tzsc-l li:before{content:"";position:absolute;left:0;top:7px;width:6px;height:6px;border-radius:50%;background:var(--warn);opacity:.8}
+.tzsc-piede{display:flex;align-items:flex-end;justify-content:space-between;gap:10px;margin-top:auto;padding-top:8px}
+.tzsc-piede .tzsp{flex:1;height:38px;color:var(--warn)}
+.tzsc-piede .tzapri{flex:none}
+@media (max-width:900px){.tzsc-g{grid-template-columns:1fr}}
