@@ -355,6 +355,14 @@ def cot_al(sc, giorno):
     return sc[i] if i >= 0 else None
 
 
+def primo_feriale(anno, mese):
+    """Primo giorno feriale del mese (salta sabato, domenica e il 1 gennaio, chiuso in tutte le borse)."""
+    d = date(anno, mese, 1)
+    while d.weekday() >= 5 or (d.month == 1 and d.day == 1):
+        d += timedelta(days=1)
+    return d
+
+
 def date_ribilancio(g, dal=INIZIO):
     """Primo giorno di borsa di ogni mese, da 'dal' in poi."""
     out, mese = [], None
@@ -370,12 +378,14 @@ def regola_base(score, trend_ok):
     return trend_ok
 
 
-def scegli(profilo, g, i, sc, regola=None):
+def scegli(profilo, g, i, sc, regola=None, giorno=None):
     """Composizione del profilo al giorno i: ({chiave: peso}, dettagli dei mercati tenuti, mercati in pausa).
     Ogni mercato della base tiene il suo peso se regola(score COT, trend) e' vera, altrimenti il peso va in
     liquidita'. I mercati non ancora quotati abbastanza a lungo (es. Bitcoin prima del 2015) sono liquidita'."""
     regola = regola or regola_base
-    giorno = g.date[i]
+    # v6.62: giorno puo' essere passato da fuori quando i = len(g.date), cioe' la rotazione del primo giorno di borsa
+    # del mese NON ancora nei prezzi: la scelta usa comunque solo i dati fino a i-1 (la chiusura precedente).
+    giorno = giorno or g.date[i]
     pesi, info, esclusi = {}, {}, []
     az = profilo.get("az", 0)
     if az:
@@ -847,10 +857,26 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
         return None
     ultimo_rib = giorni[-1]
     oggi = oggi or date.today()
-    prossima = date(oggi.year + (oggi.month == 12), oggi.month % 12 + 1, 1)
-    while prossima.weekday() >= 5:                 # primo giorno FERIALE del mese dopo (es. lunedi' 2 novembre)
-        prossima += timedelta(days=1)
-    prossima = prossima.isoformat()
+    # v6.62 ROTAZIONE IN ATTESA: e' iniziato un mese nuovo ma i prezzi arrivano solo fino all'ultima chiusura del mese
+    # prima (es. domenica 1 novembre: ultimo prezzo venerdi' 30 ottobre). La rotazione del primo giorno di borsa usa
+    # SOLO i dati fino alla chiusura precedente, quindi e' gia' decisa: la mostriamo subito (si esegue all'apertura),
+    # chiudiamo il mese passato e il conto alla rovescia punta all'apertura di quel giorno, non al mese dopo.
+    attesa = None
+    if oggi.strftime("%Y-%m") > g.date[-1][:7]:
+        attesa = primo_feriale(oggi.year, oggi.month).isoformat()
+    rif = date.fromisoformat(attesa or g.date[ultimo_rib])          # rotazione in vigore (o in partenza)
+    prossima = attesa or primo_feriale(rif.year + (rif.month == 12), rif.month % 12 + 1).isoformat()
+    VIRT = len(g.date)                     # indice "virtuale" del giorno di rotazione in attesa (non ancora nei prezzi)
+    giorni_c = giorni + [VIRT] if attesa else giorni               # per chiudere anche l'ultimo mese
+    # il mese appena finito va nel registro PERMANENTE delle chiusure solo se i prezzi arrivano all'ultimo giorno
+    # feriale del mese (es. venerdi' 30 ottobre): con un ritardo dei dati si vede in pagina ma non si salva, e si
+    # salvera' con la rotazione vera (le chiusure salvate non si riscrivono mai).
+    fine_mese = date.fromisoformat(g.date[-1][:8] + "28")
+    while (fine_mese + timedelta(days=1)).month == fine_mese.month:
+        fine_mese += timedelta(days=1)
+    while fine_mese.weekday() >= 5:
+        fine_mese -= timedelta(days=1)
+    chiusura_completa = g.date[-1] >= fine_mese.isoformat()
 
     # benchmark 60/40 ribilanciato ogni mese
     bench = simula(g, {i: dict(BENCH) for i in giorni}, giorni[0]) if "IEF" in px else None
@@ -858,10 +884,10 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
     fx = cambio_eur(cartella)                       # v4: per le statistiche in euro
     te = tassi_eur(cartella)                       # v6.59: tasso BCE per la liquidita' in euro
     rotazioni = leggi_rotazioni(cartella)
-    out_prof, composizioni = [], {}
+    out_prof, composizioni, comp_reg = [], {}, {}
     corrente, chiusi = [], {}
     # i 5 titoli del mese della rotazione (registrati dal vivo da satellite.py; prima del live: ultima scelta simulata)
-    mese_rot = g.date[ultimo_rib][:7]
+    mese_rot = (attesa or g.date[ultimo_rib])[:7]
     satellite_n = (sat or {}).get("n") or 5
     reg = ((sat or {}).get("registro") or {}).get(mese_rot)
     ante = (sat or {}).get("anteprima") or None       # anteprima dei titoli del mese prossimo (provvisoria)
@@ -882,6 +908,10 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
             storia.append((g.date[i], pesi))
         curva = simula(g, piani, giorni[0])
         pesi, info, esclusi = scegli(prof, g, ultimo_rib, sc)
+        comp_reg[prof["id"]] = pesi                # registro live: solo rotazioni gia' nei prezzi (data vera)
+        if attesa:                                 # composizione del mese nuovo, decisa sulla chiusura precedente
+            pesi, info, esclusi = scegli(prof, g, VIRT, sc, giorno=attesa)
+            storia.append((attesa, pesi))
         composizioni[prof["id"]] = pesi
         # linea LIVE: pesi delle rotazioni salvate (mai ricalcolati)
         live = None
@@ -889,12 +919,13 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
             pl = {g.pos[r["data"]]: dict(r["profili"].get(prof["id"], [])) for r in rotazioni if r["data"] in g.pos}
             if pl:
                 live = simula(g, pl, min(pl))
-        # MESE IN CORSO: dal giorno di rotazione (ingresso alla chiusura) a oggi, con i prezzi a fine giornata (EOD)
-        r_m, dd_m = mese_tratto(curva, giorni[0], ultimo_rib, len(g.date) - 1)
+        # MESE IN CORSO: dal giorno di rotazione (ingresso alla chiusura) a oggi, con i prezzi a fine giornata (EOD).
+        # In attesa il mese nuovo non e' ancora iniziato: zero giorni, nessun risultato.
+        r_m, dd_m = (0.0, 0.0) if attesa else mese_tratto(curva, giorni[0], ultimo_rib, len(g.date) - 1)
         corrente.append((prof["id"], {"r": round(r_m, 1), "dd": round(dd_m, 1),
                                       "rr": round(r_m / abs(dd_m), 1) if dd_m <= -0.3 else None}))
         # mesi CHIUSI: da una rotazione all'ultimo giorno di borsa prima della successiva
-        for a, b in zip(giorni[:-1], giorni[1:]):
+        for a, b in zip(giorni_c[:-1], giorni_c[1:]):
             if g.date[a] >= LIVE_V3_DAL:
                 r_c, dd_c = mese_tratto(curva, giorni[0], a, b - 1)
                 chiusi.setdefault(g.date[a], {"mese": g.date[a][:7], "dal": g.date[a], "al": g.date[b - 1],
@@ -917,7 +948,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
             a = set(k for k in p1 if k != "CASH")
             b = set(k for k in p0 if k != "CASH")
             cambi.append({"data": d1, "entrati": sorted(a - b), "usciti": sorted(b - a), "tenuti": sorted(a & b),
-                          "liquidita": round(p1.get("CASH", 0) * 100)})
+                          "liquidita": round(p1.get("CASH", 0) * 100), **({"attesa": True} if d1 == attesa else {})})
         out_prof.append({
             "id": prof["id"], "nome": prof["nome"], "descr": prof["descr"], "dd_rif": prof["dd"],
             "rischio": prof.get("rischio"), "az": round(prof.get("az", 0) * 100),
@@ -926,10 +957,11 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
                                                           if prof.get("az") else []),
             "ammessi": [{"k": k, "nome": TUTTI[k][2]} for k in prof["ammessi"]],
             "composizione": comp, "esclusi": esclusi,
-            "mese": rischio_mese(g, pesi, g.date[ultimo_rib][5:7], g.date[ultimo_rib][:7]),
-            "corrente": {"mese": MESI[int(g.date[ultimo_rib][5:7]) - 1], "dal": g.date[ultimo_rib], "al": g.date[-1],
-                         "gg": len(g.date) - ultimo_rib, "tot": giorni_feriali(g.date[ultimo_rib][:7]),
-                         "live": g.date[ultimo_rib] >= LIVE_V3_DAL, **dict(corrente)[prof["id"]]},
+            "mese": rischio_mese(g, pesi, mese_rot[5:7], mese_rot),
+            "corrente": {"mese": MESI[int(mese_rot[5:7]) - 1], "dal": attesa or g.date[ultimo_rib], "al": g.date[-1],
+                         "gg": 0 if attesa else len(g.date) - ultimo_rib, "tot": giorni_feriali(mese_rot),
+                         "live": (attesa or g.date[ultimo_rib]) >= LIVE_V3_DAL, **({"attesa": True} if attesa else {}),
+                         **dict(corrente)[prof["id"]]},
             "stat": {"storico": statistiche(_tagli(curva, al=OOS_DAL)),
                      "oos": statistiche(_tagli(curva, dal=OOS_DAL)),
                      "totale": statistiche(curva),
@@ -939,16 +971,21 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
                          else stat_eur(curva, fx)),
             "curva": _settimanale(curva), "live_dal": live[0][0] if live else None,
             "rotazioni": list(reversed(cambi)),
-            "mesi_chiusi": dettaglio_mesi(g, piani, giorni, curva, sat),
+            "mesi_chiusi": dettaglio_mesi(g, piani, giorni_c, curva, sat),
         })
-    registra(rotazioni, g.date[ultimo_rib], composizioni, cartella, scrivi=scrivi)
-    chiusure = registra_chiusure(leggi_chiusure(cartella), list(chiusi.values()), cartella, scrivi=scrivi)
+    registra(rotazioni, g.date[ultimo_rib], comp_reg, cartella, scrivi=scrivi)
+    da_salvare = [c for c in chiusi.values() if not (attesa and c["al"] == g.date[-1] and not chiusura_completa)]
+    chiusure = registra_chiusure(leggi_chiusure(cartella), da_salvare, cartella, scrivi=scrivi)
+    if attesa and not chiusura_completa:          # in pagina il mese chiuso si vede lo stesso (provvisorio)
+        chiusure = chiusure + [c for c in chiusi.values() if c["al"] == g.date[-1] and
+                               not any(x["dal"] == c["dal"] for x in chiusure)]
     avviso = controlla_prezzi(px, oggi)
     if avviso:          # ERRORE nel registro: l'admin riceve la mail (job "avviso-admin"), l'utente vede l'avviso
         log.error("portafogli: prezzi Yahoo non aggiornati dal %s (%s); falliti in questo giro: %s",
                   avviso["dal"], ", ".join(avviso["mercati"]), ", ".join(ESITO.get("falliti", [])) or "nessuno")
     out = {
-        "aggiornato": g.date[-1], "rotazione": g.date[ultimo_rib], "prossima": prossima,
+        "aggiornato": g.date[-1], "rotazione": attesa or g.date[ultimo_rib], "prossima": prossima,
+        **({"attesa": True, "decisa_al": g.date[-1]} if attesa else {}),
         "dal": g.date[giorni[0]], "oos_dal": OOS_DAL, "fonte": "Yahoo Finance (prezzi rettificati)",
         "profili": out_prof, "chiusure": chiusure,
         "bench": {"nome": "60/40 (S&P 500 + Treasury 10 anni)", "curva": _settimanale(bench),

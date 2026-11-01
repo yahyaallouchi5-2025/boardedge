@@ -232,6 +232,10 @@ Uso: `python -m cot_radar.confronto storico` (con la cartella dell'archivio). Il
 - **Statistica**: per ogni strumento quante volte, dopo 5 candele, il prezzo era nella direzione del segnale.
 - **Anomalia**: Yahoo fermo -> restano i segnali del giro prima, popup di manutenzione, mail di GitHub all'admin.
 
+### v6.62
+- Portafogli, ROTAZIONE IN ATTESA: dal primo del mese al primo giorno di borsa la nuova composizione (decisa sulla chiusura precedente) si vede subito, il mese finito risulta chiuso e il conto alla rovescia punta all'apertura di quel giorno (prima puntava al mese dopo). Il registro live e le chiusure permanenti si scrivono solo con i prezzi veri.
+- Portafogli: tolto il blocco "In pausa questo mese", "Ultime rotazioni" a tutta larghezza.
+
 ### v6.61
 - CARRY TRADE (cot_radar/carry.py): tassi d'interesse mensili di 11 valute da FRED/OECD in un archivio a parte (storico/tassi.json, i tassi possono essere negativi), con serie di riserva per valuta.
 - Forex: colonna "Carry" (interessi annui per chi compra la coppia) con spunta quando carry e COT stanno dalla stessa parte, filtro "Carry con COT".

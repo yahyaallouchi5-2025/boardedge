@@ -154,6 +154,35 @@ if __name__ == "__main__":
 
 
 class AvvioV3(unittest.TestCase):
+    def test_rotazione_in_attesa_tra_fine_mese_e_primo_giorno_di_borsa(self):
+        # v6.62: domenica 1 novembre, prezzi fino a venerdi' 30 ottobre. La rotazione di lunedi' 2 e' gia' decisa
+        # (usa solo la chiusura precedente): si mostra subito, ottobre e' chiuso, il conto alla rovescia punta al 2.
+        px = P.prezzi_demo("2003-01-02", "2026-10-30")
+        righe = cot_finto([u[0] for u in P.UNIVERSO], {"SP500", "GOLD", "US10Y", "NASDAQ"})
+        d = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, d)
+        r = P.calcola(righe, px, cartella=d, scrivi=True, oggi=date(2026, 11, 1))
+        self.assertTrue(r["attesa"])
+        self.assertEqual((r["rotazione"], r["prossima"], r["decisa_al"]), ("2026-11-02", "2026-11-02", "2026-10-30"))
+        p = r["profili"][0]
+        self.assertTrue(p["rotazioni"][0].get("attesa"))
+        self.assertEqual(p["rotazioni"][0]["data"], "2026-11-02")
+        self.assertEqual(p["mesi_chiusi"][0]["mese"], "2026-10")             # ottobre chiuso al 30
+        self.assertEqual(p["mesi_chiusi"][0]["al"], "2026-10-30")
+        self.assertEqual((p["corrente"]["gg"], p["corrente"]["mese"]), (0, "novembre"))
+        self.assertEqual(P.leggi_rotazioni(d), [])                         # il registro live aspetta il prezzo vero
+        # stessa composizione che uscira' il giorno dopo, quando arriva il prezzo del 2 novembre
+        px2 = {k: v + [("2026-11-02", v[-1][1] * 1.003)] for k, v in px.items()}   # stessi prezzi + lunedi' 2
+        r2 = P.calcola(righe, px2, cartella=d, scrivi=False, oggi=date(2026, 11, 2))
+        self.assertNotIn("attesa", r2)
+        self.assertEqual(r2["prossima"], "2026-12-01")
+        self.assertEqual([(c["k"], c["peso"]) for c in r2["profili"][0]["composizione"]],
+                         [(c["k"], c["peso"]) for c in p["composizione"]])
+
+    def test_primo_feriale(self):
+        self.assertEqual(P.primo_feriale(2026, 11).isoformat(), "2026-11-02")    # 1 novembre domenica
+        self.assertEqual(P.primo_feriale(2027, 1).isoformat(), "2027-01-04")     # 1 gennaio chiuso, poi weekend
+
     def test_nessuna_rotazione_live_prima_del_2_novembre(self):
         d = tempfile.mkdtemp()
         try:
