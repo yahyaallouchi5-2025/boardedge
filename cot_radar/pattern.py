@@ -71,7 +71,13 @@ def ora_italia():
 # --------------------------------------------------------------------------- download
 def scarica(ticker, intervallo, periodo, timeout=20, tentativi=TENTATIVI, attesa=2):
     """[(epoch_utc, open, high, low, close)] da Yahoo (candele senza buchi), None dopo `tentativi` prove."""
-    q = urllib.parse.urlencode({"range": periodo, "interval": intervallo})
+    # periodo: "60d"/"2y" (range di Yahoo) oppure secondi di storia (int). v6.59b: con range=max Yahoo restituisce
+    # candele MENSILI per le storie lunghe; con period1/period2 espliciti restituisce davvero il daily.
+    if isinstance(periodo, int):
+        ora = int(time.time())
+        q = urllib.parse.urlencode({"period1": ora - periodo, "period2": ora, "interval": intervallo})
+    else:
+        q = urllib.parse.urlencode({"range": periodo, "interval": intervallo})
     for n in range(tentativi):
         try:
             req = urllib.request.Request(YAHOO.format(t=urllib.parse.quote(ticker), q=q),
@@ -102,6 +108,14 @@ def h4(orarie, adesso=None):
         g = gruppi.get(b)
         gruppi[b] = (b, o, h, l, c) if g is None else (b, g[1], max(g[2], h), min(g[3], l), c)
     return [g for b, g in sorted(gruppi.items()) if b + 4 * 3600 <= adesso]
+
+
+def quotidiane(dati):
+    """True se le candele sono davvero daily: distanza mediana tra due candele di al massimo 4 giorni."""
+    if not dati or len(dati) < 30:
+        return False
+    salti = sorted(b[0] - a[0] for a, b in zip(dati, dati[1:]))
+    return salti[len(salti) // 2] <= 4 * 86400
 
 
 def giornaliere(dati, adesso=None):
@@ -261,7 +275,11 @@ def esegui(cartella, scarica=scarica, adesso=None, pausa=0.3):
         if di_fila < DI_FILA:
             for t in tickers:                          # spot se c'e', altrimenti il future
                 o = scarica(t, "60m", "60d")
-                d = scarica(t, "1d", "max") if o else None     # v6.59: tutta la storia (per lo studio)
+                d = scarica(t, "1d", int(ANNI_STUDIO * 365.25 * 86400)) if o else None   # 25 anni (per lo studio)
+                if d and not quotidiane(d):            # controllo: se non sono candele daily, ripiego sui 2 anni
+                    log.warning("Yahoo %s: storia lunga non daily, uso 2 anni", t)
+                    d = scarica(t, "1d", "2y")
+                    d = d if d and quotidiane(d) else None
                 if pausa:
                     time.sleep(pausa)
                 if o and d:

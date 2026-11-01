@@ -37,6 +37,13 @@ class Pattern(unittest.TestCase):
         x = P.h4(ore, adesso=10 * 3600)
         self.assertEqual([g[0] for g in x], [0, 4 * 3600])
 
+    def test_quotidiane_scarta_le_mensili(self):
+        # v6.59b: Yahoo con range=max restituisce candele mensili: vanno riconosciute e scartate
+        mensili = [(i * 30 * 86400, 1, 2, 0.5, 1.5) for i in range(60)]
+        daily = [(i * 86400 + (2 * 86400 if i % 5 == 4 else 0), 1, 2, 0.5, 1.5) for i in range(60)]
+        self.assertFalse(P.quotidiane(mensili))
+        self.assertTrue(P.quotidiane(daily))
+
     def test_statistica_e_giro(self):
         c = [cand(0, 110, 100), cand(1, 100, 105), cand(2, 105, 112)] + [cand(3 + i, 112 + i, 113 + i) for i in range(6)]
         a = P.analizza(c, 2)
