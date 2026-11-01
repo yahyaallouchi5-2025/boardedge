@@ -1376,3 +1376,21 @@ html.azaperto,html.azaperto body{overflow:hidden}                       /* la pa
 .vfgtip i.tratt{background:repeating-linear-gradient(90deg,var(--s) 0 3px,transparent 3px 5px)}.vfgtip em{color:var(--mute);font-style:normal;font-size:11px}
 .vfleg i{height:2px}.vfgnop90{color:var(--mute);font-style:italic}
 .vfax{font-size:11px}
+
+/* ===== v6.61 · CARRY: colonna della tabella Forex e vista "Carry" del Backtest storico ===== */
+.crok,.crno,.crnull{display:inline-block;width:16px;margin-left:6px;font-style:normal;font-weight:800;font-size:12px;text-align:center}
+.crok{color:#4ade80}.crno{color:#f87171}
+.crvar{margin:-6px 0 14px}.crvar .filters{margin:0;gap:6px}
+.crleg span{opacity:.6;transition:opacity .15s}.crleg span.on{opacity:1;font-weight:700}
+.vfgln.crsel{stroke-width:2.2}.vfgln.crfade{stroke-width:1.2;opacity:.45}
+.crcrisi{fill:#f87171;opacity:.08}
+.crtab tr.crsel td{background:color-mix(in srgb,var(--acc) 7%,transparent)}.crtab tr.crsel td:first-child{box-shadow:inset 3px 0 0 var(--acc)}
+.crpan{display:flex;flex-wrap:wrap;align-items:center;gap:12px 28px}
+.crlato{display:flex;flex-wrap:wrap;align-items:center;gap:8px}.crlato .vfetich{min-width:58px}
+.crchip{display:inline-flex;align-items:baseline;gap:6px;padding:6px 12px;border-radius:99px;border:1px solid var(--line);background:var(--card2);font-size:13px;font-variant-numeric:tabular-nums;transition:border-color .15s,transform .15s}
+.crchip:hover{transform:translateY(-1px);border-color:var(--acc)}
+.crchip b{font-size:13.5px}.crchip.up b{color:#4ade80}.crchip.down b{color:#f87171}
+.crtot{margin-left:auto;font-size:14px}.crtot b{font-size:18px;margin:0 2px}
+.crtassi{margin-top:18px}.crbreve{display:none}.crold{color:var(--warn)}
+@media (max-width:600px){.crmob{display:none}.crbreve{display:inline}.crtot{margin-left:0;width:100%}.vfswitch{flex-wrap:wrap}.vfswitch button{flex:1 1 40%}
+ .crtab td,.crtab th{padding-left:6px;padding-right:6px}}

@@ -315,7 +315,7 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
    ${blocco(4,"I segnali uno per uno","Gli ultimi segnali simulati conclusi, con ingresso e risultato alle varie durate.",`<div class="grid vfgrid">${(B.ultimi||[]).slice(0,12).map(s=>scheda(s,true)).join("")}</div>`)}`;}
 
  /* aggiorna SOLO i numeri (non i comandi): cosi' il cursore delle sedute si puo' trascinare senza scatti */
- function aggiorna(){const box=$("vfdati");if(!box)return;box.innerHTML=V.fin=="live"?datiLive():V.fin=="vol"?datiVol():datiBt();
+ function aggiorna(){const box=$("vfdati");if(!box||V.fin=="carry")return;box.innerHTML=V.fin=="live"?datiLive():V.fin=="vol"?datiVol():datiBt();
   el.querySelectorAll(".vforz button").forEach(b=>b.classList.toggle("on",b.dataset.h==String(V.d)));
   const t=$("vfgtesto");if(t)t.textContent=durata(V.d);
   const dt=$("vfdurtesto");if(dt)dt.textContent=nomeD();
@@ -323,8 +323,8 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
   const alt=$("vfaltro");if(alt)alt.onclick=()=>{$("vfchiusi").innerHTML=R.chiusi.map(s=>scheda(s)).join("");alt.remove();};}
 
  function disegna(){el.innerHTML=`<h2>Backtest storico</h2><p class="sub">Ogni segnale misurato con prezzi veri dall'uscita dei dati: ingresso alla prima chiusura dopo il segnale, poi quanto va contro (drawdown), quanto guadagna al massimo e come finisce, per la durata del trade che scegli tu (da 1 giorno a 4 settimane, oppure fino al cambio di segnale). L'obiettivo &egrave; capire il rischio: quanto spazio lasciare allo stop rispetto alla volatilit&agrave; di ogni mercato.</p>
-  <div class="vfswitch"><button data-f="live" class="${V.fin=="live"?"on":""}">Registro live</button><button data-f="bt" class="${V.fin=="bt"?"on":""}">Backtest <span class="vfsimtag">SIMULATO</span></button><button data-f="vol" class="${V.fin=="vol"?"on":""}">Volatilit&agrave; per asset</button></div>
-  <div class="vfcorpo">${V.fin=="live"?live():V.fin=="vol"?volatilitaVista():backtest()}</div>`;
+  <div class="vfswitch"><button data-f="live" class="${V.fin=="live"?"on":""}">Registro live</button><button data-f="bt" class="${V.fin=="bt"?"on":""}">Backtest <span class="vfsimtag">SIMULATO</span></button><button data-f="vol" class="${V.fin=="vol"?"on":""}">Volatilit&agrave; per asset</button><button data-f="carry" class="${V.fin=="carry"?"on":""}">Carry</button></div>
+  <div class="vfcorpo">${V.fin=="live"?live():V.fin=="vol"?volatilitaVista():V.fin=="carry"?ebCarryVista({kcard,infoBtn,infoP,pc}):backtest()}</div>`;
   el.querySelectorAll(".vfswitch button").forEach(b=>b.onclick=()=>{V.fin=b.dataset.f;salva();disegna();});
   el.querySelectorAll(".vforz button").forEach(b=>b.onclick=()=>{V.d=b.dataset.h=="fine"?"fine":+b.dataset.h;const r=$("vfgiorni");if(r&&V.d!="fine")r.value=V.d;salva();aggiorna();});
   el.querySelectorAll(".vfper button").forEach(b=>b.onclick=()=>{V.per=b.dataset.p;el.querySelectorAll(".vfper button").forEach(x=>x.classList.toggle("on",x==b));salva();aggiorna();});
@@ -345,7 +345,7 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
  function carica(){if(stato)return;stato="in corso";
   el.innerHTML=`<h2>Backtest storico</h2>${sk("40%",16)}${sk("100%",120)}${sk("100%",320)}`;
   fetch(D.verifica,{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-   .then(v=>{D.reg=v.reg;D.bt=v.bt;stato="ok";el.innerHTML="";ebVerifica();})
+   .then(v=>{D.reg=v.reg;D.bt=v.bt;D.carry_st=v.carry_st;stato="ok";el.innerHTML="";ebVerifica();})
    .catch(e=>{stato="";console.warn("[BoardEdge] verifica.json:",e);
     el.innerHTML=`<h2>Backtest storico</h2><div class="card" style="padding:18px 20px"><p class="small">I dati della verifica non si sono caricati (connessione). </p><button class="tvbtn vfriprova">Riprova</button></div>`;
     const b=el.querySelector(".vfriprova");if(b)b.onclick=carica;});}

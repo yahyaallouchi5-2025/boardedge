@@ -57,7 +57,7 @@
  <div class="summary" id="summary"></div><div class="grid" id="cards"></div>
  <h2>Materie prime, indici, tassi e crypto</h2><p class="sub">Solo gli strumenti con un segnale attivo, dal piu' forte.</p><div class="grid" id="acards"></div>
 </section>
-<section id="pairs"><h2>Forex: tutte le coppie di valute</h2><p class="sub">Ordinate per punteggio. "COT" e "Mercato" sono le due componenti del punteggio finale.</p><div class="filters" id="filters"></div><div class="tablewrap"><table id="ptable"></table></div></section>
+<section id="pairs"><h2>Forex: tutte le coppie di valute</h2><p class="sub">Ordinate per punteggio. "COT" e "Mercato" sono le due componenti del punteggio finale. <b>Carry</b> = interessi annui incassati da chi <b>compra</b> la coppia (tasso della valuta base meno tasso della quotata): se &egrave; negativo incassa chi vende. <b>&#10003;</b> = carry e segnale COT dalla stessa parte (il trade incassa gli interessi), <b>&#10007;</b> = il segnale li paga. Tassi mensili FRED/OECD con 1-2 mesi di ritardo; lo swap del broker &egrave; un po' peggiore. Il filtro <b>Carry con COT</b> mostra solo le coppie con la spunta. Studio storico: scheda Backtest storico &rarr; Carry.</p><div class="filters" id="filters"></div><div class="tablewrap"><table id="ptable"></table></div></section>
 <section id="assets"><h2>Forza di ogni strumento</h2><p class="sub">Barra verde = spinta in acquisto, rossa = in vendita. Il testo sotto riassume cosa hanno fatto gli speculatori e cosa dice il mercato.</p><div class="filters" id="sfilters"></div><div id="alist"></div></section>
 <section id="mkt"><div id="mtop"></div></section>
 <!-- CORRELAZIONI: due viste. "Prezzi" (correlazioni.py, ogni giorno: chi sale e scende insieme e chi al contrario,

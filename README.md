@@ -232,6 +232,11 @@ Uso: `python -m cot_radar.confronto storico` (con la cartella dell'archivio). Il
 - **Statistica**: per ogni strumento quante volte, dopo 5 candele, il prezzo era nella direzione del segnale.
 - **Anomalia**: Yahoo fermo -> restano i segnali del giro prima, popup di manutenzione, mail di GitHub all'admin.
 
+### v6.61
+- CARRY TRADE (cot_radar/carry.py): tassi d'interesse mensili di 11 valute da FRED/OECD in un archivio a parte (storico/tassi.json, i tassi possono essere negativi), con serie di riserva per valuta.
+- Forex: colonna "Carry" (interessi annui per chi compra la coppia) con spunta quando carry e COT stanno dalla stessa parte, filtro "Carry con COT".
+- Backtest storico -> Carry: studio mensile dal 1999 sulle 8 valute principali (classico, + trend, + COT), costi inclusi, verdetto onesto, crisi 2008/2020/2024, paniere di oggi e tassi usati.
+
 ### v6.60
 - Verifica, grafico "Giorno per giorno": disegnato alla larghezza reale (linee e testo sottili), asse che si adatta ai giorni visibili, zoom orizzontale 1/2/4 settimane e verticale +/-/Adatta, dettaglio al passaggio del mouse; P90 mostrato solo con almeno 20 trade per giorno; spiegazione nella (i).
 
