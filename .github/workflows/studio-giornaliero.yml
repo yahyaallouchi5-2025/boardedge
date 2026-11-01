@@ -1,0 +1,41 @@
+# studio-giornaliero.yml - RACCOLTA UNA TANTUM per lo studio offline sulle "Azioni scelte" (stop su dati giornalieri).
+# Solo a mano (Actions -> Studio giornaliero -> Run workflow): nessun orario, non tocca il sito ne' il ramo "azioni".
+# Scarica da Yahoo apertura/massimo/minimo/chiusura giornalieri dal 2005 (tools/scarica_giornaliero.py) e li salva nel
+# ramo separato "studio-giornaliero" con UN solo commit. A studio finito il ramo si puo' cancellare.
+name: Studio giornaliero
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: studio-giornaliero
+  cancel-in-progress: false
+jobs:
+  raccolta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120         # ~940 titoli con una pausa tra le richieste
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Download giornaliero da Yahoo
+        id: dl
+        run: |
+          set +e
+          python tools/scarica_giornaliero.py dati_studio
+          echo "codice=$?" >> "$GITHUB_OUTPUT"
+      - name: Salva nel ramo "studio-giornaliero" (un solo commit, sovrascritto)
+        run: |
+          cd dati_studio
+          du -sh .
+          git init -q -b studio-giornaliero
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "studio: prezzi giornalieri del $(date -u +%F)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" studio-giornaliero:studio-giornaliero
+      - name: Esito
+        if: steps.dl.outputs.codice != '0'
+        run: |
+          echo "::error::Studio giornaliero: troppi titoli non scaricati (vedi stato.json nel ramo)."
+          exit 1
