@@ -30,6 +30,9 @@ log = logging.getLogger(__name__)
 SPARQL = "https://query.wikidata.org/sparql"
 RIASSUNTO = "https://{lingua}.wikipedia.org/api/rest_v1/page/summary/{titolo}"
 GIORNI_VALIDITA = 30            # un profilo si riscarica dopo 30 giorni
+VERSIONE = 2                    # v6.73: profili con ISIN e abbinamento migliorato (i vecchi si rifanno una volta)
+RIPROVA_VUOTI = 7               # titolo non trovato su Wikidata: si riprova dopo 7 giorni
+RIPROVA_DESC = 3                # trovato ma riassunto Wikipedia non scaricato: si riprova dopo 3 giorni
 MAX_PER_GIRO = 2000             # titoli aggiornati al massimo in un giro (v6.54: prima 300, troppo lento)
 TEMPO_MAX = 600                 # secondi massimi per giro: oltre si riprende al giro dopo
 LOTTO = 60                      # ticker per interrogazione SPARQL
@@ -58,11 +61,26 @@ def _sparql(q):
 
 
 def ticker_borsa(t):
-    """Ticker Yahoo -> (ticker come su Wikidata, suffisso). Hong Kong senza zeri iniziali (0700.HK -> 700)."""
+    """Ticker Yahoo -> (ticker come su Wikidata, suffisso). Hong Kong senza zeri iniziali (0700.HK -> 700).
+    v6.73: il trattino diventa punto SOLO per gli USA (BRK-B -> BRK.B); in India il trattino fa parte del
+    ticker (BAJAJ-AUTO.NS) e prima veniva rovinato."""
     base, _, suf = t.partition(".")
     if suf == "HK":
         base = base.lstrip("0") or "0"
-    return base.replace("-", "."), suf
+    return (base.replace("-", ".") if not suf else base), suf
+
+
+def varianti(t):
+    """v6.73: ticker alternativi con cui Wikidata registra lo stesso titolo (zeri iniziali a Hong Kong,
+    ticker USA con il trattino originale)."""
+    tk, suf = ticker_borsa(t)
+    base = t.partition(".")[0]
+    altri = {tk}
+    if suf == "HK":
+        altri |= {base, tk.zfill(4)}
+    elif not suf:
+        altri.add(base)
+    return sorted(altri)
 
 
 def _v(b, k):
@@ -77,8 +95,9 @@ def trova_item(lotto):
     """{ticker Yahoo: QID} per un lotto di ticker, scegliendo la borsa coerente con il suffisso."""
     per_tk = {}
     for t in lotto:
-        tk, suf = ticker_borsa(t)
-        per_tk.setdefault(tk, []).append((t, suf))
+        suf = ticker_borsa(t)[1]
+        for tk in varianti(t):
+            per_tk.setdefault(tk, []).append((t, suf))
     valori = " ".join(json.dumps(k) for k in per_tk)
     righe = _sparql(f"""SELECT ?tk ?item ?exL WHERE {{ VALUES ?tk {{ {valori} }}
       ?item p:P414 ?st . ?st ps:P414 ?ex; pq:P249 ?tk . ?ex rdfs:label ?exL FILTER(lang(?exL)="en") }}""")
@@ -88,6 +107,8 @@ def trova_item(lotto):
     out = {}
     for tk, lista in per_tk.items():
         for t, suf in lista:
+            if t in out:
+                continue                                  # gia' trovato con un'altra variante del ticker
             c = candidati.get(tk, [])
             buoni = [q for q, ex in c if any(p in ex for p in BORSE.get(suf, ()))]
             scelta = buoni or ([c[0][0]] if len({q for q, _ in c}) == 1 and c else [])
@@ -96,11 +117,75 @@ def trova_item(lotto):
     return out
 
 
+# v6.73 RICERCA PER NOME (quando il ticker non e' su Wikidata): si accetta un risultato SOLO se e' un'azienda
+# quotata (borsa P414 o ISIN P946) e, se Wikidata indica il paese, e' lo stesso della borsa del titolo.
+PAESE = {"": {"Q30"}, "MI": {"Q38"}, "DE": {"Q183"}, "PA": {"Q142"}, "AS": {"Q55"}, "MC": {"Q29"}, "BR": {"Q31"},
+         "HE": {"Q33"}, "T": {"Q17"}, "HK": {"Q148", "Q8646"}, "SS": {"Q148"}, "SZ": {"Q148"}, "NS": {"Q668"}}
+CERCA = "https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&type=item&limit=5&language=en&search="
+FORME = r"[,.]?\s+(inc|incorporated|corp|corporation|co|company|ltd|limited|plc|s\.?p\.?a|ag|sa|se|nv|n\.v|holdings? co|group co)\.?$"
+
+
+def pulisci_nome(n):
+    """'Kikkoman Corporation' -> 'Kikkoman', 'Bajaj Auto Ltd.' -> 'Bajaj Auto' (forme societarie in coda)."""
+    import re
+    n = (n or "").strip()
+    for _ in range(3):
+        n2 = re.sub(FORME, "", n, flags=re.I).strip(" ,.")
+        if n2 == n:
+            break
+        n = n2
+    return n
+
+
+def per_nome(titoli):
+    """{ticker: QID} cercando il nome dell'azienda; titoli = [(ticker, nome)]."""
+    out = {}
+    for t, nome in titoli:
+        q = pulisci_nome(nome)
+        if len(q) < 3:
+            continue
+        try:
+            cand = [x["id"] for x in _get(CERCA + urllib.parse.quote(q), timeout=20).get("search", [])]
+        except Exception as e:
+            log.warning("profili: ricerca per nome non riuscita per %s (%s)", t, type(e).__name__)
+            continue
+        if not cand:
+            continue
+        righe = _sparql(f"""SELECT ?item (SAMPLE(?pa) AS ?paese) (COUNT(?b) AS ?nb) (COUNT(?i) AS ?ni) WHERE {{
+          VALUES ?item {{ {" ".join("wd:" + c for c in cand)} }}
+          OPTIONAL{{?item wdt:P414 ?b}} OPTIONAL{{?item wdt:P946 ?i}} OPTIONAL{{?item wdt:P17 ?pa}} }} GROUP BY ?item""")
+        info = {_qid(_v(b, "item")): (int(_v(b, "nb") or 0) + int(_v(b, "ni") or 0), _qid(_v(b, "paese"))) for b in righe}
+        paesi = PAESE.get(ticker_borsa(t)[1], set())
+        for c in cand:                                    # nell'ordine di pertinenza della ricerca
+            quotata, pa = info.get(c, (0, None))
+            if quotata and (pa is None or not paesi or pa in paesi):
+                out[t] = c
+                break
+        time.sleep(PAUSA)
+    return out
+
+
+# ISIN: prefisso del paese atteso per ogni borsa (Hong Kong: molte societa' sono registrate alle Cayman o Bermuda)
+PREFISSO_ISIN = {"": ("US",), "MI": ("IT",), "DE": ("DE",), "PA": ("FR",), "AS": ("NL",), "MC": ("ES",), "BR": ("BE",),
+                 "HE": ("FI",), "T": ("JP",), "HK": ("HK", "KY", "BM", "CN"), "SS": ("CN",), "SZ": ("CN",), "NS": ("IN",)}
+
+
+def scegli_isin(lista, t):
+    """L'ISIN del titolo: quello con il prefisso del paese della borsa, altrimenti il primo (in ordine)."""
+    lista = sorted({x for x in lista if x and len(x) == 12})
+    pref = PREFISSO_ISIN.get(ticker_borsa(t)[1], ())
+    for p in pref:
+        for x in lista:
+            if x.startswith(p):
+                return x
+    return lista[0] if lista else None
+
+
 def fatti(qids):
     """Dati strutturati per una lista di QID: fondazione, CEO, sede, paese, sito, voci Wikipedia, borse,
     dipendenti (ultimo dato), acquisizioni fatte e subite negli ultimi 10 anni."""
     val = " ".join("wd:" + q for q in qids)
-    out = {q: {"ceo": [], "borse": [], "acq": [], "da": [], "dip": []} for q in qids}
+    out = {q: {"ceo": [], "borse": [], "acq": [], "da": [], "dip": [], "isin": []} for q in qids}
     for b in _sparql(f"""SELECT ?item (MIN(?inc) AS ?fond) (SAMPLE(?hqL) AS ?sede) (SAMPLE(?paL) AS ?paese)
       (SAMPLE(?itA) AS ?it) (SAMPLE(?enA) AS ?en) (SAMPLE(?sito) AS ?web) WHERE {{ VALUES ?item {{ {val} }}
       OPTIONAL{{?item wdt:P571 ?inc}}
@@ -118,6 +203,8 @@ def fatti(qids):
     for b in _sparql(f"""SELECT ?item ?l WHERE {{ VALUES ?item {{ {val} }} ?item wdt:P414 ?e.
       ?e rdfs:label ?l FILTER(lang(?l)="it") }}"""):
         out[_qid(_v(b, "item"))]["borse"].append(_v(b, "l"))
+    for b in _sparql(f"""SELECT ?item ?i WHERE {{ VALUES ?item {{ {val} }} ?item wdt:P946 ?i }}"""):   # v6.73 ISIN
+        out[_qid(_v(b, "item"))]["isin"].append(_v(b, "i"))
     for b in _sparql(f"""SELECT ?item ?n ?d WHERE {{ VALUES ?item {{ {val} }} ?item p:P1128 ?s. ?s ps:P1128 ?n.
       OPTIONAL{{?s pq:P585 ?d}} }}"""):
         out[_qid(_v(b, "item"))]["dip"].append((_v(b, "d") or "", _v(b, "n")))
@@ -182,7 +269,8 @@ def componi(t, f, desc, oggi):
             "dipendenti": {"n": int(float(dip[-1][1])), "anno": dip[-1][0][:4] or None} if dip else None,
             "borse": sorted(set(f.get("borse", [])))[:4],
             "acquisita_da": sorted(f.get("da", []), key=lambda x: -x["anno"])[:1],
-            "sito": f.get("web"), "fonte": "Wikidata e Wikipedia"}
+            "sito": f.get("web"), "isin": scegli_isin(f.get("isin", []), t), "v": VERSIONE,
+            "fonte": "Wikidata e Wikipedia"}
 
 
 def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
@@ -193,10 +281,18 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
     limite = (oggi - timedelta(days=GIORNI_VALIDITA)).isoformat()
     # v6.54: prima i titoli USA (ticker senza suffisso di borsa), poi gli altri; quelli senza voce su Wikidata
     # ricevono un file "vuoto" con la data, cosi' non vengono richiesti a ogni giro
+    lim_vuoti = (oggi - timedelta(days=RIPROVA_VUOTI)).isoformat()
+    lim_desc = (oggi - timedelta(days=RIPROVA_DESC)).isoformat()
+
     def scaduto(t):                              # vecchio di 30 giorni, oppure in inglese senza traduzione (v6.54c)
         p = A._leggi(file_di(t)) or {}
         d = p.get("desc") or {}
-        return (p.get("agg") or "") < limite or (d.get("lingua") not in (None, "it") and not d.get("trad"))
+        agg = p.get("agg") or ""
+        if p.get("vuoto"):                       # v6.73: i titoli non trovati si riprovano ogni settimana
+            return agg < lim_vuoti
+        return (agg < limite or p.get("v") != VERSIONE or (not d and agg < lim_desc)
+                or (d.get("lingua") not in (None, "it") and not d.get("trad")))
+    nomi = {x["t"]: x.get("nome") for x in (el if el is not None else A.elenco())}
     da_fare = [t for t in titoli if scaduto(t)]
     da_fare = sorted(da_fare, key=lambda t: "." in t)[:MAX_PER_GIRO]
     fatti_ok, mancanti, inizio = 0, [], time.time()
@@ -207,6 +303,9 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
         lotto = da_fare[i:i + LOTTO]
         try:
             qid = trova_item(lotto)
+            persi = [(t, nomi.get(t)) for t in lotto if t not in qid and nomi.get(t)]
+            if persi:                               # v6.73: ticker non su Wikidata -> ricerca per nome
+                qid.update(per_nome(persi))
             if i == 0:
                 log.warning("profili: primo lotto, %d ticker su %d trovati su Wikidata", len(qid), len(lotto))
             dati = fatti(sorted(set(qid.values()))) if qid else {}
