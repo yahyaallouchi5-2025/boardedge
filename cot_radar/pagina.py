@@ -96,6 +96,12 @@ def build(data_source=load_all, demo=False, sito=False):
         try:
             agenda_out = agenda.costruisci(fred, ecb, pairs)
             log.info("agenda notizie: %d eventi (fonte %s)", len(agenda_out["eventi"]), agenda_out["fonte"])
+            # SCENARI (scenari.py, v6.73): lettura, dato precedente e reazione tipica di ogni tipo di evento
+            try:
+                from . import scenari
+                agenda_out["scenari"] = scenari.calcola(fred)
+            except Exception:
+                log.warning("scenari degli eventi non calcolati:\n%s", traceback.format_exc())
         except Exception:
             log.warning("agenda notizie non costruita:\n%s", traceback.format_exc())
     try:                              # motore notizie (vedi notizie.py): se fallisce mancano solo le righe "Notizie"
