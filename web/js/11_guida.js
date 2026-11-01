@@ -32,6 +32,23 @@ try{(function(){const h=document.documentElement,mob=()=>matchMedia("(max-width:
  function chiudi(){h.classList.remove("sideon");$("sombra").hidden=true;}
  $("smenu").onclick=apri;$("sombra").onclick=chiudi;
  $("gapri").addEventListener("click",()=>{if(mob())chiudi();});
+ /* v6.76 ALLINEAMENTO (solo PC): il centro del pulsante Telegram sta all'altezza del centro della barra delle schede
+    (Dashboard, Portafogli...), sia con la barra aperta sia ridotta. La barra laterale e' fissa (sticky top 0), quindi
+    si confronta la posizione delle schede a pagina in cima (rect + scrollY). Si ricalcola quando cambia l'altezza
+    della testata (avvisi che compaiono o si chiudono), la larghezza della finestra o lo stato della barra. */
+ const tg=document.querySelector(".side .stg"),nav=$("nav"),side=$("side");
+ function allinea(){if(!tg||!nav)return;
+  if(mob()){tg.style.marginTop="";return;}
+  tg.style.marginTop="0px";
+  // posizioni "da pagina ferma" con offsetTop (le schede sono sticky: il rettangolo cambia mentre si scorre)
+  const su=el=>{let y=0;for(let x=el;x;x=x.offsetParent)y+=x.offsetTop;return y;};
+  const centroNav=su(nav)+nav.offsetHeight/2,centroTg=su(tg)-su(side)+tg.offsetHeight/2;
+  tg.style.marginTop=Math.max(0,Math.round(centroNav-centroTg))+"px";}
+ allinea();addEventListener("resize",allinea);addEventListener("load",allinea);
+ if(document.fonts&&document.fonts.ready)document.fonts.ready.then(allinea);
+ if(window.ResizeObserver){const ro=new ResizeObserver(()=>requestAnimationFrame(allinea));
+  [document.querySelector(".top"),nav,nav.parentElement].forEach(x=>x&&ro.observe(x));}   // anche avvisi aperti/chiusi sopra le schede
+ new MutationObserver(()=>requestAnimationFrame(allinea)).observe(h,{attributes:true,attributeFilter:["class"]});
 })();}catch(e){fail("Barra laterale",null,e);}
 
 /* ---------- guida laterale ----------

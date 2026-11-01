@@ -1587,3 +1587,14 @@ html.ridotta .sagg{display:none}
 .paz-isin code{font:600 11px ui-monospace,SFMono-Regular,Menlo,monospace;letter-spacing:.3px;color:var(--ink2)}
 .paz-isin svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round;opacity:.7}
 .paz-isin:hover{border-color:var(--acc);color:var(--ink)}.paz-isin.ok{border-color:var(--b);color:var(--b)}
+
+/* --- v6.76 barra laterale (PC): piu' respiro sotto Telegram (allineato alle schede da 11_guida.js) e passi regolari.
+   Aperta: 34px tra Telegram e Stato dati. Ridotta: 40px dopo Telegram, pallini ogni 40px, 32px tra i gruppi. */
+@media (min-width:901px){
+ .side .stg+.sgruppo{margin-top:12px}
+ html.ridotta .side{gap:32px}
+ html.ridotta .side .stg+.sgruppo{margin-top:8px}
+ html.ridotta .sstato{gap:8px}html.ridotta .srow{padding:8px 0}
+ html.ridotta .stit{justify-content:center;margin-bottom:14px}
+ html.ridotta .sitem{padding:9px 0}
+}
