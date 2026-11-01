@@ -25,8 +25,11 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
  /* v6.73 ATTESA DEL PREZZO: i cambi FRED (tassi di mezzogiorno di New York) escono UNA volta a settimana, il lunedi'
     sera, per tutta la settimana prima. Un segnale su una coppia nato dopo il fixing del venerdi' aspetta quindi fino a
     10 giorni il primo prezzo: non e' un errore, lo diciamo chiaramente. Gli altri strumenti hanno prezzi giornalieri. */
- const FXC=/^(EUR|USD|GBP|JPY|CHF|CAD|AUD|NZD|MXN|BRL|ZAR){2}$/;
- const attesa=(s,m)=>m.stato&&m.stato!="ok"?(FXC.test(s.strumento)?"in attesa del cambio FRED (esce il luned\u00ec)":m.stato):"prezzo non disponibile";
+ // v6.75: con il ponte Yahoo i cambi non aspettano piu' FRED; resta solo l'attesa della prima chiusura dopo il segnale
+ // (segnale nato nel weekend o a mercato aperto: il prezzo d'ingresso e' la chiusura successiva).
+ const attesa=(s,m)=>{if(!m.stato||m.stato=="ok")return "prezzo non disponibile";
+  const g=new Date(s.generato.replace("Z",":00Z")).getUTCDay();
+  return g==0||g==6?"in attesa della chiusura di luned\u00ec (weekend)":"in attesa della prima chiusura dopo il segnale";};
  /* scheda di un segnale nel formato approvato */
  function scheda(s,sim){const m=s.m||{},A=m.A||{},ing=m.ingresso;
   const testa=`<div class="vfh"><span class="pair">${esc(s.strumento)}</span> ${badge(s.etichetta)}${s.iniziale?' <span class="tag" title="Era gia\' attivo quando il registro e\' partito: escluso dalle statistiche">gi&agrave; attivo all\'avvio</span>':''}${s.padre?' <span class="tag" title="Fase STRONG di un segnale gia\' aperto">fase STRONG</span>':''}${volTag(s.vol)}</div>`;
