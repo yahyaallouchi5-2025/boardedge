@@ -53,6 +53,22 @@ try{(function(){const el=$("pattern");if(!el)return;
  const nb=document.querySelector('#nav button[data-t=pattern]');if(nb)nb.addEventListener("click",()=>setTimeout(carica,0));
  setTimeout(()=>{if(el.classList.contains("on"))carica();},0);
 
+ // --- STUDIO STORICO (v6.59, cot_radar/pattern.py studio()): tutti i pattern daily degli ultimi 25 anni operati
+ //     con stop all'estremo, target 1R/2R, costi e filtro trend; VERDETTO automatico in cima, senza giri di parole.
+ function studio(st){if(!st||!st.varianti)return "";
+  const r=v=>v==null?"n/d":(v>0?"+":"")+fx(v,2)+" R",V=st.varianti,ok=st.verdetto=="vantaggio";
+  const riga=(nome,x)=>x?`<tr><td>${nome}</td><td class="num ptmob">${x.n.toLocaleString("it-IT")}</td><td class="num ptmob">${x.vinte}%</td>
+   <td class="num ${x.r_medio>=0?"up":"down"}"><b>${r(x.r_medio)}</b></td><td class="num">${x.ic?`${r(x.ic[0])} &hellip; ${r(x.ic[1])}`:"n/d"}</td>
+   <td class="num"><span class="ptv ${x.ic&&x.ic[0]>0?"si":"no"}">${x.ic&&x.ic[0]>0?"s&igrave;":"no"}</span></td></tr>`:"";
+  const t1=V["1R"].tutti;
+  return `<div class="card ptstudio ${ok?"si":"no"}"><div class="ptsth"><span class="ptverd">${ok?"VANTAGGIO STATISTICO IN ALMENO UNA VARIANTE":"NESSUN VANTAGGIO DIMOSTRATO"}</span>
+    <span class="small">Studio storico Daily dal ${esc((t1&&t1.dal||"").slice(0,4))}: ${t1?t1.n.toLocaleString("it-IT"):"n/d"} pattern su ${ST.d.strumenti.length} strumenti</span></div>
+   <p class="small">Ogni pattern operato come un trader vero: ingresso alla chiusura della candela 3, stop all'estremo del pattern (rischio = 1R), target a 1R o 2R, uscita dopo ${st.regole.uscita_max} candele se nessuno dei due &egrave; toccato, costi inclusi. Se una candela tocca stop e target insieme conta come stop. ${ok?"Almeno una variante ha un risultato medio sopra zero anche nel caso peggiore dell'intervallo al 95%: guarda quale nella tabella.":"In nessuna variante il risultato medio &egrave; sicuramente sopra zero: usa il pattern come lettura del grafico, non come segnale da seguire da solo."}</p>
+   <div class="tablewrap"><table class="compatta"><tr><th>Variante</th><th class="num ptmob">Pattern</th><th class="num ptmob">Vinti</th><th class="num">Risultato medio</th><th class="num">Intervallo 95%</th><th class="num">Vantaggio</th></tr>
+    ${riga("Target 1R, tutti",V["1R"].tutti)}${riga("Target 1R, a favore del trend",V["1R"].trend)}${riga("Target 1R, contro il trend",V["1R"].contro_trend)}
+    ${riga("Target 2R, tutti",V["2R"].tutti)}${riga("Target 2R, a favore del trend",V["2R"].trend)}${riga("Target 2R, contro il trend",V["2R"].contro_trend)}</table></div>
+   <p class="small">R = multipli del rischio: +1 R vuol dire che hai guadagnato quanto rischiavi. Trend = media a ${200} candele. L'intervallo al 95% conta i segnali dello stesso giorno come uno solo (molte coppie si muovono insieme). Statistica del passato, non un consiglio.</p></div>`;}
+
  function disegna(){const d=ST.d,tf=ST.tf;
   const S=d.strumenti.filter(s=>ST.g=="tutti"||s.g==ST.g);
   const freschi=S.filter(s=>s[tf].ultimo&&s[tf].ultimo.fa==0);
@@ -62,6 +78,7 @@ try{(function(){const el=$("pattern");if(!el)return;
   el.innerHTML=`<h2>Pattern Detector</h2><p class="sub">Inversione a 3 candele con assorbimento: la candela 1 va in una direzione, le candele 2 e 3 nella direzione opposta e la candela 3 chiude oltre l'apertura della candela 1, &laquo;assorbendola&raquo; del tutto. Solo candele chiuse, ${S.length} strumenti tra forex e materie prime, aggiornamento ogni 4 ore.</p>
    <div class="ptspiega"><div>${schema("BUY")}<span>${badge("BUY")} candela 1 SELL, poi 2 candele BUY: la 3 chiude sopra l'apertura della 1</span></div>
     <div>${schema("SELL")}<span>${badge("SELL")} candela 1 BUY, poi 2 candele SELL: la 3 chiude sotto l'apertura della 1</span></div></div>
+   ${studio(d.studio)}
    <div class="azbar"><span class="azdata"><i></i>Aggiornato <b>${esc((d.generato||"").slice(8,10)+"/"+(d.generato||"").slice(5,7)+" ore "+(d.generato||"").slice(11,16))}</b></span>
     <div class="vfswitch pttf">${[["h4","H4"],["d1","Daily"]].map(x=>`<button data-tf="${x[0]}" class="${tf==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
     <div class="filters ptg">${[["tutti","Tutti"],["forex","Forex"],["materie","Materie prime"]].map(x=>`<button data-g="${x[0]}" class="${ST.g==x[0]?"on":""}">${x[1]}</button>`).join("")}</div></div>

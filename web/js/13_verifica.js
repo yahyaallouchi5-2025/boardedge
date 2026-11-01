@@ -224,8 +224,17 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
   const anni=Object.entries(B.anni||{}).map(([a,R])=>[a,st(R)]).filter(([a,x])=>x),mx=Math.max(0.5,...anni.map(([a,x])=>Math.abs(x.resa)));
   const barre=anni.length?`<h3 class="vft">Anno per anno <span class="small">(resa media ${nomeD()})</span></h3><div class="vfanni">${anni.map(([a,x])=>{const h=Math.round(Math.abs(x.resa)/mx*100),hold=a>=B.holdout_dal.slice(0,4);
    return `<div class="vfanno${hold?" vfhold":""}" title="${a}: ${x.n} segnali, vinti ${x.hit}%, resa media ${pc(x.resa)}"><div class="vfmeta">${x.resa>=0?`<i class="su" style="height:${h}%"></i>`:""}</div><div class="vfmeta giu">${x.resa<0?`<i class="giu" style="height:${h}%"></i>`:""}</div><span>${a.slice(2)}</span></div>`;}).join("")}</div>`:"";
+  // v6.59 VERDETTO ONESTO in cima: si giudica SOLO sull'holdout (ultimi 2 anni, mai usati per tarare).
+  //   dimostrato = resa media netta > 0 E anche il limite basso dell'intervallo dei vincenti sopra il 50%;
+  //   contrario  = resa < 0 E anche il limite alto sotto il 50%; altrimenti "non dimostrato".
+  const ho=st(B.periodi.holdout.riass),tu=st(B.periodi.tutti.riass);
+  const verd=!ho?null:(ho.resa>0&&ho.ic[0]>50)?["si","VANTAGGIO DIMOSTRATO"]:(ho.resa<0&&ho.ic[1]<50)?["ko","RISULTATO PEGGIORE DEL CASO"]:["no","NESSUN VANTAGGIO DIMOSTRATO"];
+  const verdetto=verd?`<div class="card vfverd ${verd[0]}"><span class="vfvb">${verd[1]}</span>
+   <p>Negli ultimi 2 anni (holdout, ${ho.n.toLocaleString("it-IT")} segnali simulati) i trade in guadagno sono stati il <b>${ho.hit}%</b> (intervallo ${ho.ic[0]}&ndash;${ho.ic[1]}%) con una resa media di <b class="${col(ho.resa)}">${pc(ho.resa)}</b> al netto dei costi${tu?`; su tutto il periodo dal ${esc(B.dal.slice(0,4))}: ${tu.hit}% e ${pc(tu.resa)}`:""}.
+   ${verd[0]=="si"?"Il vantaggio regge anche negli anni non usati per costruire il metodo.":"Il segnale COT, da solo e misurato cos&igrave;, non ha mostrato un vantaggio affidabile: usalo come contesto (chi &egrave; posizionato e quanto) insieme al trend e al rischio, non come ordine da eseguire."}</p>
+   <p class="small">Nota: il backtest usa solo COT e conferme; la parte "Mercato e macro" (30% del punteggio live) non &egrave; ricostruibile nel passato. Il registro live misura il punteggio completo.</p></div>`:"";
   const ordS=Object.keys(P.strumento||{}).sort((a,b)=>((st(P.strumento[b])||{}).resa??-99)-((st(P.strumento[a])||{}).resa??-99));
-  return blocco(1,"Quanto va contro","Prima dei guadagni: quanto il trade simulato scende sotto l'ingresso, giorno per giorno.",
+  return verdetto+blocco(1,"Quanto va contro","Prima dei guadagni: quanto il trade simulato scende sotto l'ingresso, giorno per giorno.",
     bloccoDD(P,B.dd_campi,B.unita))
    +blocco(2,"Il controllo onesto","Gli anni tenuti da parte (holdout) messi a confronto con quelli su cui il metodo &egrave; stato costruito.",
     tabella("Sviluppo e holdout a confronto",per,Object.keys(per))
