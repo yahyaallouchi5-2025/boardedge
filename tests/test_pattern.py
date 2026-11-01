@@ -64,3 +64,38 @@ class Pattern(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class StudioStorico(unittest.TestCase):
+    """v6.59: su prezzi CASUALI lo studio non deve trovare un vantaggio (niente falsi positivi)."""
+    def test_casuale_nessun_vantaggio(self):
+        import random
+        from cot_radar import pattern as PT
+        import math
+        random.seed(7)
+        serie, m = [], 60
+        sg = 0.007 / m ** 0.5
+        for k in range(12):                      # prezzi casuali "veri": martingala con 60 passi dentro la candela
+            p, c, t = 100.0, [], 946684800
+            for i in range(3000):
+                p *= math.exp(random.gauss(0, 0.001))
+                o = h = l = p
+                for _ in range(m):
+                    p *= math.exp(random.gauss(0, sg) - sg * sg / 2)
+                    h, l = max(h, p), min(l, p)
+                c.append((t + i * 86400 + k, o, h, l, p))
+            serie.append(("forex", c))
+        st = PT.studio(serie)
+        self.assertEqual(st["verdetto"], "nessun_vantaggio")
+        t1 = st["varianti"]["1R"]["tutti"]
+        self.assertGreater(t1["n"], 1000)
+        self.assertLess(t1["r_medio"], 0.05)
+
+    def test_stop_prima_del_target(self):
+        from cot_radar import pattern as PT
+        # BUY: candela 1 giu', 2 e 3 su con chiusura sopra l'apertura della 1; poi una candela che tocca stop e target
+        c = [(0, 10, 10.1, 9.5, 9.6), (86400, 9.6, 9.9, 9.55, 9.8), (172800, 9.8, 10.3, 9.7, 10.2),
+             (259200, 10.2, 11.5, 9.0, 10.0)]
+        ops = PT.operazioni(c, "forex", 1)
+        self.assertEqual(len(ops), 1)
+        self.assertLess(ops[0][1], -0.99)               # stop (ipotesi prudente) meno i costi

@@ -24,6 +24,8 @@ AGGIORNAMENTO: workflow .github/workflows/pattern.yml ogni 4 ore pochi minuti do
 
 STATISTICA ONESTA: per ogni strumento e timeframe si contano i pattern passati e cosa e' successo dopo 5 candele
   (quante volte il prezzo era nella direzione del segnale e lo spostamento medio). Campioni piccoli: indicativi.
+  v6.59 STUDIO STORICO (funzione studio): tutti i pattern daily degli ultimi 25 anni operati come un trader vero
+  (stop, target 1R/2R, costi, filtro trend) con VERDETTO automatico "vantaggio dimostrato" / "nessun vantaggio".
 
 USO: python -m cot_radar.pattern <cartella>
 """
@@ -33,7 +35,7 @@ import sys
 import time
 import urllib.parse
 import urllib.request
-from datetime import datetime, timedelta, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from .log import log
 
@@ -150,21 +152,125 @@ def analizza(c, cifre):
             "ultima_chiusa": c[-1][0] if c else None}
 
 
+# --------------------------------------------------------------------------- STUDIO STORICO (v6.59)
+# Domanda: "se avessi operato OGNI pattern daily dal 2000 come un trader vero, avrei guadagnato?"
+#   ingresso alla chiusura della candela 3; STOP all'estremo del pattern (rischio = 1R);
+#   TARGET a 1R oppure 2R; se nessuno dei due e' toccato entro MAX_CANDELE si esce alla chiusura;
+#   candela che tocca stop e target insieme = STOP (ipotesi prudente: non sappiamo cosa e' venuto prima);
+#   se la candela APRE gia' oltre lo stop (gap) si esce all'apertura: perdita piu' grande di 1R, come nella realta';
+#   costi: spread + commissioni in % del prezzo (COSTO_PCT), convertiti in R.
+# FILTRO TREND: BUY solo sopra la media a 200 candele, SELL solo sotto.
+# VERDETTO: i segnali di strumenti diversi nello stesso giorno sono legati (es. tutte le coppie col dollaro), quindi
+#   l'incertezza si calcola sulla media in R di ogni GIORNO con segnali (non sul singolo segnale): vantaggio
+#   "dimostrato" solo se anche il limite basso dell'intervallo al 95% e' sopra zero.
+MAX_CANDELE = 10
+COSTO_PCT = {"forex": 0.02, "materie": 0.06}
+SMA_TREND = 200
+ANNI_STUDIO = 25
+
+
+def operazioni(c, gruppo, target_r):
+    """[(giorno, R netto, lato, a_favore_del_trend)] per ogni pattern della serie daily c."""
+    out = []
+    chiusure = [x[4] for x in c]
+    for i, lato in trova(c):
+        if i + 1 >= len(c):
+            continue
+        ing = c[i][4]
+        estremo = min(x[3] for x in c[i - 2:i + 1]) if lato == "BUY" else max(x[2] for x in c[i - 2:i + 1])
+        rischio = abs(ing - estremo)
+        if rischio <= ing * 0.0005:                    # pattern "piatto" (rischio < 0,05%): non operabile
+            continue
+        verso = 1 if lato == "BUY" else -1
+        stop, target = ing - verso * rischio, ing + verso * rischio * target_r
+        r = None
+        for x in c[i + 1:i + 1 + MAX_CANDELE]:
+            colpito_stop = x[3] <= stop if verso > 0 else x[2] >= stop
+            colpito_tgt = x[2] >= target if verso > 0 else x[3] <= target
+            if colpito_stop:
+                # gap oltre lo stop (apertura gia' peggiore dello stop): si esce all'apertura, perdita oltre -1R
+                fill = min(stop, x[1]) if verso > 0 else max(stop, x[1])
+                r = (fill - ing) * verso / rischio
+                break
+            if colpito_tgt:
+                r = float(target_r)
+                break
+        if r is None:
+            fine = c[min(i + MAX_CANDELE, len(c) - 1)][4]
+            r = (fine - ing) * verso / rischio
+        r -= COSTO_PCT[gruppo] / 100 * ing / rischio     # costi in R
+        trend = None
+        if i >= SMA_TREND:
+            sma = sum(chiusure[i - SMA_TREND + 1:i + 1]) / SMA_TREND
+            trend = (ing > sma) if verso > 0 else (ing < sma)
+        out.append((datetime.fromtimestamp(c[i][0], tz=timezone.utc).date().isoformat(), r, lato, trend))
+    return out
+
+
+BLOCCO_GIORNI = 14       # operazioni aperte nelle stesse 2 settimane = un'osservazione sola (si sovrappongono)
+Z_VERDETTO = 2.81        # 95% CORRETTO per 10 confronti (Bonferroni): con tante varianti, una "vince" per caso
+
+
+def _sintesi(ops):
+    """n, % vinte, R medio e intervallo di confidenza. Le operazioni non sono indipendenti: tante coppie danno il
+    segnale lo stesso giorno e le operazioni dello stesso strumento si sovrappongono (fino a 10 candele). Per questo
+    l'incertezza si calcola sulla media di BLOCCHI di 2 settimane, con z = 2,81 (95% corretto per 10 varianti).
+    Verificato su prezzi casuali (tests/test_pattern.py): nessun falso "vantaggio"."""
+    if not ops:
+        return None
+    per_giorno = {}
+    for g, r, _, _ in ops:
+        per_giorno.setdefault(date.fromisoformat(g).toordinal() // BLOCCO_GIORNI, []).append(r)
+    medie = [sum(v) / len(v) for v in per_giorno.values()]
+    n_g = len(medie)
+    m = sum(medie) / n_g
+    sd = (sum((x - m) ** 2 for x in medie) / (n_g - 1)) ** 0.5 if n_g > 1 else 0
+    err = Z_VERDETTO * sd / n_g ** 0.5 if n_g > 1 else None
+    tot = [r for _, r, _, _ in ops]
+    return {"n": len(tot), "giorni": n_g, "vinte": round(100 * sum(1 for r in tot if r > 0) / len(tot)),
+            "r_medio": round(sum(tot) / len(tot), 3), "r_giorno": round(m, 3),
+            "ic": [round(m - err, 3), round(m + err, 3)] if err is not None else None,
+            "dal": min(g for g, _, _, _ in ops)}
+
+
+def studio(serie):
+    """serie = [(gruppo, candele daily)] di tutti gli strumenti -> risultati e VERDETTO automatico."""
+    out = {"regole": {"stop": "estremo del pattern", "uscita_max": MAX_CANDELE, "costi_pct": COSTO_PCT,
+                      "trend": f"media {SMA_TREND} candele"}, "varianti": {}}
+    for tr in (1, 2):
+        tutte = []
+        for gruppo, c in serie:
+            tutte += operazioni(c, gruppo, tr)
+        out["varianti"][f"{tr}R"] = {"tutti": _sintesi(tutte),
+                                     "trend": _sintesi([o for o in tutte if o[3] is True]),
+                                     "contro_trend": _sintesi([o for o in tutte if o[3] is False]),
+                                     "buy": _sintesi([o for o in tutte if o[2] == "BUY"]),
+                                     "sell": _sintesi([o for o in tutte if o[2] == "SELL"])}
+    migliori = [v for var in out["varianti"].values() for v in var.values() if v and v["ic"]]
+    vinc = [v for v in migliori if v["ic"][0] > 0]
+    out["verdetto"] = "vantaggio" if vinc else "nessun_vantaggio"
+    return out
+
+
 # --------------------------------------------------------------------------- giro completo
 def esegui(cartella, scarica=scarica, adesso=None, pausa=0.3):
     adesso = adesso or time.time()
-    risultati, falliti, di_fila = [], [], 0
+    risultati, falliti, di_fila, lunghe = [], [], 0, []
     for sid, nome, gruppo, tickers, cifre in STRUMENTI:
         rec = None
         if di_fila < DI_FILA:
             for t in tickers:                          # spot se c'e', altrimenti il future
                 o = scarica(t, "60m", "60d")
-                d = scarica(t, "1d", "2y") if o else None
+                d = scarica(t, "1d", "max") if o else None     # v6.59: tutta la storia (per lo studio)
                 if pausa:
                     time.sleep(pausa)
                 if o and d:
+                    dd = giornaliere(d, adesso)
+                    lim = adesso - ANNI_STUDIO * 365.25 * 86400
+                    lunghe.append((gruppo, [x for x in dd if x[0] >= lim]))
                     rec = {"id": sid, "n": nome, "g": gruppo, "fonte": t,
-                           "h4": analizza(h4(o, adesso), cifre), "d1": analizza(giornaliere(d, adesso), cifre)}
+                           "h4": analizza(h4(o, adesso), cifre),
+                           "d1": analizza([x for x in dd if x[0] >= adesso - 2 * 365.25 * 86400], cifre)}   # 2 anni
                     break
         if rec:
             di_fila = 0
@@ -176,7 +282,9 @@ def esegui(cartella, scarica=scarica, adesso=None, pausa=0.3):
     vecchio = {}
     try:
         with open(os.path.join(cartella, "pattern.json"), encoding="utf-8") as f:
-            vecchio = {x["id"]: x for x in json.load(f).get("strumenti", [])}
+            _v = json.load(f)
+            vecchio = {x["id"]: x for x in _v.get("strumenti", [])}
+            vecchio["_studio"] = _v.get("studio")
     except (OSError, ValueError):
         pass
     for sid in falliti:
@@ -191,8 +299,15 @@ def esegui(cartella, scarica=scarica, adesso=None, pausa=0.3):
         log.error("pattern: aggiornamento non riuscito (%s), strumenti falliti: %s", quando, ", ".join(falliti))
     elif falliti:
         log.warning("pattern: strumenti non aggiornati: %s", ", ".join(falliti))
+    st = None
+    try:                                               # studio storico: mai bloccante per i segnali
+        st = studio(lunghe) if len(lunghe) >= 10 else None
+    except Exception as e:
+        log.warning("pattern: studio storico non calcolato (%s: %s)", type(e).__name__, e)
+    if st is None and vecchio.get("_studio"):
+        st = vecchio["_studio"]
     out = {"generato": quando, "generato_utc": int(adesso), "anomalia": anomalia, "dopo": DOPO,
-           "strumenti": risultati}
+           "strumenti": risultati, "studio": st}
     os.makedirs(cartella, exist_ok=True)
     with open(os.path.join(cartella, "pattern.json.tmp"), "w", encoding="utf-8") as f:
         json.dump(out, f, separators=(",", ":"), ensure_ascii=False)
