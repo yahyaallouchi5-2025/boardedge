@@ -1,6 +1,6 @@
 {
- "ultimo_n": 47,
- "hash": "c1048f41641dd8dd17360914d2a2a4bbaab9e5b28ee6e54270049a7fea090ac4",
+ "ultimo_n": 52,
+ "hash": "eb72554046c9f174f853a5479418316a7d05a9e4195054c82c9ea2f0dcd6ef34",
  "riepilogo_cot": "2026-10-27",
  "agenda": {
   "arrivo": {
@@ -13,7 +13,8 @@
    "us-gross-domestic-product-october-2026": "2026-10-29",
    "us-personal-income-and-outlays-pce-october-2026": "2026-10-29",
    "ecb-rate-decision-october-2026": "2026-10-29",
-   "bank-of-japan-rate-decision-october-2026": "2026-10-30"
+   "bank-of-japan-rate-decision-october-2026": "2026-10-30",
+   "us-ism-manufacturing-pmi-november-2026": "2026-11-02"
   },
   "esito": {
    "CAD-2026-10-19": "2026-10-19",
@@ -29,5 +30,5 @@
   "settimana": "2026-11-02"
  },
  "briefing": null,
- "aggiornato": "2026-11-01T06:50Z"
+ "aggiornato": "2026-11-01T14:30Z"
 }
