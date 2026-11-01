@@ -13,6 +13,11 @@ Cosa fa:
     non creano finti gap
   - salva <cartella>/giornaliero/<T>.csv.gz (data,apertura,massimo,minimo,chiusura rettificati) e stato.json
 
+v2 (studio Pattern + COT): COMPITI sceglie cosa scaricare in questo giro. I file gia' presenti nel ramo
+"studio-giornaliero" vengono prima recuperati, cosi' un nuovo giro AGGIUNGE dati senza cancellare quelli vecchi.
+  "pattern": per gli strumenti del Pattern Detector, candele giornaliere dal 2001 e candele orarie degli ultimi
+             729 giorni (limite di Yahoo per l'orario) -> <cartella>/pattern/<id>.json.gz
+
 USO: python tools/scarica_giornaliero.py <cartella di uscita>     (lo lancia .github/workflows/studio-giornaliero.yml)
 """
 import csv
@@ -20,6 +25,7 @@ import gzip
 import io
 import json
 import os
+import subprocess
 import sys
 import time
 import urllib.parse
@@ -28,7 +34,11 @@ from datetime import datetime, timezone
 
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
 from cot_radar import azioni as A          # noqa: E402
+from cot_radar import pattern as P         # noqa: E402
 from cot_radar import satellite as S       # noqa: E402
+
+COMPITI = ("pattern",)      # "azioni" = prezzi giornalieri dei titoli (gia' raccolti il 01/11/2026)
+RAMO = "studio-giornaliero"
 
 INIZIO = int(datetime(2004, 12, 1, tzinfo=timezone.utc).timestamp())   # un mese prima del 2005 per le medie
 EXTRA = ["SPY", "RSP"]
@@ -87,7 +97,46 @@ def salva(cartella, ticker, pts):
         f.write(buf.getvalue())
 
 
+def recupera_ramo(cartella):
+    """Copia nella cartella i file gia' salvati nel ramo (se esiste): il push finale li ritrova tutti."""
+    os.makedirs(cartella, exist_ok=True)
+    r = subprocess.run(f"git fetch -q --depth 1 origin {RAMO} && git archive FETCH_HEAD | tar -x -C {cartella}",
+                       shell=True)
+    print("ramo precedente recuperato" if r.returncode == 0 else "nessun ramo precedente")
+
+
+def scarica_pattern(cartella):
+    """Strumenti del Pattern Detector: daily dal 2001 e orarie degli ultimi 729 giorni (per le H4)."""
+    os.makedirs(os.path.join(cartella, "pattern"), exist_ok=True)
+    ko = []
+    for sid, nome, gruppo, tickers, cifre in P.STRUMENTI:
+        dati = None
+        for t in tickers:                                    # primo ticker che risponde (come il sito)
+            d = P.scarica(t, "1d", int(25.9 * 365.25 * 86400))
+            if d and P.quotidiane(d):
+                h = P.scarica(t, "60m", 729 * 86400)
+                dati = {"id": sid, "ticker": t, "gruppo": gruppo, "d": d, "h1": h or []}
+                break
+            time.sleep(PAUSA)
+        if dati:
+            with gzip.open(os.path.join(cartella, "pattern", sid + ".json.gz"), "wt", encoding="utf-8") as f:
+                json.dump(dati, f, separators=(",", ":"))
+            print(f"  {sid}: {len(dati['d'])} daily, {len(dati['h1'])} orarie ({dati['ticker']})")
+        else:
+            ko.append(sid)
+        time.sleep(PAUSA)
+    return ko
+
+
 def main(cartella):
+    recupera_ramo(cartella)
+    if "pattern" in COMPITI:
+        ko = scarica_pattern(cartella)
+        with open(os.path.join(cartella, "stato_pattern.json"), "w", encoding="utf-8") as f:
+            json.dump({"agg": datetime.now(timezone.utc).isoformat(timespec="seconds"), "falliti": ko}, f)
+        print("pattern falliti:", ko)
+        if "azioni" not in COMPITI:
+            return 0 if len(ko) <= 3 else 1
     os.makedirs(os.path.join(cartella, "giornaliero"), exist_ok=True)
     titoli = [x["t"] for x in A.elenco() if not x["t"].endswith(S.NON_UE)] + EXTRA
     ok, ko, t0 = [], [], time.time()
