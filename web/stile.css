@@ -1560,3 +1560,9 @@ html.ridotta .sagg{display:none}
  .sbrand{justify-content:flex-end;margin-top:17.5px}
  html.ridotta .sbrand{align-items:center;justify-content:center}
 }
+
+/* --- v6.72 respiro uniforme nella Dashboard: 48px tra una sezione e l'altra, 22px tra titolo e contenuto.
+   #peblocco: il titolo e' il primo figlio del blocco, quindi la regola h2:first-child gli toglieva il margine. */
+#sig>h2,#sig>#peblocco>h2:first-child{margin-top:48px}
+#sig h2+p.sub.infotesto:not(.aperta)+*{margin-top:22px}
+@media (max-width:600px){#sig>h2,#sig>#peblocco>h2:first-child{margin-top:40px}#sig h2+p.sub.infotesto:not(.aperta)+*{margin-top:18px}}
