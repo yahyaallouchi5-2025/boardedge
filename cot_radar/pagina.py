@@ -156,13 +156,14 @@ def build(data_source=load_all, demo=False, sito=False):
             except Exception:
                 log.warning("archivio %s non aggiornato:\n%s", nome, traceback.format_exc())
                 rie_extra[nome] = {"stato": "errore"}
-    # CARRY TRADE (carry.py, v6.61): tassi d'interesse delle valute in un archivio a parte (storico/tassi.json).
+    # CARRY TRADE (carry.py, v6.61): tassi d'interesse delle valute in un archivio a parte (storico/tassi.json),
+    # carry di ogni coppia (colonna della tabella Forex) e studio storico (scheda Backtest storico -> Carry).
     # Isolato: se FRED non da' i tassi manca solo il carry, il resto del sito non cambia.
-    if not demo:
-        try:
-            carry.aggiorna_tassi(get_fred)
-        except Exception:
-            log.warning("carry: tassi non aggiornati:\n%s", traceback.format_exc())
+    carry_pag = carry_st = None
+    try:
+        carry_pag, carry_st = carry.calcola(pairs, prezzi, righe_cot, scarica=None if demo else get_fred)
+    except Exception:
+        log.warning("carry non calcolato:\n%s", traceback.format_exc())
     # VOLATILITA' di ogni strumento (giorni, settimane, mesi, anni, regime attuale): vedi volatilita.py
     vol = {}
     try:
@@ -233,6 +234,7 @@ def build(data_source=load_all, demo=False, sito=False):
             "assets": assets, "pairs": pairs, "corr": corr, "corr_px": corr_px, "market": market, "fed": fed,
             "order": [a[0] for a in ASSETS] + ["USD"], "sectors": SECTORS, "stato": pubblico(stato), "admin": "__ADMIN__", "eventi": news["prossimi"], "agenda": agenda_out,
             "stag": stag, "stag_meta": stag_meta, "reg": reg, "bt": bt, "vol": vol, "port": port,
+            "carry": carry_pag, "carry_st": carry_st,
             "tv": {k: {"s": v[0], "inv": v[1]} for k, v in TV_SYMBOLS.items()}, "tvp": TV_PAIRS}
     # "stato" pubblico = solo esito e fonti; "admin" = segnaposto che main.py sostituisce con il registro
     # completo (cifrato sul sito, in chiaro sul PC). Vedi cot_radar/admin.py
@@ -241,7 +243,7 @@ def build(data_source=load_all, demo=False, sito=False):
     # "Backtest storico" solo quando la si apre (web/js/13_verifica.js). main.py lo scrive accanto alla pagina.
     verifica = None
     if sito:
-        verifica = clean({"reg": data.pop("reg"), "bt": data.pop("bt")})
+        verifica = clean({"reg": data.pop("reg"), "bt": data.pop("bt"), "carry_st": data.pop("carry_st")})
         data["verifica"] = "verifica.json?v=" + datetime.now().strftime("%Y%m%d%H%M")
     payload = json.dumps(clean(data), ensure_ascii=False, separators=(",", ":"))
     ULTIMI.clear()
