@@ -132,6 +132,27 @@ PRICES = {
     "BTC": ("CBBTCUSD", 1), "ETH": ("CBETHUSD", 1),
 }
 
+# v6.59 PREZZI DA YAHOO per i mercati COT che FRED non copre (oro, argento, cereali, soft, bestiame, tassi...).
+# chiave -> (ticker Yahoo, classe di prezzo). Classe "etf": ETF/ETC fisici (oro, argento, platino: nessun rinnovo dei
+# contratti, prezzo pulito); classe "materie": future CONTINUI di Yahoo (attenzione: al cambio di scadenza il prezzo
+# puo' fare un piccolo salto, quindi questi mercati servono a backtest e stagionalita' ma NON entrano nel registro
+# live dei segnali finche' il backtest non li ha valutati: vedi registro.LIVE_YAHOO).
+PREZZI_YAHOO = {
+    "GOLD": ("GLD", "etf"), "SILVER": ("SLV", "etf"), "PLATINUM": ("PPLT", "etf"),
+    "EAFE": ("EFA", "etf"), "EM": ("EEM", "etf"), "RUSSELL": ("IWM", "etf"),
+    "COPPER": ("HG=F", "materie"), "PALLADIUM": ("PA=F", "materie"),
+    "HEATOIL": ("HO=F", "materie"), "GASOLINE": ("RB=F", "materie"),
+    "CORN": ("ZC=F", "materie"), "SOY": ("ZS=F", "materie"), "SOYOIL": ("ZL=F", "materie"),
+    "SOYMEAL": ("ZM=F", "materie"), "WHEAT": ("ZW=F", "materie"), "KCWHEAT": ("KE=F", "materie"),
+    "RICE": ("ZR=F", "materie"), "SUGAR": ("SB=F", "materie"), "COFFEE": ("KC=F", "materie"),
+    "COCOA": ("CC=F", "materie"), "COTTON": ("CT=F", "materie"), "OJ": ("OJ=F", "materie"),
+    "CATTLE": ("LE=F", "materie"), "FEEDER": ("GF=F", "materie"), "HOGS": ("HE=F", "materie"),
+    "US2Y": ("ZT=F", "materie"), "US5Y": ("ZF=F", "materie"), "US10Y": ("ZN=F", "materie"),
+    "USBOND": ("ZB=F", "materie"), "ULTRA": ("UB=F", "materie"),
+}
+# Serie FRED archiviate per sempre oltre ai prezzi: tasso BCE sui depositi (liquidita' in euro dei portafogli)
+ARCHIVIO_EXTRA = ["ECBDFR"]
+
 # Driver di mercato: indicatori prezzati OGNI GIORNO dal mercato (quindi gia' "scontano" le notizie).
 # (chiave, nome, codice FRED, unita'). "diff" non esiste su FRED: e' calcolato come tasso USA 2a - tasso euro 2a (BCE).
 DRIVERS = [
@@ -151,6 +172,7 @@ FRED_IDS = {
     "RRPONTSYD": 1000,   # reverse repo overnight (miliardi $ -> milioni)
     "DGS2": 1, "DGS10": 1, "DFII10": 1, "T10YIE": 1, "VIXCLS": 1, "BAMLH0A0HYM2": 1,
     **{v[0]: 1 for v in PRICES.values()},
+    "ECBDFR": 1,         # v6.59: tasso BCE sui depositi (%), per la liquidita' in euro dei portafogli
 }
 
 # --------------------------------------------------------------------------- serie BCE (tassi euro)

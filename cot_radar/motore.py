@@ -32,6 +32,8 @@ DEBUG: python -m unittest tests.test_motore -v
 import math
 from datetime import date, datetime, timedelta, timezone
 
+from .config import PREZZI_YAHOO
+
 ORIZZONTI = (("1s", 7), ("2s", 14), ("4s", 28))   # settimane fisse, in giorni di calendario
 CAP_GIORNI = 84                                   # "fino al cambio": al massimo 12 settimane
 LIMITE_VOLTE = 0.5                                # entrata B: 0,5 x movimento settimanale tipico
@@ -47,12 +49,16 @@ ORARI = {
     "indici": ("NY", 16, 0),    # S&P 500, Nasdaq, Dow: chiusura di Wall Street
     "energia": ("NY", 14, 30),  # petrolio e gas (EIA): chiusura del NYMEX
     "crypto": ("UTC", 23, 59),  # Coinbase: fine giornata UTC
+    "etf": ("NY", 16, 0),       # v6.59: ETF/ETC (oro GLD, argento SLV, platino, EFA, EEM, IWM): chiusura di Wall Street
+    "materie": ("NY", 14, 30),  # v6.59: future continui Yahoo (metalli, cereali, soft, bestiame, tassi)
 }
 CLASSE_PREZZO = {"SP500": "indici", "NASDAQ": "indici", "DOW": "indici",
                  "WTI": "energia", "BRENT": "energia", "NATGAS": "energia", "BTC": "crypto", "ETH": "crypto"}
+CLASSE_PREZZO.update({k: v[1] for k, v in PREZZI_YAHOO.items()})      # v6.59: oro, argento, cereali...
 
 # costi stimati andata+ritorno in % (spread + commissioni, senza swap/rollover): usati solo nelle STATISTICHE
-COSTI = {"major": 0.02, "cross": 0.04, "em": 0.15, "indici": 0.05, "energia": 0.08, "NATGAS": 0.20, "crypto": 0.20}
+COSTI = {"major": 0.02, "cross": 0.04, "em": 0.15, "indici": 0.05, "energia": 0.08, "NATGAS": 0.20, "crypto": 0.20,
+         "etf": 0.05, "materie": 0.10}                     # v6.59: ETF/ETC e future di materie prime e tassi
 MAJOR = {"EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD"}
 EM = {"MXN", "BRL", "ZAR"}
 

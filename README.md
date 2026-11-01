@@ -232,6 +232,11 @@ Uso: `python -m cot_radar.confronto storico` (con la cartella dell'archivio). Il
 - **Statistica**: per ogni strumento quante volte, dopo 5 candele, il prezzo era nella direzione del segnale.
 - **Anomalia**: Yahoo fermo -> restano i segnali del giro prima, popup di manutenzione, mail di GitHub all'admin.
 
+### v6.59
+- Dati nuovi: tasso BCE (FRED ECBDFR) per la liquidita' in euro dei portafogli; prezzi Yahoo per oro, argento, platino, EFA, EEM, IWM (ETF, anche nel registro live) e per rame, palladio, energia, agricoli, bestiame e Treasury futures (solo backtest).
+- Pattern Detector: studio storico Daily su 25 anni con stop/target 1R-2R, costi, filtro trend e intervallo al 95% (Bonferroni, segnali dello stesso periodo raggruppati). Verdetto automatico in cima.
+- Backtest storico: verdetto onesto in cima calcolato sul fuori campione.
+
 ### v6.58
 - Portafogli: la pagina resta ferma quando si cambia profilo, periodo del grafico o profilo nel confronto (prima
   saliva/sfarfallava: le spiegazioni "(i)" si chiudevano un attimo dopo il ridisegno). Periodi del grafico: "Tutto"

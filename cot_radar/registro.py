@@ -28,7 +28,7 @@ from datetime import timezone
 
 from . import motore, volatilita
 from .eventi import Calendario as eventi_cal
-from .config import PRICES, ROOT
+from .config import PREZZI_YAHOO, PRICES, ROOT
 from .log import log
 from .stagionalita import prezzo_coppia
 
@@ -37,6 +37,9 @@ FILE = "registro.jsonl"
 ZERO = "0" * 64
 VERSIONE = 1
 MAX_CHIUSI = 150                     # segnali chiusi mostrati nella pagina (le statistiche usano tutti)
+# v6.59: dai prezzi Yahoo entrano nel registro LIVE solo gli ETF/ETC (prezzo pulito: oro, argento, platino...).
+# I future continui ("materie") restano nel backtest finche' non ne e' valutata la qualita' (salti ai rinnovi).
+LIVE_YAHOO = ("etf",)
 SALTA_FX = set(k for k, v in PRICES.items() if v[0].startswith("DEX")) | {"DXY", "USD"}   # valute: gia' nelle coppie
 
 _in_attesa = None                    # eventi calcolati in questo giro, scritti solo da salva()
@@ -94,7 +97,7 @@ def _scrivi(cartella, eventi):
 
 def strumenti(pairs, assets, prezzi):
     """{nome: dati} degli strumenti VERIFICABILI (con un prezzo storico): coppie e strumenti non valutari.
-    Oro e argento restano fuori finche' non c'e' una fonte di prezzo gratuita affidabile."""
+    v6.59: oro, argento e platino entrano con gli ETC fisici (GLD, SLV, PPLT); i future continui no (LIVE_YAHOO)."""
     out = {}
     for p in pairs:
         pts = prezzo_coppia(prezzi, p["base"], p["quote"])
@@ -104,6 +107,8 @@ def strumenti(pairs, assets, prezzi):
                               "base": p["base"], "quote": p["quote"], "_pts": pts, "_cls": "fx"}
     for k, a in assets.items():
         if k in SALTA_FX or k not in prezzi:
+            continue
+        if k in PREZZI_YAHOO and PREZZI_YAHOO[k][1] not in LIVE_YAHOO:   # future continui: solo backtest per ora
             continue
         liv, perche = motore.affidabilita(a.get("affid"), a.get("comm_acc"), a.get("stag"), a["score"])
         out[k] = {"etichetta": a["label"], "punteggio": a["score"], "affid": liv, "perche": perche,

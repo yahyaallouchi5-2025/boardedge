@@ -23,7 +23,7 @@ import math
 import os
 from datetime import date, timedelta
 
-from .config import ARCHIVI_COT, PRICES, ROOT
+from .config import ARCHIVI_COT, ARCHIVIO_EXTRA, PREZZI_YAHOO, PRICES, ROOT
 from .log import log
 
 CARTELLA = os.path.join(ROOT, "storico")
@@ -36,7 +36,7 @@ SALTO_VOLTE = 12                    # ...e comunque almeno 12 volte il movimento
 
 def serie_prezzi():
     """Codici FRED delle serie di prezzo da archiviare (uno per strumento, senza doppioni)."""
-    return sorted({sid for sid, _ in PRICES.values()})
+    return sorted({sid for sid, _ in PRICES.values()} | set(ARCHIVIO_EXTRA))
 
 
 def _file(cartella, sid):
@@ -175,12 +175,21 @@ def aggiorna(fred, scarica=None, cartella=CARTELLA, fred_giu=False):
     return archivio, rie
 
 
-def prezzi_usd(archivio):
-    """{chiave strumento: [(data, prezzo in dollari)]} con il verso giusto (es. JPY: 1/x)."""
+def prezzi_usd(archivio, cartella=CARTELLA):
+    """{chiave strumento: [(data, prezzo in dollari)]} con il verso giusto (es. JPY: 1/x).
+    v6.59: i mercati che FRED non copre (oro, argento, cereali, soft, bestiame, tassi) arrivano dalle copie Yahoo
+    salvate dai portafogli in storico/yahoo/<ticker>.csv (config.PREZZI_YAHOO). Se la copia non c'e' ancora (primo
+    giro), il mercato semplicemente manca e arriva al giro dopo."""
     out = {}
     for k, (sid, verso) in PRICES.items():
         pts = archivio.get(sid) or []
         out[k] = [(d, v if verso > 0 else 1 / v) for d, v in pts if v and v > 0]
+    for k, (ticker, _) in PREZZI_YAHOO.items():
+        if out.get(k):
+            continue
+        pts = leggi(os.path.join(cartella, "yahoo"), ticker.replace("^", "_")) if cartella else None
+        if pts:
+            out[k] = [(d, v) for d, v in pts if v and v > 0]
     return {k: v for k, v in out.items() if v}
 
 

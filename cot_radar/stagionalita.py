@@ -28,7 +28,7 @@ from bisect import bisect_left
 from datetime import date, timedelta
 from statistics import median, pstdev
 
-from .config import NORMAL
+from .config import NORMAL, PREZZI_YAHOO
 from .cot import is_divergence, label
 from . import conferme
 
@@ -74,7 +74,11 @@ def coppia(pb, pq):
 
 def prezzo_coppia(prezzi, b, q):
     """Prezzi della coppia b/q. Il dollaro non ha una serie sua (1 dollaro = 1 dollaro):
-    EURUSD = prezzo dell'euro in dollari, USDJPY = 1 / prezzo dello yen in dollari. None se manca un prezzo."""
+    EURUSD = prezzo dell'euro in dollari, USDJPY = 1 / prezzo dello yen in dollari. None se manca un prezzo.
+    v6.59: XAU/USD e XAG/USD NON si costruiscono dai prezzi Yahoo (sono ETF in dollari per quota, non once): oro e
+    argento si misurano come strumenti a se' (GOLD, SILVER), cosi' niente doppioni e niente "pip" sbagliati."""
+    if b in PREZZI_YAHOO or q in PREZZI_YAHOO:
+        return None
     if q == "USD":
         return prezzi.get(b)
     if b == "USD":
