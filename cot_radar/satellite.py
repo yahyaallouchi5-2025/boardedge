@@ -42,6 +42,8 @@ DAL = "2005-01"                # primo mese di decisione dello storico simulato
 LIVE_DAL = "2026-11"           # primo mese registrato dal vivo
 MIN_ANNI = A.MIN_ANNI_STAG     # anni minimi di stagionalita' (8)
 REGISTRO = "satellite_registro.json"
+SFIDANTE = "satellite_sfidante.json"   # registro separato dello sfidante a 10 titoli (Forecaster), mai riscritto
+SFIDANTE_N = 10
 # v6.57: borse di solito NON accessibili ai privati dai broker europei (India, Cina continentale): i loro titoli
 # restano nell'Azionario ma non entrano nelle 5 azioni dei portafogli (non si potrebbero comprare davvero).
 NON_UE = (".NS", ".BO", ".SS", ".SZ")
@@ -131,16 +133,27 @@ def carica(cartella, titoli=None):
     return out
 
 
-def scelta(titoli, t, n=N):
-    """I titoli scelti alla chiusura del mese intero t (per il mese t+1): righe con punteggio 'pt'."""
+def candidati(titoli, t):
+    """Titoli che passano i filtri della regola alla chiusura del mese t, ordinati per punteggio."""
     righe = [r for r in (x.riga(t) for x in titoli) if r]
     if not righe:
         return []
     A.punteggi(righe)
     ok = [r for r in righe if r["v1a"] > 0 and r["v3m"] > 0 and r["t200"] > 0 and r["dmax"] > -0.15
           and (r["st_media"] or -1) > 0 and (r["st_pos"] or 0) >= 60 and r["st_n"] >= MIN_ANNI]
+    return sorted(ok, key=lambda x: (-x["pt"], x["t"]))
+
+
+def scelta_libera(titoli, t, n=None):
+    """SFIDANTE del Forecaster: stessa regola ma 10 titoli e nessun limite per settore."""
+    return candidati(titoli, t)[:n or SFIDANTE_N]
+
+
+def scelta(titoli, t, n=N):
+    """I titoli scelti alla chiusura del mese intero t (per il mese t+1): righe con punteggio 'pt'."""
+    ok = candidati(titoli, t)
     out, settori = [], set()
-    for r in sorted(ok, key=lambda x: (-x["pt"], x["t"])):
+    for r in ok:
         if r["s"] in settori:
             continue
         settori.add(r["s"])
@@ -196,12 +209,24 @@ def _ultimo_prezzo(cartella, t):
     return (d[-1][0], d[-1][1]) if d else (None, None)
 
 
-def registra(cartella, titoli, oggi):
-    """Aggiunge al registro la scelta del mese giusto se manca (vedi docstring del modulo). Mai riscritto."""
+def _dopo_chiusura(oggi, ora=None):
+    """True se e' l'ultimo giorno feriale del mese e Wall Street ha gia' chiuso (21 UTC) o e' weekend.
+    ora = ora UTC; se manca: quella vera per oggi, 24 per i giorni passati (gia' chiusi)."""
+    if ora is None:
+        from datetime import datetime, timezone
+        adesso = datetime.now(timezone.utc)
+        ora = adesso.hour if adesso.date() == oggi else 24
+    return _ultimo_giorno_mese(oggi) and (oggi.weekday() >= 5 or ora >= 21)
+
+
+def registra(cartella, titoli, oggi, ora=None):
+    """Aggiunge al registro la scelta del mese giusto se manca (vedi docstring del modulo). Mai riscritto.
+    v6.65: la scelta del mese dopo si registra solo DOPO la chiusura dell'ultimo giorno (prima un giro partito dopo la
+    mezzanotte UTC registrava novembre 2026 con le chiusure USA del 29 ottobre invece che del 30)."""
     f = os.path.join(cartella, REGISTRO)
     reg = A._leggi(f) or {}
     cur = _n(oggi.strftime("%Y-%m"))
-    if _ultimo_giorno_mese(oggi):
+    if _dopo_chiusura(oggi, ora):
         mese, t = cur + 1, cur                 # dopo la chiusura dell'ultimo giorno: il mese corrente e' completo
     else:
         mese, t = cur, cur - 1                 # ripiego: primo giro utile del mese, dati fino al mese prima
@@ -251,6 +276,55 @@ def live(cartella, reg):
     return out
 
 
+# --------------------------------------------------------------------------- sfidante a 10 titoli (Forecaster)
+def _prezzo_al(cartella, t, ym):
+    """(data, prezzo) dell'ultimo prezzo giornaliero del titolo entro il mese 'AAAA-MM'."""
+    rec = A._leggi(os.path.join(cartella, "grezzi", A._nome_file(t) + ".json")) or {}
+    d = [x for x in rec.get("d") or [] if x[0][:7] <= ym]
+    return (d[-1][0], d[-1][1]) if d else (None, None)
+
+
+def sfidante(cartella, titoli, reg, oggi):
+    """Registro separato dello sfidante (10 titoli, nessun limite per settore): per ogni mese gia' registrato dalla
+    regola vera si registra anche la scelta libera, con i soli prezzi fino alla chiusura del mese prima (prezzo di
+    ingresso = ultima chiusura di quel mese). Restituisce i rendimenti dei mesi chiusi e del mese in corso."""
+    f = os.path.join(cartella, SFIDANTE)
+    sr = A._leggi(f) or {}
+    nuovi = False
+    for mese in sorted(reg):
+        if mese in sr or not titoli:
+            continue
+        t = _n(mese) - 1
+        voci = []
+        for x in scelta_libera(titoli, t):
+            d, p0 = _prezzo_al(cartella, x["t"], _ym(t))
+            if p0:
+                voci.append({"t": x["t"], "n": x["n"], "s": x["s"], "p0": p0, "d0": d, "pt": x["pt"]})
+        sr[mese] = {"registrato": A.ora_italia().strftime("%Y-%m-%d %H:%M"), "titoli": voci}
+        nuovi = True
+    if nuovi:
+        A._scrivi(f, sr)
+    cur = oggi.strftime("%Y-%m")
+    mesi, corrente, prima = {}, None, set()
+    for mese in sorted(sr):
+        voci = sr[mese]["titoli"]
+        ora = {x["t"] for x in voci}
+        c = COSTO * len(ora ^ prima) / SFIDANTE_N if prima else 0.0      # il primo mese parte senza costi
+        prima = ora
+        rr, al = [], None
+        for x in voci:
+            d, p = _prezzo_al(cartella, x["t"], mese)
+            if p and d > x["d0"]:
+                rr.append(p / x["p0"] - 1)
+                al = max(al or d, d)
+        r = round(sum(rr) / SFIDANTE_N - c, 5)                          # posti vuoti = liquidita' (0)
+        if mese < cur or (mese == cur and mese_chiuso(oggi)):
+            mesi[mese] = r
+        elif al:
+            corrente = {"mese": mese, "r": r, "al": al}
+    return {"n": SFIDANTE_N, "registro": sr, "mesi": mesi, "corrente": corrente}
+
+
 # --------------------------------------------------------------------------- giro completo
 def calcola(cartella, oggi=None, titoli=None, anomalia=False):
     """Scrive cartella/pubblico/satellite.json e restituisce il dizionario. Con l'anomalia di Yahoo (dati vecchi)
@@ -273,8 +347,14 @@ def calcola(cartella, oggi=None, titoli=None, anomalia=False):
         ante = {"mese": _ym(cur + 1), "al": oggi.isoformat(),
                 "titoli": [{"t": x["t"], "n": x["n"], "s": x["s"], "pt": x["pt"], "v1a": round(x["v1a"] * 100, 1)}
                            for x in scelta(tt, cur)]}
+    sf10 = None
+    try:                                     # isolato: un errore dello sfidante non tocca la quota vera
+        sf10 = sfidante(cartella, tt if not anomalia else [], reg, oggi)
+    except Exception as e:
+        log.warning("satellite: sfidante a 10 titoli non calcolato: %s", e)
     dati = {"aggiornato": oggi.isoformat(), "n": N, "costo": COSTO, "live_dal": LIVE_DAL, "titoli_universo": len(tt),
             "storico": st, "live": live(cartella, reg), "registro": reg, "anteprima": ante,
+            "sfidante10": sf10,
             # nomi dei titoli scelti negli ultimi 13 mesi dello storico (per mostrarli nelle rotazioni)
             "nomi": {x.t: x.nome for x in tt if any(x.t in m[2] for m in st[-13:])},
             "nota": "Azioni scelte: storico simulato con i titoli che oggi stanno negli indici, quindi ottimistico "
