@@ -232,3 +232,285 @@ def prev_modello(pan, mese):
     return out
 
 
+# --------------------------------------------------------------------------- sfidanti
+def _inclina(pesi, verso):
+    """Pesi x (1 +/- INCLINA) secondo verso {k: +1/-1}; la differenza da/verso la liquidita'. Se la liquidita' non
+    basta per gli aumenti, gli aumenti si riducono in proporzione (mai leva, mai liquidita' negativa)."""
+    out = dict(pesi)
+    su = {k: w * INCLINA for k, w in pesi.items() if verso.get(k, 0) > 0 and k not in ("CASH", "AZ")}
+    giu = {k: w * INCLINA for k, w in pesi.items() if verso.get(k, 0) < 0 and k not in ("CASH", "AZ")}
+    disp = pesi.get("CASH", 0) + sum(giu.values())
+    f = min(1.0, disp / sum(su.values())) if su else 1.0
+    for k, v in giu.items():
+        out[k] -= v
+    for k, v in su.items():
+        out[k] += v * f
+    out["CASH"] = round(disp - sum(su.values()) * f, 6)
+    return _pulisci(out)
+
+
+def _oro(pesi):
+    out = dict(pesi)
+    da_cash = min(ORO_IN_PIU, out.get("CASH", 0))
+    out["CASH"] = out.get("CASH", 0) - da_cash
+    resto = ORO_IN_PIU - da_cash
+    altri = {k: w for k, w in out.items() if k not in ("CASH", "GOLD") and w > 0}
+    tot = sum(altri.values())
+    for k, w in altri.items():
+        out[k] = w - resto * w / tot if tot else w
+    out["GOLD"] = out.get("GOLD", 0) + ORO_IN_PIU
+    return _pulisci(out)
+
+
+def _pulisci(p):
+    return {k: round(v, 4) for k, v in p.items() if v >= 0.0005}
+
+
+def sfidanti(g, sc, i_rot, giorno, prev, sat_az10):
+    """{sfidante: {profilo: {mercato: peso}}} per il mese che parte al giorno di rotazione i_rot."""
+    out = {s[0]: {} for s in SFIDANTI}
+    mod = {k: v["mod"] for k, v in prev.items() if v.get("mod") is not None}
+    media_mod = mean(mod.values()) if mod else 0.0
+    for prof in P.PROFILI:
+        pid = prof["id"]
+        campione, _, _ = P.scegli(prof, g, i_rot, sc, giorno=giorno)
+        out["campione"][pid] = campione
+        if sat_az10 and "AZ" in campione:
+            out["az10"][pid] = {("AZ10" if k == "AZ" else k): w for k, w in campione.items()}
+        elif "AZ" not in campione:
+            out["az10"][pid] = dict(campione)          # quota azioni in pausa: identico al campione
+        senza, _, _ = P.scegli(dict(prof, az=0), g, i_rot, sc, giorno=giorno)
+        out["senza_az"][pid] = senza
+        out["oro"][pid] = _oro(campione)
+        out["stag"][pid] = _inclina(campione, {k: v["stag"] for k, v in prev.items()})
+        out["modello"][pid] = _inclina(campione, {k: (1 if mod[k] > media_mod else -1) for k in mod})
+    return {k: v for k, v in out.items() if v}
+
+
+# --------------------------------------------------------------------------- rendimenti
+def rend_mercati(g, i0, i1, sat_r=None):
+    """{chiave: rendimento} dalla chiusura i0 alla chiusura i1 per mercati, liquidita', AZ (e AZ10 se dato)."""
+    out = {}
+    for k in MERCATI + ["CASH", "AZ"]:
+        col = g.p.get(P.TUTTI[k][1])
+        if col and col[i0] and col[i1]:
+            out[k] = col[i1] / col[i0] - 1
+    if sat_r is not None:
+        out["AZ10"] = sat_r
+    return out
+
+
+def rend_portafoglio(pesi, r):
+    """Pesi fissati all'inizio del mese e lasciati liberi (buy and hold): rendimento = somma pesi x rendimenti.
+    None se manca il rendimento di un mercato con peso (non si inventano dati)."""
+    if any(k not in r for k, w in pesi.items() if w > 0):
+        return None
+    return sum(w * r[k] for k, w in pesi.items())
+
+
+def costo(nuovi, vecchi):
+    return P.COSTO * sum(abs(nuovi.get(k, 0) - vecchi.get(k, 0)) for k in set(nuovi) | set(vecchi)) if vecchi else 0.0
+
+
+# --------------------------------------------------------------------------- registro in catena
+def _impronta(prec, corpo):
+    testo = json.dumps(corpo, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256((prec + testo).encode("utf-8")).hexdigest()
+
+
+def leggi(cartella=CARTELLA):
+    f = os.path.join(cartella, FILE)
+    if not os.path.exists(f):
+        return []
+    with open(f, encoding="utf-8") as fh:
+        return [json.loads(r) for r in fh if r.strip()]
+
+
+def catena_ok(righe):
+    prec = ""
+    for r in righe:
+        corpo = {k: v for k, v in r.items() if k not in ("hash", "prec")}
+        if r.get("prec") != prec or r.get("hash") != _impronta(prec, corpo):
+            return False
+        prec = r["hash"]
+    return True
+
+
+def aggiungi(righe, corpo, cartella=CARTELLA, scrivi=True):
+    """Aggiunge una riga in coda (mai riscritte), con l'impronta della precedente."""
+    prec = righe[-1]["hash"] if righe else ""
+    riga = dict(corpo, prec=prec, hash=_impronta(prec, corpo))
+    righe.append(riga)
+    if scrivi:
+        os.makedirs(cartella, exist_ok=True)
+        with open(os.path.join(cartella, FILE), "a", encoding="utf-8") as fh:
+            fh.write(json.dumps(riga, ensure_ascii=False, sort_keys=True, separators=(",", ":")) + "\n")
+    return riga
+
+
+# --------------------------------------------------------------------------- giudizi
+def giudizio_prev(lista):
+    """lista = [(direzione prevista, rendimento)]: precisione, base "sempre rialzo" e giudizio (differenza appaiata)."""
+    v = [(d, r) for d, r in lista if d]
+    if not v:
+        return {"n": 0}
+    hit = [1 if d * r > 0 else 0 for d, r in v]
+    base = [1 if r > 0 else 0 for _, r in v]
+    diff = [h - b for h, b in zip(hit, base)]
+    out = {"n": len(v), "hit": round(100 * mean(hit)), "base": round(100 * mean(base)),
+           "medio": round(100 * mean(d * r for d, r in v), 2)}
+    if len(v) >= MIN_PREV:
+        m, s = mean(diff), pstdev(diff) / math.sqrt(len(diff))
+        out["ic"] = [round(100 * (m - Z * s)), round(100 * (m + Z * s))]
+        out["verdetto"] = "meglio" if m - Z * s > 0 else ("peggio" if m + Z * s < 0 else "uguale")
+    else:
+        out["verdetto"] = "raccolta"
+    return out
+
+
+def giudizio_sfidante(mesi_s, mesi_c):
+    """mesi_* = {mese: rendimento}: totale, drawdown mensile, differenza media con il campione e giudizio."""
+    comuni = sorted(m for m in mesi_s if m in mesi_c and mesi_s[m] is not None and mesi_c[m] is not None)
+    if not comuni:
+        return {"mesi": 0, "verdetto": "osservazione"}
+    v, pk, dd = 1.0, 1.0, 0.0
+    for m in comuni:
+        v *= 1 + mesi_s[m]
+        pk = max(pk, v)
+        dd = min(dd, v / pk - 1)
+    diff = [mesi_s[m] - mesi_c[m] for m in comuni]
+    out = {"mesi": len(comuni), "tot": round((v - 1) * 100, 2), "dd": round(dd * 100, 2),
+           "diff": round(mean(diff) * 100, 2)}
+    if len(comuni) >= MIN_MESI:
+        s = pstdev(diff) / math.sqrt(len(diff))
+        m = mean(diff)
+        out["ic"] = [round((m - Z * s) * 100, 2), round((m + Z * s) * 100, 2)]
+        out["verdetto"] = "meglio" if m - Z * s > 0 else ("peggio" if m + Z * s < 0 else "uguale")
+    else:
+        out["verdetto"] = "osservazione"
+    return out
+
+
+# --------------------------------------------------------------------------- giro completo
+def calcola(righe_cot, px, sat=None, cartella=CARTELLA, scrivi=True, adesso=None):
+    """Aggiorna il registro (previsione del mese nuovo, esito del mese chiuso) e restituisce i dati della scheda.
+    px = prezzi dei portafogli; sat = satellite.json (quota azioni e sfidante a 10 titoli). None se mancano i prezzi."""
+    if "SPY" not in px or P.LIQUIDITA[1] not in px:
+        return None
+    adesso = adesso or datetime.now(timezone.utc)
+    px_tutti = dict(px)
+    ss = P.serie_satellite(sat, [d for d, _ in px["SPY"]])
+    if ss:
+        px_tutti["SAT"] = ss
+    g = P.Griglia(px_tutti)
+    sc = P.segnali_cot(righe_cot)
+    righe = leggi(cartella)
+    if righe and not catena_ok(righe):
+        log.error("forecaster: catena del registro NON integra: nessuna nuova riga finche' l'admin non controlla")
+        scrivi = False
+    prev_r = {r["mese"]: r for r in righe if r["tipo"] == "previsione"}
+    esiti = {r["mese"]: r for r in righe if r["tipo"] == "esito"}
+    az10 = (sat or {}).get("sfidante10") or {}
+    fm = fine_mesi(g)
+
+    # 1) ESITI dei mesi registrati e ormai chiusi (in ordine: i costi guardano il mese prima)
+    for mese in sorted(prev_r):
+        if mese in esiti or mese not in fm or g.date[-1] < ultimo_feriale(mese):
+            continue
+        p = prev_r[mese]
+        i0, i1 = g.pos.get(p["decisa_al"]), fm[mese]
+        if i0 is None:
+            continue
+        r10 = (az10.get("mesi") or {}).get(mese)
+        serve10 = any("AZ10" in w for w in (p["sfidanti"].get("az10") or {}).values())
+        if serve10 and r10 is None and adesso.date() < date.fromisoformat(ultimo_feriale(mese)) + timedelta(days=7):
+            continue                                  # aspetta qualche giorno il rendimento del 10 titoli
+        r = rend_mercati(g, i0, i1, r10)
+        prima = prev_r.get(_mese_dopo(mese, -1))
+        sf = {}
+        for sid, prof in p["sfidanti"].items():
+            sf[sid] = {}
+            for pid, pesi in prof.items():
+                rp = rend_portafoglio(pesi, r)
+                vecchi = ((prima or {}).get("sfidanti", {}).get(sid) or {}).get(pid)
+                sf[sid][pid] = None if rp is None else round((rp - costo(pesi, vecchi)) * 100, 3)
+        esiti[mese] = aggiungi(righe, {"tipo": "esito", "mese": mese, "al": g.date[i1],
+                                       "creato": adesso.strftime("%Y-%m-%dT%H:%MZ"),
+                                       "mercati": {k: round(v * 100, 3) for k, v in r.items()}, "sfidanti": sf},
+                               cartella, scrivi)
+        log.info("forecaster: esito di %s registrato", mese)
+
+    # 2) PREVISIONE del mese nuovo (una sola volta, mai riscritta)
+    mese, i_dec = mese_da_registrare(g)
+    if mese and mese >= DAL and mese not in prev_r:
+        giorno = P.primo_feriale(int(mese[:4]), int(mese[5:7]))
+        pan = Pannello(g, sc, i_dec)
+        mod = prev_modello(pan, mese)
+        prev = {}
+        for k in MERCATI:
+            if P.TUTTI[k][1] not in g.p:
+                continue
+            ds, vs = prev_stagionale(g, k, mese, i_dec)
+            dc, vc = prev_cot(sc, k, giorno.isoformat())
+            prev[k] = {"stag": ds, "stag_v": vs, "cot": dc, "cot_v": vc, "mod": mod.get(k)}
+        reg10 = ((az10.get("registro") or {}).get(mese) or {}).get("titoli")
+        sf = sfidanti(g, sc, i_dec + 1, giorno.isoformat(), prev, bool(reg10))
+        apre = datetime(giorno.year, giorno.month, giorno.day, *APERTURA_UTC, tzinfo=timezone.utc)
+        corpo = {"tipo": "previsione", "mese": mese, "decisa_al": g.date[i_dec], "creato": adesso.strftime("%Y-%m-%dT%H:%MZ"),
+                 "in_ritardo": adesso > apre, "mercati": prev, "sfidanti": sf,
+                 "az10": [x["t"] for x in reg10] if reg10 else None}
+        prev_r[mese] = aggiungi(righe, corpo, cartella, scrivi)
+        log.info("forecaster: previsione di %s registrata (decisa sulla chiusura del %s)", mese, g.date[i_dec])
+
+    return pagina(g, righe, prev_r, esiti, az10)
+
+
+def pagina(g, righe, prev_r, esiti, az10):
+    """Dati per la scheda: mese in corso (previsioni e andamento), precisione, sfidanti, archivio."""
+    out = {"dal": DAL, "prova": PROVA, "catena": catena_ok(righe), "mesi": len(esiti), "ultimo_hash": righe[-1]["hash"] if righe else None,
+           "min_mesi": MIN_MESI, "min_prev": MIN_PREV,
+           "sfidanti_def": [{"id": a, "nome": b, "descr": c} for a, b, c in SFIDANTI],
+           "profili": [{"id": p["id"], "nome": p["nome"]} for p in P.PROFILI],
+           "nomi": {k: P.TUTTI[k][2] for k in MERCATI + ["CASH", "AZ"]}}
+    # mese in corso = ultima previsione registrata
+    if prev_r:
+        p = prev_r[max(prev_r)]
+        i0 = g.pos.get(p["decisa_al"])
+        avviato = i0 is not None and len(g.date) - 1 > i0
+        r = rend_mercati(g, i0, len(g.date) - 1, ((az10.get("corrente") or {}).get("r") if (az10.get("corrente") or {}).get("mese") == p["mese"] else None)) if avviato else {}
+        out["corrente"] = {
+            "mese": p["mese"], "decisa_al": p["decisa_al"], "creato": p["creato"], "in_ritardo": p.get("in_ritardo"),
+            "al": g.date[-1] if avviato else None, "chiuso": p["mese"] in esiti, "az10": p.get("az10"),
+            "mercati": [dict(v, k=k, r=round(r[k] * 100, 2) if k in r else None) for k, v in p["mercati"].items()],
+            "sfidanti": {sid: {pid: (round(rend_portafoglio(w, r) * 100, 2) if avviato and rend_portafoglio(w, r) is not None else None)
+                               for pid, w in prof.items()} for sid, prof in p["sfidanti"].items()},
+            "pesi": p["sfidanti"]}
+    # precisione delle previsioni sui mesi chiusi
+    liste = {"stag": [], "cot": [], "mod": []}
+    for mese, e in esiti.items():
+        p = prev_r.get(mese)
+        if not p:
+            continue
+        mod = {k: v["mod"] for k, v in p["mercati"].items() if v.get("mod") is not None}
+        for k, v in p["mercati"].items():
+            if k not in e["mercati"]:
+                continue
+            r = e["mercati"][k]
+            liste["stag"].append((v["stag"], r))
+            liste["cot"].append((v["cot"], r))
+            if k in mod:
+                liste["mod"].append((1 if mod[k] > 0 else -1, r))
+    out["precisione"] = {k: giudizio_prev(v) for k, v in liste.items()}
+    # sfidanti: serie dei mesi chiusi per profilo
+    serie = {}
+    for mese, e in esiti.items():
+        for sid, prof in e["sfidanti"].items():
+            for pid, v in prof.items():
+                serie.setdefault(sid, {}).setdefault(pid, {})[mese] = None if v is None else v / 100
+    out["sfidanti"] = {sid: {pid: giudizio_sfidante(m, serie.get("campione", {}).get(pid, {})) for pid, m in prof.items()}
+                       for sid, prof in serie.items()}
+    out["archivio"] = [{"mese": m, "creato": p["creato"], "in_ritardo": p.get("in_ritardo"),
+                        "decisa_al": p["decisa_al"], "esito": m in esiti,
+                        "campione": (esiti.get(m) or {}).get("sfidanti", {}).get("campione")}
+                       for m, p in sorted(prev_r.items(), reverse=True)]
+    return out
