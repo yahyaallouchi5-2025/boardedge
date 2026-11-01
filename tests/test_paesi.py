@@ -34,8 +34,16 @@ class Paesi(unittest.TestCase):
         self.assertTrue(out["copia"])
         self.assertEqual(out["agg"], "2026-10-20")
         self.assertEqual(len(out["paesi"]), 3)
-        with mock.patch.object(PA, "COPIA", os.path.join(d, "manca.json")):
+        with mock.patch.object(PA, "COPIA", os.path.join(d, "manca.json")), \
+                mock.patch.object(PA, "RISERVA", os.path.join(d, "manca2.json")):
             self.assertIsNone(PA.carica(scarica=False))
+
+    def test_riserva_completa(self):
+        # la riserva nel codice copre i 24 paesi anche nel 2027 (serve il 2028 come "anno prossimo")
+        with mock.patch.object(PA, "COPIA", "/non/esiste.json"):
+            for anno in (2026, 2027):
+                out = PA.carica(scarica=False, adesso=datetime(anno, 6, 1, tzinfo=timezone.utc))
+                self.assertEqual(len(out["paesi"]), 24)
 
 
 if __name__ == "__main__":

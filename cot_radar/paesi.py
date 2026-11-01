@@ -34,6 +34,9 @@ from .log import log
 
 API = "https://www.imf.org/external/datamapper/api/v1/{ind}"
 COPIA = os.path.join(ROOT, "dati", "paesi_fmi.json")
+# RISERVA nel codice: edizione FMI di ottobre 2026 (24 paesi, PIL 2024-2028 e inflazione 2026-2027), presa dalla
+# stessa API. Serve solo se mancano sia il download sia la copia (es. primo giro dopo un blocco del FMI).
+RISERVA = os.path.join(os.path.dirname(os.path.abspath(__file__)), "paesi_riserva.json")
 
 # (codice ISO3 del FMI, nome in italiano, area) - indice MSCI Emerging Markets
 PAESI = [
@@ -55,7 +58,8 @@ TENTATIVI = 3                # il FMI a volte risponde lento: 3 prove con attesa
 
 def _scarica(ind, timeout=30):
     """{ISO3: {anno: valore}} di un indicatore FMI. User-Agent dichiarato del progetto. Riprova fino a TENTATIVI."""
-    req = urllib.request.Request(API.format(ind=ind), headers={"User-Agent": "cot-radar/paesi"})
+    req = urllib.request.Request(API.format(ind=ind), headers={"User-Agent": "cot-radar/paesi",
+                                                               "Accept": "application/json"})
     for n in range(TENTATIVI):
         try:
             with urllib.request.urlopen(req, timeout=timeout) as r:
@@ -63,16 +67,20 @@ def _scarica(ind, timeout=30):
         except Exception as e:
             if n == TENTATIVI - 1:
                 raise                                  # ultimo tentativo fallito: carica() passa alla copia salvata
-            log.info("paesi: FMI %s non risponde (%s), nuovo tentativo %d/%d", ind, type(e).__name__, n + 2, TENTATIVI)
+            log.info("paesi: FMI %s non risponde (%s %s), nuovo tentativo %d/%d", ind, type(e).__name__,
+                     getattr(e, "code", ""), n + 2, TENTATIVI)
             time.sleep(2 * 3 ** n)
 
 
 def _leggi_copia():
-    try:
-        with open(COPIA, encoding="utf-8") as f:
-            return json.load(f)
-    except (OSError, ValueError):
-        return None
+    """Ultima copia scaricata (dati/), altrimenti la riserva nel codice; None se mancano entrambe."""
+    for f_ in (COPIA, RISERVA):
+        try:
+            with open(f_, encoding="utf-8") as f:
+                return json.load(f)
+        except (OSError, ValueError):
+            continue
+    return None
 
 
 def calcola(pil, inf, anno):
@@ -104,7 +112,7 @@ def carica(scarica=True, adesso=None):
             with open(COPIA, "w", encoding="utf-8") as f:
                 json.dump(grezzi, f, separators=(",", ":"))
         except Exception as e:                         # rete o FMI giu': si ripiega sulla copia
-            log.warning("paesi: FMI non disponibile (%s), uso l'ultima copia", type(e).__name__)
+            log.warning("paesi: FMI non disponibile (%s %s), uso l'ultima copia", type(e).__name__, getattr(e, "code", ""))
             grezzi = None
     copia = grezzi is None
     if copia:

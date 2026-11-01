@@ -20,6 +20,6 @@ try{(function(){
   $("pegrid").innerHTML=v.length?v.map(scheda).join(""):`<div class="card vuota">Nessun paese in questo gruppo.</div>`;};
  $("pefiltri").innerHTML=FIL.map(([n,f])=>`<button data-f="${n}">${n} <small>${P.paesi.filter(f).length}</small></button>`).join("");
  $("pefiltri").querySelectorAll("button").forEach(b=>b.onclick=()=>{sel=b.dataset.f;disegna();});
- $("pefonte").innerHTML=`Fonte: ${esc(P.fonte)}${P.agg?` &middot; scaricato il ${P.agg.split("-").reverse().join("/")}`:""}${P.copia?" &middot; <span class=\"down\">copia salvata: FMI non raggiungibile</span>":""}`;
+ $("pefonte").innerHTML=`Fonte: ${esc(P.fonte)}${P.agg?` &middot; scaricato il ${P.agg.split("-").reverse().join("/")}`:""}${P.copia?" &middot; ultima copia disponibile":""}`;
  disegna();
 })();}catch(e){fail('Paesi emergenti','sig',e);}
