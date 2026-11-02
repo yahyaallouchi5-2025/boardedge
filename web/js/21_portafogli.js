@@ -251,7 +251,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const cl={};p.composizione.forEach(c=>{cl[c.classe]=(cl[c.classe]||0)+c.peso;});
   const te=p.stat_eur&&p.stat_eur.totale,finale=te&&te.totale!=null?10000*(1+te.totale/100):t.totale!=null?10000*(1+t.totale/100):null   /* v6.57: 10.000 EURO -> si usa la curva in euro */,anno=(t.dal||"").slice(0,4);
   const az=p.composizione.find(c=>c.k=="AZ"),pausa=p.esclusi.find(x=>x.k=="AZ");
-  return `<div class="card phero"><div class="phtesta"><h3>${esc(p.nome)}</h3><span class="prisk ${rk[1]}">Rischio ${rk[0].toLowerCase()}</span></div>
+  return `<div class="card phero"><div class="phtesta"><h3>${esc(p.nome)}</h3><div class="phazioni"><span class="prisk ${rk[1]}">Rischio ${rk[0].toLowerCase()}</span>${window.ebPdf?ebPdf.bottone():""}</div></div>
    <p class="phdesc">${esc(p.descr)}</p>
    <div class="phnum"><div><em>Rendimento annuo</em><b class="up">${pc(t.cagr)}</b><span>media dal ${anno}</span></div>
     <div><em>Max drawdown</em><b class="down">${pc(t.maxdd)}</b><span>dal picco al minimo</span></div>
@@ -271,6 +271,79 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <li><b>Durante il mese non si tocca nulla</b>. Al mese dopo chi resta tra i migliori rimane, chi esce si vende, chi entra si compra. Costi inclusi: 0,10% sugli ETF, 0,20% sulle azioni.</li>
     <li><b>Registro</b>: ogni rotazione e ogni scelta di titoli vengono salvate e non si modificano pi&ugrave;: la linea live non si pu&ograve; aggiustare dopo.</li></ol>
     <p class="small">${esc((P.azioni||{}).nota||"")} Storico fino al 2015, fuori campione dal 2016. Prezzi in dollari di ETF ed ETC equivalenti e azioni in valuta locale (cambi non inclusi).</p></details></div>`;}
+
+ // --- v6.78 PDF DEL PORTAFOGLIO (generatore in 01b_pdf.js): gli stessi dati della pagina su un foglio chiaro, pensato
+ //     per la stampa. Pagina 1: rischio, numeri chiave, composizione (ciambella + classi) e righe del portafoglio con
+ //     strumento, ISIN, peso e importo sul capitale scritto dall'utente (5 azioni comprese, con ISIN). Poi: curva del
+ //     capitale (periodo scelto nella pagina), risultati per periodo, rischio del mese, ultime rotazioni.
+ const COLP={azioni:"#3b7de0","azioni singole":"#1a9e93",obbligazioni:"#12a874",metalli:"#c98a14","materie prime":"#e0820f",crypto:"#9b59d0",liquidita:"#8793a6"};
+ const txt=s=>String(s==null?"":s).replace(/&middot;/g,"·").replace(/&amp;/g,"&").replace(/&[a-z]+;/g,"").replace(/<[^>]+>/g,"");
+ const motivo=c=>c.k=="CASH"?"Liquidità fissa del profilo + pesi dei mercati in pausa."
+  :c.k=="AZ"?`Filtro di mercato: S&P 500 ${pc(c.trend)} sopra la media a 200 giorni.`
+  :`Trend ${pc(c.trend)} sopra la media a 200 giorni · volatilità ${fx(c.vol,0)}% · COT ${c.score!=null?sg(c.score,0):"n/d"} (informativo)`;
+ async function pdfPort(){const E=window.ebPdf;if(!E)return;const p=P.profili.find(x=>x.id==sel),C=E.C;
+  const az=p.composizione.find(c=>c.k=="AZ"),reg=!!(az&&az.titoli&&az.titoli.length),lista=az?((reg?az.titoli:(az.anteprima||{}).titoli)||[]):[];
+  // ISIN delle 5 azioni: stessi file della pagina; massimo 5 secondi di attesa, poi il PDF esce comunque
+  const isin={};await Promise.race([Promise.all(lista.map(x=>isinDi(x.t).then(v=>{isin[x.t]=v;}))),new Promise(r=>setTimeout(r,5000))]);
+  const d=E.Doc();d.pagina();const {M,PW}=d,LW=PW-2*M,T="Portafoglio "+p.nome,mese=MESI[+P.rotazione.slice(5,7)-1];
+  const t=p.stat.totale||{},rk=RISK[p.id]||["",""],anno=(t.dal||"").slice(0,4),nM=p.composizione.filter(c=>c.k!="CASH").length;
+  let y=E.testata(d,T,`Rotazione del ${gg(P.rotazione)} · prossimo ribilanciamento ${gg(P.prossima)} · importi calcolati su ${eur(capitale)}`);
+  // rischio del profilo (etichetta colorata) e descrizione
+  const rc={r1:C.up,r2:C.warn,r3:C.down}[rk[1]]||C.mute,rt="Rischio "+rk[0].toLowerCase(),rw=d.larghezza(rt,9,true)+22;
+  d.rett(M,y-12,rw,18,{f:E.chiaro(rc,.12),s:rc,r:9});d.testo(M+rw/2,y+1,rt,{s:9,b:true,c:rc,a:"c"});
+  y+=22;y+=d.paragrafo(M,y,txt(p.descr),LW,{s:9.5})+6;
+  // quattro numeri chiave (come la card principale della pagina)
+  const te=p.stat_eur&&p.stat_eur.totale,fin=te&&te.totale!=null?10000*(1+te.totale/100):t.totale!=null?10000*(1+t.totale/100):null;
+  const K=[["Rendimento annuo",pc(t.cagr),"media dal "+anno,C.up],["Max drawdown",pc(t.maxdd),"dal picco al minimo",C.down],
+   ["10.000 € nel "+anno,eur(fin),"valore di oggi"+(te?" (in euro)":""),C.ink],["Mesi positivi",(t.mesi_pos??"n/d")+"%","su tutti i mesi",C.ink]];
+  const bw=(LW-24)/4;K.forEach((k,i)=>{const x=M+i*(bw+8);d.rett(x,y,bw,56,{f:C.soft,r:7});
+   d.testo(x+11,y+16,k[0],{s:7.8,c:C.mute});d.testo(x+11,y+36,k[1],{s:15,b:true,c:k[3]});d.testo(x+11,y+48,k[2],{s:7.2,c:C.mute});});
+  y+=56;
+  if(te){const o=p.stat_eur.oos;y+=16;d.testo(M,y,`In euro, senza copertura del cambio: rendimento annuo ${pc(te.cagr)} · max drawdown ${pc(te.maxdd)}${o?` · dal 2016 ${pc(o.cagr)} l'anno`:""}`,{s:8.5,c:C.mute});}
+  // composizione: ciambella dei pesi (colore = classe) e barre per classe
+  y=E.sezione(d,y+30,"Composizione del mese",`${nM} ${nM==1?"mercato":"mercati"}`);
+  const cx=M+62,cy=y+60;let a=0;
+  p.composizione.forEach(c=>{const g=c.peso*3.6;if(g>0.5)d.anello(cx,cy,34,56,a,a+g-1,COLP[c.classe]||C.mute);a+=g;});
+  d.testo(cx,cy+4,String(nM),{s:19,b:true,a:"c"});d.testo(cx,cy+16,nM==1?"mercato":"mercati",{s:7.5,c:C.mute,a:"c"});
+  const cl={};p.composizione.forEach(c=>{cl[c.classe]=(cl[c.classe]||0)+c.peso;});
+  const x0=M+150,bw2=LW-150;let yy=y+14;
+  CLN.filter(x=>cl[x[0]]).forEach(x=>{d.testo(x0,yy,x[1],{s:9});d.testo(x0+bw2,yy,fx(cl[x[0]],1)+"%",{s:9,b:true,a:"r"});
+   d.rett(x0,yy+5,bw2,4,{f:C.soft,r:2});d.rett(x0,yy+5,Math.max(2,bw2*Math.min(100,cl[x[0]])/100),4,{f:COLP[x[0]]||C.mute,r:2});yy+=21;});
+  y=Math.max(cy+64,yy+4);
+  // righe del portafoglio per classe: strumento UCITS da comprare con ISIN, peso e importo
+  const xP=PW-M-92,xI=PW-M-8,wN=xP-60-(M+20);
+  const testaTab=()=>{d.rett(M,y,LW,19,{f:C.navy,r:4});d.testo(M+10,y+12.5,"Mercato e strumento da comprare",{s:8,b:true,c:C.bianco});
+   d.testo(xP,y+12.5,"Peso",{s:8,b:true,c:C.bianco,a:"r"});d.testo(xI,y+12.5,"Importo",{s:8,b:true,c:C.bianco,a:"r"});y+=23;};
+  const spazio=h=>{const y0=y;y=d.serve(y,h,T);if(y<y0)testaTab();};
+  y=d.serve(y,90,T);y=E.sezione(d,y+22,`Portafoglio di ${mese}`,`importi su ${eur(capitale)}`);testaTab();
+  MACRO.map(g=>({n:g[0],r:p.composizione.filter(c=>g[1].includes(c.classe))})).filter(g=>g.r.length).forEach(g=>{
+   spazio(60);d.rett(M,y,LW,18,{f:C.soft,r:3});d.testo(M+10,y+12.5,g.n,{s:8.5,b:true});
+   d.testo(xP,y+12.5,fx(g.r.reduce((s,c)=>s+c.peso,0),1)+"%",{s:8.5,b:true,a:"r"});y+=22;
+   g.r.forEach(c=>{const nota=c.ue&&c.ue.nota,h=40+(nota?10:0);spazio(h);
+    d.cerchio(M+10,y+8.5,3.2,COLP[c.classe]||C.mute);d.testo(M+20,y+12,d.taglia(c.nome,wN,9.5,true),{s:9.5,b:true});
+    d.testo(xP,y+12,fx(c.peso,1)+"%",{s:9.5,b:true,a:"r"});d.testo(xI,y+12,eur(capitale*c.peso/100),{s:9.5,a:"r"});
+    const str=c.ue?`${c.ue.nome}  ·  ISIN ${c.ue.isin}`:txt(c.strumento);
+    d.testo(M+20,y+24,d.taglia(str,xP-M-30,8,!!c.ue),{s:8,b:!!c.ue,c:c.ue?C.acc:C.ink});let yr=y+24;
+    if(nota){yr+=10;d.testo(M+20,yr,d.taglia(txt(nota),xP-M-30,7.2),{s:7.2,c:C.mute});}
+    d.testo(M+20,yr+11,d.taglia(motivo(c),xP-M-30,7.2),{s:7.2,c:C.mute});y=yr+18;
+    // le 5 azioni scelte, una per riga, con ISIN, borsa, quota e importo
+    if(c.k=="AZ"){const q=lista.length?c.peso/lista.length:0;
+     if(!lista.length){spazio(16);y+=d.paragrafo(M+20,y+2,`I 5 titoli si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.`,xP-M-30,{s:7.8,c:C.mute})+4;}
+     else{if(!reg){spazio(28);y+=d.paragrafo(M+20,y+2,`Anteprima per ${MESI[+az.anteprima.mese.slice(5,7)-1]}, calcolata il ${gg(az.anteprima.al)} con i prezzi di quel giorno: la lista definitiva si fissa l'ultimo giorno di borsa ed entra il ${gg(P.prossima)}.`,xP-M-30,{s:7.8,c:C.warn})+4;}
+      lista.forEach(x=>{spazio(26);const b=borsa(x.t),st=(SETT[x.s]||[x.s||""])[0];
+       d.rett(M+20,y,LW-28,22,{f:"#fafbfd",s:C.line,lw:.4,r:4});
+       d.testo(M+28,y+9.5,x.t,{s:8.2,b:true});d.testo(M+28+d.larghezza(x.t,8.2,true)+6,y+9.5,d.taglia(x.n,xP-M-110,8.2),{s:8.2});
+       d.testo(M+28,y+18.5,[st,b[0]+(b[1]?"":" (di solito non acquistabile in Europa)"),isin[x.t]?"ISIN "+isin[x.t]:""].filter(Boolean).join("  ·  "),{s:7,c:isin[x.t]?C.acc:C.mute});
+       d.testo(xP,y+14,fx(q,1)+"%",{s:8.5,b:true,a:"r"});d.testo(xI,y+14,eur(capitale*q/100),{s:8.5,a:"r"});y+=26;});}}
+    d.linea(M+20,y-3,PW-M,y-3,{c:C.line,lw:.4});});});
+  // esposizione al dollaro e nota sugli strumenti
+  const USD=["SP500","NASDAQ","DOW","RUSSELL","US10Y","USBOND","GOLD","SILVER","PLATINUM","BTC","ETH"];
+  let usd=p.composizione.filter(c=>USD.includes(c.k)).reduce((s,c)=>s+c.peso,0);if(az&&lista.length)usd+=az.peso*lista.filter(x=>borsa(x.t)[0]=="USA").length/lista.length;
+  y=d.serve(y,40,T);y+=8;
+  y+=d.paragrafo(M,y,`Valute: nessuna posizione diretta. Esposizione al dollaro stimata ${fx(usd,0)}% (gli strumenti UCITS in euro seguono comunque il cambio EUR/USD).`,LW,{s:8,c:C.mute});
+  y+=d.paragrafo(M,y,"Strumenti UCITS / ETC / ETP acquistabili da un conto europeo: cerca l'ISIN nell'app del tuo broker.",LW,{s:8,c:C.mute});
+
+  d.salva(E.nomeFile("Portafoglio "+p.nome),T+" - BoardEdge",(n,tot)=>E.piede(d,n,tot,"Portafogli modello BoardEdge"));}
 
  // ridisegna mantenendo la posizione della pagina (v6.52: prima ogni tocco riportava in cima)
  // v6.58: la pagina NON deve muoversi al clic. Due cause del "salto": (1) mentre si riscrive la scheda l'altezza
@@ -306,6 +379,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   el.querySelectorAll(".pcfsw button").forEach(b=>b.onclick=()=>{cfrSel=b.dataset.c;ridisegna(".pcfsw");});
   const bt=el.querySelector(".ptutte");if(bt)bt.onclick=()=>{tutteRot=!tutteRot;ridisegna(".ptutte");};
   isinAzioni(el);
+  // v6.78 pulsante "Scarica PDF" del profilo scelto (01b_pdf.js)
+  const pb=el.querySelector(".phero .pdfbtn");if(pb)pb.onclick=()=>ebPdf.avvia(pb,pdfPort);
   // copia dell'ISIN: feedback "Copiato" per 1,5 secondi
   el.querySelectorAll(".pisin").forEach(b=>b.onclick=async()=>{try{await navigator.clipboard.writeText(b.dataset.isin);}catch(e){}
    b.classList.add("ok");b.querySelector("code").textContent="Copiato";setTimeout(()=>{b.classList.remove("ok");b.querySelector("code").textContent=b.dataset.isin;},1500);});
@@ -318,9 +393,11 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  // --- v6.73 ISIN DELLE AZIONI SCELTE: dal profilo dell'azienda (Wikidata, cot_radar/profili.py), per cercare il titolo
  //     nell'app del broker anche quando il ticker di Yahoo (es. 2801.T) non c'e'. Tocco = copia (non apre la scheda).
  const ISIN_AZ={};
+ // ISIN di un titolo (una sola richiesta per titolo, ricordata): usato dalla pagina e dal PDF
+ const isinDi=t=>ISIN_AZ[t]||(ISIN_AZ[t]=fetch("../azioni/profili/"+encodeURIComponent(t.replace("^","_"))+".json",{cache:"no-cache"})
+  .then(r=>r.ok?r.json():null).catch(()=>null).then(x=>x&&x.isin));
  function isinAzioni(el){el.querySelectorAll("[data-isinaz]").forEach(sp=>{const t=sp.dataset.isinaz;
-  const p=ISIN_AZ[t]||(ISIN_AZ[t]=fetch("../azioni/profili/"+encodeURIComponent(t.replace("^","_"))+".json",{cache:"no-cache"})
-   .then(r=>r.ok?r.json():null).catch(()=>null).then(x=>x&&x.isin));
+  const p=isinDi(t);
   p.then(isin=>{if(!isin||!sp.isConnected)return;sp.hidden=false;sp.title="Copia l'ISIN da cercare nell'app del broker";
    sp.innerHTML=`ISIN <code>${esc(isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg>`;
    sp.onclick=async e=>{e.stopPropagation();try{await navigator.clipboard.writeText(isin);}catch(_){}
