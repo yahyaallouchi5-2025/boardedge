@@ -66,10 +66,69 @@ try{(function(){const el=$("azioni");if(!el)return;
  const forza=v=>v==null?"n/d":`<span class="azpt${v>=75?" alto":v<40?" basso":""}" title="Punteggio ${v} su 100"><span class="azptb"><i style="width:${v}%"></i></span><b>${v}</b></span>`;
  const MESI=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 
+ // --- v6.78 PDF DELL'AZIONARIO (generatore in 01b_pdf.js): quello che si vede con i filtri attivi (listino, settore,
+ //     ricerca) e lo stesso ordinamento della tabella, ma con TUTTI i titoli filtrati (non solo la pagina aperta).
+ //     A4 orizzontale: indici, settori, poi la classifica con punteggio, Smart Discount, prezzo, rendimenti,
+ //     stagionalita' del mese, distanza dalla media a 200 giorni e mini grafico dell'ultimo anno.
+ function ordinati(righe){return [...righe].sort((a,b)=>{const k=ST.ord;if(k=="n")return ST.dir*String(a.n).localeCompare(String(b.n));
+  const x=a[k],y=b[k];if(x==null)return 1;if(y==null)return -1;return ST.dir*(x-y);});}
+ function pdfAz(){const E=window.ebPdf,d0=ST.dati;if(!E||!d0)return;const C=E.C,mese=MESI[new Date().getMonth()],Mz=mese[0].toUpperCase()+mese.slice(1);
+  const base=filtrati(false),righe=ordinati(filtrati(true)),T="Azionario per settore";
+  const NOMI_ORD={rk:"posizione",n:"nome",pt:"punteggio",sd:"Smart Discount",p:"prezzo",v1g:"1 giorno",v1m:"1 mese",v3m:"3 mesi",vytd:"da gennaio",v1a:"1 anno",st_pos:"stagionalità",t200:"media 200 giorni"};
+  const filtri=[ST.list!="tutti"?"Listino: "+nomeList(ST.list):"Tutti i listini",ST.set!="tutti"?"Settore: "+nomeSet(ST.set):"Tutti i settori",
+   ST.cerca?`Ricerca: «${ST.cerca.trim()}»`:"",`ordinati per ${NOMI_ORD[ST.ord]||ST.ord} (${ST.dir>0?"crescente":"decrescente"})`].filter(Boolean).join(" · ");
+  const d=E.Doc({land:true});d.pagina();const {M,PW}=d,LW=PW-2*M;
+  const pct=v=>v==null?"n/d":(v>0?"+":"")+fx(v,1)+"%",colV=v=>v==null?C.mute:v>0?C.up:v<0?C.down:C.mute;
+  const SP={USD:"$",EUR:"€",GBP:"£",JPY:"¥",CHF:"CHF ",HKD:"HK$",CNY:"CNY ",INR:"INR "};   // simboli che il PDF sa scrivere
+  const prz=(v,val)=>v==null?"n/d":(SP[val]||"")+Number(v).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
+  let y=E.testata(d,T,`Dati al ${gg(d0.aggiornato)} · ${righe.length} titoli · ${filtri}`);
+  // indici (riquadri come in pagina)
+  const I=d0.indici||[];if(I.length){const iw=(LW-8*(I.length-1))/I.length;
+   // riquadro: nome, valore, poi "oggi" e "da gennaio" su due righe (stanno anche con 9 indici affiancati)
+   I.forEach((i,k)=>{const x=M+k*(iw+8),on=ST.list==i.l,r=(et,v,yy)=>{d.testo(x+9,yy,et,{s:6.8,c:C.mute});d.testo(x+iw-9,yy,pct(v),{s:6.8,b:true,c:colV(v),a:"r"});};
+    d.rett(x,y,iw,58,{f:on?E.chiaro(C.acc,.12):C.soft,s:on?C.acc:null,r:7});
+    d.testo(x+9,y+13,d.taglia(i.n,iw-18,7.8),{s:7.8,c:C.mute});d.testo(x+9,y+29,Number(i.p).toLocaleString("it-IT",{maximumFractionDigits:0}),{s:12,b:true});
+    r("oggi",i.v1g,y+41);r("da gennaio",i.vytd,y+51);});y+=58;}
+  // settori: media dei titoli del listino scelto (rendimento da gennaio, ultimo mese, quota sopra la media a 200 giorni)
+  const S=d0.settori.map(s=>{const t=base.filter(x=>x.s==s.id);if(!t.length)return null;const md=a=>{const q=a.filter(v=>v!=null);return q.length?q.reduce((u,v)=>u+v,0)/q.length:null;};
+   const n2=t.filter(x=>x.t200!=null).length;return {s,n:t.length,y:md(t.map(x=>x.vytd)),m:md(t.map(x=>x.v1m)),sopra:Math.round(100*t.filter(x=>x.t200!=null&&x.t200>0).length/Math.max(1,n2))};}).filter(Boolean);
+  if(S.length){y=E.sezione(d,y+28,"Settori",ST.list!="tutti"?"media dei titoli del "+nomeList(ST.list):"media dei titoli");
+   const cw=(LW-12)/2,rh=17,meta=Math.ceil(S.length/2);
+   [0,1].forEach(cc=>{const x=M+cc*(cw+12);let yy=y;d.rett(x,yy,cw,17,{f:C.navy,r:4});
+    [["Settore",x+8,"l"],["Titoli",x+cw*.42,"r"],["Da gennaio",x+cw*.56,"r"],["1 mese",x+cw*.68,"r"],["Sopra media 200g",x+cw-8,"r"]].forEach(h=>d.testo(h[1],yy+11.5,h[0],{s:7.4,b:true,c:C.bianco,a:h[2]}));
+    yy+=17;S.slice(cc*meta,cc*meta+meta).forEach((q,j)=>{const on=ST.set==q.s.id;if(on||j%2)d.rett(x,yy,cw,rh,{f:on?E.chiaro(C.acc,.14):C.soft});
+     d.testo(x+8,yy+11.5,d.taglia(q.s.nome,cw*.32,8),{s:8,b:on});d.testo(x+cw*.42,yy+11.5,String(q.n),{s:8,a:"r"});
+     d.testo(x+cw*.56,yy+11.5,pct(q.y),{s:8,b:true,c:colV(q.y),a:"r"});d.testo(x+cw*.68,yy+11.5,pct(q.m),{s:8,c:colV(q.m),a:"r"});
+     const bl=cw*.18,bx=x+cw-8-bl-30;d.rett(bx,yy+6,bl,4.5,{f:"#e3e8ef",r:2});d.rett(bx,yy+6,Math.max(1,bl*q.sopra/100),4.5,{f:C.acc,r:2});
+     d.testo(x+cw-8,yy+11.5,q.sopra+"%",{s:8,a:"r"});yy+=rh;});});
+   y+=17+meta*rh;}
+  // classifica: tutte le righe filtrate, intestazione ripetuta a ogni pagina
+  const COL=[["#",22,"r"],["Titolo",150,"l"],["Ticker",58,"l"],["Punteggio",66,"l"],["Smart Disc.",50,"r"],["Prezzo",64,"r"],["1G",40,"r"],["1M",40,"r"],["3M",40,"r"],
+   ["Da gen.",44,"r"],["1 anno",44,"r"],[Mz,58,"r"],["vs 200g",46,"r"],["12 mesi",0,"l"]];
+  const fisso=COL.reduce((u,c)=>u+c[1],0);COL[COL.length-1][1]=LW-fisso;const xs=[];let xx=M;COL.forEach(c=>{xs.push(xx);xx+=c[1];});
+  const ax=(i)=>COL[i][2]=="r"?xs[i]+COL[i][1]-5:xs[i]+5;
+  const testaT=()=>{d.rett(M,y,LW,18,{f:C.navy,r:4});COL.forEach((c,i)=>d.testo(ax(i),y+12,c[0],{s:7.4,b:true,c:C.bianco,a:c[2]}));y+=18;};
+  y=d.serve(y,90,T);y=E.sezione(d,y+28,ST.set=="tutti"?"Classifica":nomeSet(ST.set),`${righe.length} titoli`);testaT();
+  const RH=15.5;
+  righe.forEach((t,j)=>{const y0=y;y=d.serve(y,RH,T);if(y<y0)testaT();if(j%2)d.rett(M,y,LW,RH,{f:C.soft});const b=y+10.6;
+   d.testo(ax(0),b,String(t.rk??""),{s:7.6,c:C.mute,a:"r"});d.testo(ax(1),b,d.taglia(t.n,COL[1][1]-10,7.8,true),{s:7.8,b:true});
+   d.testo(ax(2),b,d.taglia(t.t,COL[2][1]-8,7.4),{s:7.4,c:C.mute});
+   if(t.pt!=null){const bx=xs[3]+5,bl=COL[3][1]-30,cc=t.pt>=75?C.up:t.pt<40?C.mute:C.acc;d.rett(bx,y+5.5,bl,4.5,{f:"#e3e8ef",r:2});d.rett(bx,y+5.5,Math.max(1,bl*t.pt/100),4.5,{f:cc,r:2});
+    d.testo(xs[3]+COL[3][1]-5,b,String(t.pt),{s:7.8,b:true,a:"r"});}else d.testo(ax(3),b,"n/d",{s:7.6,c:C.mute});
+   d.testo(ax(4),b,t.sd==null?"n/d":String(t.sd),{s:7.8,a:"r",c:t.sd==null?C.mute:t.sd>=60?C.up:t.sd<40?C.down:C.ink,b:t.sd!=null&&t.sd>=80});
+   d.testo(ax(5),b,prz(t.p,t.val),{s:7.8,a:"r"});
+   [["v1g",6],["v1m",7],["v3m",8],["vytd",9],["v1a",10],["t200",12]].forEach(q=>d.testo(ax(q[1]),b,pct(t[q[0]]),{s:7.8,a:"r",c:colV(t[q[0]])}));
+   d.testo(ax(11),b,t.st_pos==null?"n/d":`${t.st_pos}%  ${pct(t.st_media)}`,{s:7.4,a:"r",c:t.st_pos==null?C.mute:C.ink});
+   // mini grafico dell'ultimo anno (valori 0-99 come nella pagina)
+   const sp=t.sp;if(sp&&sp.length>1){const gx=xs[13]+5,gw=COL[13][1]-10;d.poli(sp.map((v,i)=>[gx+i/(sp.length-1)*gw,y+RH-3-v/99*(RH-6)]),{s:(t.v1a||0)>=0?C.up:C.down,lw:.8});}
+   y+=RH;});
+  if(!righe.length)d.testo(M+LW/2,y+20,"Nessun titolo con questi filtri.",{s:9,c:C.mute,a:"c"});
+  y=d.serve(y,40,T);y+=d.paragrafo(M,y+16,`Punteggio 0-100 ricalcolato ogni sera: forza degli ultimi 12 e 3 mesi, posizione rispetto alla media a 200 giorni e stagionalità di ${mese}. Smart Discount 0-100: quanto il titolo è scontato rispetto alla sua storia. Colonna ${Mz}: anni positivi e rendimento medio del mese.`,LW,{s:7.6,c:C.mute});
+  d.salva(E.nomeFile("Azionario"+(ST.list!="tutti"?" "+nomeList(ST.list):"")+(ST.set!="tutti"?" "+nomeSet(ST.set):"")),T+" - BoardEdge",(n,tot)=>E.piede(d,n,tot,"Azionario BoardEdge"));}
+
  function disegna(){const d=ST.dati,base=filtrati(false),righe=filtrati(true),mese=MESI[new Date().getMonth()];
   const COL=[["rk","#",1],["n","Titolo",0],["pt","Punteggio",0],["sd","Smart Discount",1],["p","Prezzo",1],["v1g","1G",1],["v1m","1M",1],["v3m","3M",1,"azh"],["vytd","Da gennaio",1,"azh"],["v1a","1 anno",1],["st_pos",mese[0].toUpperCase()+mese.slice(1),1,"azh"],["t200","vs media 200g",1,"azh azh3"],["sp","Ultimo anno",0,"azh2"]];
-  const ord=[...righe].sort((a,b)=>{const k=ST.ord;if(k=="n")return ST.dir*String(a.n).localeCompare(String(b.n));
-   const x=a[k],y=b[k];if(x==null)return 1;if(y==null)return -1;return ST.dir*(x-y);});
+  const ord=ordinati(righe);
   const np=Math.max(1,Math.ceil(ord.length/PAG));if(ST.pag>np)ST.pag=np;
   const vis=ord.slice((ST.pag-1)*PAG,ST.pag*PAG);
   el.innerHTML=`<h2>Azionario per settore</h2><p class="sub">${d.titoli.length} titoli di Stati Uniti, Europa, Giappone, Hong Kong, Cina e India nei 11 settori, in classifica per punteggio. Il punteggio (0-100) si ricalcola ogni sera: forza degli ultimi 12 e 3 mesi, posizione rispetto alla media a 200 giorni e stagionalit&agrave; di ${mese} (rendimento medio e anni positivi), confrontati tra tutti i titoli. Clicca un settore per filtrare la tabella, un titolo per grafico e stagionalit&agrave;.</p>
@@ -84,7 +143,7 @@ try{(function(){const el=$("azioni");if(!el)return;
      sopra=Math.round(100*t.filter(x=>x.t200!=null&&x.t200>0).length/Math.max(1,t.filter(x=>x.t200!=null).length));
      return `<button class="azsc${ST.set==s.id?" on":""}" data-s="${s.id}"><span>${esc(s.nome)} <small>${t.length}</small></span><b class="${y>=0?"up":"down"}">${y==null?"n/d":(y>0?"+":"")+fx(y,1)+"%"}</b>
       <em>1 mese ${m==null?"n/d":(m>0?"+":"")+fx(m,1)+"%"}</em><span class="azbr" title="${sopra}% dei titoli sopra la media a 200 giorni"><i style="width:${sopra}%"></i></span><small class="azbrt">${sopra}% sopra media 200g</small></button>`;}).join("")}</div>
-   <h3 class="vft azcl">${ST.set=="tutti"?"Classifica":esc(nomeSet(ST.set))} <span class="small">(${righe.length} titoli${ST.cerca?" per &laquo;"+esc(ST.cerca)+"&raquo;":""} &middot; clic sulle colonne per ordinare)</span></h3>
+   <div class="azclt"><h3 class="vft azcl">${ST.set=="tutti"?"Classifica":esc(nomeSet(ST.set))} <span class="small">(${righe.length} titoli${ST.cerca?" per &laquo;"+esc(ST.cerca)+"&raquo;":""} &middot; clic sulle colonne per ordinare)</span></h3>${window.ebPdf?ebPdf.bottone():""}</div>
    <div class="tablewrap"><table class="aztab"><tr>${COL.map(c=>`<th class="${c[2]?"num":""} ${c[3]||""}${c[0]!="sp"?" azo":""}${ST.ord==c[0]?" on":""}" ${c[0]!="sp"?`data-o="${c[0]}"`:""}${c[0]=="sd"?` title="SMART DISCOUNT 0-100: quanto il titolo e' scontato oggi rispetto alla sua storia e se in passato comprare a quello sconto e' andato meglio che comprare a caso"`:""}${c[0]=="st_pos"?` title="Stagionalit&agrave; di ${mese}: quota di anni positivi e rendimento medio del mese"`:""}>${c[1]}${ST.ord==c[0]?(ST.dir>0?" &uarr;":" &darr;"):""}</th>`).join("")}</tr>
     ${vis.map(t=>`<tr class="clic" data-t="${esc(t.t)}" tabindex="0"><td class="num azrk">${t.rk}</td><td class="aznome"><b>${esc(t.n)}</b><span>${esc(t.t)} &middot; ${t.l.map(nomeList).join(", ")}</span></td>
      <td>${forza(t.pt)}</td><td class="num">${sdCella(t)}</td><td class="num">${prezzo(t.p,t.val)}</td><td class="num">${pc(t.v1g,2)}</td><td class="num">${pc(t.v1m)}</td><td class="num azh">${pc(t.v3m)}</td><td class="num azh">${pc(t.vytd)}</td>
@@ -127,6 +186,8 @@ try{(function(){const el=$("azioni");if(!el)return;
   el.querySelectorAll(".azsc").forEach(b=>b.onclick=()=>{ST.set=b.dataset.s;ST.pag=1;disegna();el.querySelector(".azcl").scrollIntoView({behavior:"smooth",block:"start"});});
   el.querySelectorAll("th.azo").forEach(h=>h.onclick=()=>{const k=h.dataset.o;if(ST.ord==k)ST.dir=-ST.dir;else{ST.ord=k;ST.dir=(k=="n"||k=="rk")?1:-1;}ST.pag=1;salva();disegna();});
   el.querySelectorAll(".aztab tr[data-t]").forEach(r=>{r.onclick=()=>apri(r.dataset.t);r.onkeydown=e=>{if(e.key=="Enter")apri(r.dataset.t);};});
+  // v6.78 "Scarica PDF": tutti i titoli filtrati, stesso ordinamento della tabella (01b_pdf.js)
+  const pb=el.querySelector(".azclt .pdfbtn");if(pb)pb.onclick=()=>ebPdf.avvia(pb,pdfAz);
   el.querySelectorAll(".azpag button[data-pg]").forEach(b=>b.onclick=()=>{ST.pag=+b.dataset.pg;disegna();el.querySelector(".azcl").scrollIntoView({behavior:"smooth",block:"start"});});}
 
  // ingresso dalla vetrina della Dashboard: apre la scheda e il dettaglio del titolo
