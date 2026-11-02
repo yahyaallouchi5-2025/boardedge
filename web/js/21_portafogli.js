@@ -343,6 +343,77 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   y+=d.paragrafo(M,y,`Valute: nessuna posizione diretta. Esposizione al dollaro stimata ${fx(usd,0)}% (gli strumenti UCITS in euro seguono comunque il cambio EUR/USD).`,LW,{s:8,c:C.mute});
   y+=d.paragrafo(M,y,"Strumenti UCITS / ETC / ETP acquistabili da un conto europeo: cerca l'ISIN nell'app del tuo broker.",LW,{s:8,c:C.mute});
 
+  // curva del capitale (stesso periodo scelto nella pagina), scala logaritmica, base 100
+  let pts=p.curva,bench=(P.bench||{}).curva||[];const dal=per=="oos"?P.oos_dal:per=="live"?(p.live_dal||P.oos_dal):null;
+  if(dal){pts=pts.filter(x=>x[0]>=dal);bench=bench.filter(x=>x[0]>=dal);}
+  if(pts.length>1){y=d.serve(y,280,T);y=E.sezione(d,y+26,"Andamento del capitale",per=="oos"?"dal 2016 · base 100, scala logaritmica":"base 100, scala logaritmica");
+   const gx=M+34,gw=LW-42,gy=y+4,gh=190,passo=a=>a.filter((_,i)=>i%Math.max(1,Math.ceil(a.length/700))==0||i==a.length-1);
+   const b0=pts[0][1],bb0=(bench[0]||[0,1])[1],s=passo(pts).map(x=>[x[0],x[1]/b0*100]),sb=passo(bench).map(x=>[x[0],x[1]/bb0*100]);
+   const t0=+new Date(s[0][0]),t1=+new Date(s[s.length-1][0]),tutti=s.concat(sb).map(x=>x[1]);
+   const lo=Math.log(Math.min(...tutti)*.97),hi=Math.log(Math.max(...tutti)*1.03);
+   const X=q=>gx+(+new Date(q)-t0)/(t1-t0||1)*gw,Y=v=>gy+(hi-Math.log(v))/(hi-lo||1)*gh;
+   // fasce fuori campione e live, griglia con valori "tondi", anni sull'asse
+   const fascia=(q,col,et)=>{if(q&&q>s[0][0]){d.rett(X(q),gy,gx+gw-X(q),gh,{f:col});d.testo(X(q)+6,gy+11,et,{s:6.8,b:true,c:C.mute});}};
+   fascia(P.oos_dal,"#f1f6fb","FUORI CAMPIONE");if(p.live_dal)fascia(p.live_dal,"#e4f5f2","LIVE");
+   [25,50,75,100,150,200,300,400,600,800,1000,1500,2000,3000,5000].filter(v=>Math.log(v)>lo&&Math.log(v)<hi).forEach(v=>{d.linea(gx,Y(v),gx+gw,Y(v),{c:"#e6ebf2",lw:.5});d.testo(gx-6,Y(v)+2.5,String(v),{s:6.8,c:C.mute,a:"r"});});
+   const a0=+s[0][0].slice(0,4)+1,a1=+s[s.length-1][0].slice(0,4),pa=Math.ceil((a1-a0+1)/10)||1;
+   for(let an=a0;an<=a1;an++)if((an-a0)%pa==0)d.testo(X(an+"-01-01"),gy+gh+11,String(an),{s:6.8,c:C.mute,a:"c"});
+   d.linea(gx,gy+gh,gx+gw,gy+gh,{c:"#c3ccd8",lw:.6});
+   if(sb.length>1)d.poli(sb.map(x=>[X(x[0]),Y(x[1])]),{s:"#8793a6",lw:1,tratt:[3,2]});
+   d.poli(s.map(x=>[X(x[0]),Y(x[1])]),{s:C.acc,lw:1.4});
+   const live=p.live_dal?s.filter(x=>x[0]>=p.live_dal):[];if(live.length>1)d.poli(live.map(x=>[X(x[0]),Y(x[1])]),{s:"#0b6b63",lw:2.2});
+   y=gy+gh+26;let lx=M;const leg=(col,et,tr)=>{d.linea(lx,y-3,lx+18,y-3,{c:col,lw:tr?1:2,tratt:tr?[3,2]:null});lx+=24;lx+=d.testo(lx,y,et,{s:8,c:C.mute})+18;};
+   leg(C.acc,"Portafoglio "+p.nome.toLowerCase());leg("#8793a6",(P.bench||{}).nome||"60/40",true);if(p.live_dal)leg("#0b6b63","Live");y+=6;}
+
+  // risultati per periodo (come la tabella della pagina)
+  const st=p.stat,bs=(P.bench||{}).stat||{};
+  const col=[["Storico",st.storico,"fino al 2015"],["Fuori campione",st.oos,"dal 2016"]].concat(st.live?[["Live",st.live,p.live_dal?"dal "+gg(p.live_dal):"dall'avvio"]]:[]).concat([["60/40",bs.oos,"dal 2016"]]);
+  const RIG=[["Rendimento annuo",x=>x.cagr==null?pc(x.totale)+" tot.":pc(x.cagr)],["Volatilità",x=>fx(x.vol,1)+"%"],["Max drawdown",x=>pc(x.maxdd),C.down],["Peggior mese",x=>x.peggior_mese?pc(x.peggior_mese[1]):"n/d"],["Win rate mensile",x=>(x.mesi_pos??"n/d")+"%"]];
+  y=d.serve(y,150,T);y=E.sezione(d,y+26,"Risultati per periodo");
+  const c0=150,cw=(LW-c0)/col.length;d.rett(M,y,LW,28,{f:C.navy,r:4});
+  col.forEach((c,i)=>{const x=M+c0+cw*i+cw-10;d.testo(x,y+12,c[0],{s:8.2,b:true,c:C.bianco,a:"r"});d.testo(x,y+22,c[2],{s:6.8,c:"#a9b8d0",a:"r"});});
+  y+=28;RIG.forEach((r,j)=>{if(j%2)d.rett(M,y,LW,19,{f:C.soft});d.testo(M+10,y+13,r[0],{s:8.5});
+   col.forEach((c,i)=>d.testo(M+c0+cw*i+cw-10,y+13,c[1]?r[1](c[1]):"n/d",{s:8.5,b:j==2,c:r[2]||C.ink,a:"r"}));y+=19;});
+
+  // rischio del mese della rotazione: termometro del drawdown, anno per anno, numeri chiave, stagionalita'
+  const m=p.mese;if(m&&m.anni&&m.anni.length){
+   const peg=m.anni.reduce((q,x)=>x.dd<q.dd?x:q,m.anni[0]),lim=-p.dd_rif,oltre=m.dd_max<lim,s0=p.stat.totale||{},o0=p.stat.oos||{},ddTot=Math.min(s0.maxdd??0,o0.maxdd??0);
+   y=d.serve(y,330,T);y=E.sezione(d,y+28,"Rischio di "+m.mese,`questa composizione tenuta in ogni ${m.mese} dal ${m.anni[0].a} (${m.n} anni)`);
+   d.testo(M,y+4,"Drawdown peggiore di "+m.mese,{s:8.5,b:true});
+   d.testo(PW-M,y+4,oltre?`Oltre il limite di ${fx(Math.abs(m.dd_max-lim),1)} punti`:"Dentro il limite del profilo",{s:8.5,b:true,c:oltre?C.down:C.up,a:"r"});
+   const fondo=Math.min(m.dd_max,lim)*1.18,pos=v=>M+LW*v/fondo;y+=24;
+   d.rett(M,y,LW,10,{f:C.soft,r:5});d.rett(M,y,pos(m.dd_max)-M,10,{f:C.down,r:5});
+   d.linea(pos(lim),y-4,pos(lim),y+14,{c:C.ink,lw:1.4});d.testo(pos(lim),y-7,"limite "+pc(lim,0),{s:7,c:C.ink,a:"c"});
+   d.testo(M,y+22,"0%",{s:7,c:C.mute});d.testo(pos(m.dd_max),y+22,pc(m.dd_max),{s:7,b:true,c:C.down,a:"c"});y+=34;
+   y+=d.paragrafo(M,y,`Peggior caso: ${m.mese} ${peg.a}. Con 10.000 € il conto sarebbe sceso fino a ${eur(10000*(1+m.dd_max/100))} durante il mese.`,LW,{s:8.5,c:C.mute})+6;
+   // anno per anno: una riga per decennio, verde = guadagno, rosso = perdita (piu' intenso = piu' grande)
+   const per={};m.anni.forEach(x=>per[x.a]=x);const d0=Math.floor(m.anni[0].a/10)*10,d1=Math.floor(m.anni[m.anni.length-1].a/10)*10,cw2=(LW-58)/10;
+   for(let dc=d0;dc<=d1;dc+=10){y=d.serve(y,30,T);d.testo(M,y+16,dc==1990?"anni '90":"anni "+dc,{s:7.5,c:C.mute});
+    for(let a2=dc;a2<dc+10;a2++){const x=per[a2],xc=M+58+(a2-dc)*cw2;if(!x)continue;const tt=Math.min(1,Math.abs(x.r)/5);
+     d.rett(xc+1.5,y,cw2-3,26,{f:E.chiaro(x.r<0?"#e0524c":"#2bb383",.14+.7*tt),r:4,s:x.a==peg.a?C.ink:null,lw:1});
+     d.testo(xc+cw2/2,y+10,String(a2),{s:6.5,c:C.mute,a:"c"});d.testo(xc+cw2/2,y+21,pc(x.r),{s:7.8,b:true,a:"c"});}
+    y+=30;}
+   const wr=Math.round(100*m.positivi/m.n),Mz=m.mese[0].toUpperCase()+m.mese.slice(1);
+   const K2=[["Peggior "+m.mese,pc(m.peggiore[1]),String(m.peggiore[0]),C.down],[Mz+" medio",pc(m.media),"su "+m.n+" anni",m.media>=0?C.up:C.down],["Anni positivi",`${m.positivi} su ${m.n}`,"win rate "+wr+"%",C.ink],["Max drawdown storico",pc(ddTot),"intero backtest",C.down]];
+   y=d.serve(y,62,T);y+=6;K2.forEach((k,i)=>{const x=M+i*(bw+8);d.rett(x,y,bw,50,{f:C.soft,r:7});
+    d.testo(x+11,y+15,k[0],{s:7.6,c:C.mute});d.testo(x+11,y+32,k[1],{s:13,b:true,c:k[3]});d.testo(x+11,y+43,k[2],{s:7,c:C.mute});});y+=50;
+   if(m.mercati&&m.mercati.length){y=d.serve(y,40,T);d.testo(M,y+22,`Stagionalità di ${m.mese} per mercato (informativa)`,{s:8.5,b:true});y+=30;
+    m.mercati.forEach(x=>{y=d.serve(y,16,T);d.testo(M,y+9,d.taglia(nomeK(x.k),170,8),{s:8});const bx=M+180,bl=LW-300,w=Math.min(1,Math.abs(x.media)/12.5)*bl/2;
+     d.rett(bx,y+3,bl,6,{f:C.soft,r:3});d.linea(bx+bl/2,y+1,bx+bl/2,y+11,{c:"#c3ccd8",lw:.5});
+     d.rett(x.media>=0?bx+bl/2:bx+bl/2-w,y+3,Math.max(1,w),6,{f:x.media>=0?C.up:C.down,r:3});
+     d.testo(PW-M-60,y+9,pc(x.media),{s:8,b:true,c:x.media>=0?C.up:C.down,a:"r"});d.testo(PW-M,y+9,x.pos+"% positivi",{s:7.5,c:C.mute,a:"r"});y+=16;});}}
+
+  // ultime rotazioni: entrati / usciti / rimasti e risultato del mese chiuso
+  if(p.rotazioni&&p.rotazioni.length){const perMese={};(p.mesi_chiusi||[]).forEach(q=>perMese[q.mese]=q);
+   y=d.serve(y,80,T);y=E.sezione(d,y+28,"Ultime rotazioni","+ entrati · − usciti · = rimasti");
+   p.rotazioni.slice(0,6).forEach(r=>{const L=[];
+    if(r.entrati.length)L.push(["+ "+r.entrati.map(nomeK).join(", "),C.up]);if(r.usciti.length)L.push(["− "+r.usciti.map(nomeK).join(", "),C.down]);
+    if(r.tenuti.length)L.push(["= "+r.tenuti.map(nomeK).join(", "),C.ink]);if(!L.length)L.push(["tutto in liquidità",C.mute]);
+    const mm=perMese[r.data.slice(0,7)],ris=r.attesa?`si esegue all'apertura del ${gg(r.data)}`:mm?`Risultato ${pc(mm.r)} · drawdown ${pc(mm.dd)}`:"mese in corso";
+    const righe=L.flatMap(l=>d.righe(l[0],LW-70-185,8).map(t2=>[t2,l[1]])),h=Math.max(16,righe.length*11)+10;
+    y=d.serve(y,h,T);d.testo(M,y+10,gg(r.data),{s:8.5,b:true});righe.forEach((q,i)=>d.testo(M+70,y+10+i*11,q[0],{s:8,c:q[1]}));
+    d.testo(PW-M,y+10,ris,{s:7.6,c:mm?(mm.r>=0?C.up:C.down):C.mute,a:"r",b:!!mm});if(r.liquidita)d.testo(PW-M,y+21,`liquidità ${r.liquidita}%`,{s:7,c:C.mute,a:"r"});
+    y+=h;d.linea(M,y-4,PW-M,y-4,{c:C.line,lw:.4});});}
   d.salva(E.nomeFile("Portafoglio "+p.nome),T+" - BoardEdge",(n,tot)=>E.piede(d,n,tot,"Portafogli modello BoardEdge"));}
 
  // ridisegna mantenendo la posizione della pagina (v6.52: prima ogni tocco riportava in cima)
