@@ -1,0 +1,56 @@
+# dati-cot.yml - SCARICA I REPORT COT COMPLETI DELLA CFTC (TFF e Legacy, solo futures e futures + opzioni)
+# per lo studio sull'affidabilita' del COT forex. Scrive solo nel ramo "dati-cot": il sito e il ramo main non cambiano.
+# Fonte pubblica e gratuita: publicreporting.cftc.gov (nessuna chiave). Parte da solo quando si crea/modifica
+# questo file, oppure a mano da Actions -> "Dati COT completi" -> Run workflow.
+name: Dati COT completi
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/dati-cot.yml']
+permissions:
+  contents: write
+jobs:
+  scarica:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica i report dalla CFTC
+        run: |
+          mkdir out && cd out
+          python3 - <<'PY'
+          # una riga per settimana e mercato; solo le colonne utili (posizioni long/short per categoria)
+          import csv, json, time, urllib.request
+          MERCATI = {"EUR": "099741", "GBP": "096742", "JPY": "097741", "CHF": "092741", "CAD": "090741",
+                     "AUD": "232741", "NZD": "112741", "DXY": "098662", "MXN": "095741"}
+          TFF = ("open_interest_all,dealer_positions_long_all,dealer_positions_short_all,asset_mgr_positions_long,"
+                 "asset_mgr_positions_short,lev_money_positions_long,lev_money_positions_short,other_rept_positions_long,"
+                 "other_rept_positions_short,nonrept_positions_long_all,nonrept_positions_short_all")
+          LEG = ("open_interest_all,noncomm_positions_long_all,noncomm_positions_short_all,"
+                 "comm_positions_long_all,comm_positions_short_all,nonrept_positions_long_all,nonrept_positions_short_all")
+          REPORT = {"tff_futures": ("gpe5-46if", TFF), "tff_combinato": ("yw9f-hn96", TFF),
+                    "legacy_futures": ("6dca-aqww", LEG), "legacy_combinato": ("jun7-fc8e", LEG)}
+          def scarica(url):
+              for n in range(3):                               # 3 tentativi con attesa crescente
+                  try:
+                      req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/dati-cot"})
+                      with urllib.request.urlopen(req, timeout=60) as r:
+                          return json.load(r)
+                  except Exception as e:
+                      print("tentativo", n + 1, "fallito:", type(e).__name__)
+                      time.sleep(5 * (n + 1))
+              raise SystemExit("CFTC non raggiungibile: " + url)
+          for nome, (ds, col) in REPORT.items():
+              campi = ["valuta", "data"] + col.split(",")
+              with open(nome + ".csv", "w", newline="") as f:
+                  w = csv.writer(f); w.writerow(campi)
+                  for k, codice in MERCATI.items():
+                      url = (f"https://publicreporting.cftc.gov/resource/{ds}.json?$select=report_date_as_yyyy_mm_dd,{col}"
+                             f"&cftc_contract_market_code={codice}&$order=report_date_as_yyyy_mm_dd&$limit=50000")
+                      righe = scarica(url)
+                      for r in righe:
+                          w.writerow([k, r["report_date_as_yyyy_mm_dd"][:10]] + [r.get(c, "") for c in col.split(",")])
+                      print(nome, k, len(righe), "settimane")
+          PY
+          git init -q && git checkout -q -b dati-cot && git add . \
+            && git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" commit -qm "dati COT completi" \
+            && git push -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}" dati-cot
