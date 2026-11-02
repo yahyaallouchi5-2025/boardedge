@@ -44,6 +44,11 @@ function tre(f){const u=f.slice(-3),tot=u.reduce((s,x)=>s+x[1],0),su=u.filter(x=
 /* posizione netta attuale in % dell'open interest: >0 net long, <0 net short */
 function netto(k,inv){const a=D.assets[k]||{};if(a.pct_oi==null)return "";const v=inv?-a.pct_oi:a.pct_oi;
  return `${esc(k)} <b style="color:${v>=0?"var(--sb)":"var(--ss)"}">net ${v>=0?"long":"short"} ${fx(Math.abs(v),1)}%</b>`;}
+/* v6.80 CHI TIENE LA VALUTA (report TFF, cot_radar/categorie.py): banche dealer e hedge fund. Informativo.
+   Per il dollaro si usa l'indice del dollaro (DXY). Compare nel riepilogo sotto il grafico, solo per chi e' a un
+   estremo di 3 anni (indice >= 80 o <= 20). */
+const TFFN={dealer:"banche",lev:"hedge fund",asset:"asset manager"};
+function tffValuta(g){const C=D.categorie;if(!C)return null;return C.valute[g]||(g=="USD"?C.valute.DXY:null)||null;}
 /* riga "Conferme" del pannello: Commercials, open interest, affidabilita' storica */
 function conferme(k,p){const parti=[],col=v=>v=="conferma"?"var(--sb)":v=="contrasto"?"var(--ss)":"var(--ink)";
  const gambe=p?[p.base,p.quote]:[k];
@@ -76,6 +81,10 @@ function lettura(spec,f,p,k,inv){
  // --- Commercials (chi produce o usa davvero il sottostante e si copre)
  const acc=o.comm_acc,cm=gambe.map(g=>{const c=(D.assets[g]||{}).comm;return c&&(c.idx>=80||c.idx<=20)?`molto in ${c.idx>=80?"acquisto":"vendita"} su ${esc(g)}`:null;}).filter(Boolean);
  righe.push(`<b>Commercials</b> (produttori e banche che si coprono): ${cm.length?cm.join(" &middot; ")+(acc?` &rarr; <b style="color:${acc=="conferma"?verde:rosso}">${acc=="conferma"?"sono dalla parte del segnale":"vanno contro il segnale"}</b>`:""):"nella norma, nessuna indicazione"}.`);
+ // --- v6.80 banche dealer e hedge fund (TFF): si segnala solo chi e' a un estremo di 3 anni
+ const est=gambe.map(g=>{const v=tffValuta(g);if(!v)return null;const p2=["dealer","lev"].filter(c=>v[c]&&v[c].stato!="norma")
+  .map(c=>`${TFFN[c]} ${v[c].stato=="massimo"?"al massimo":"al minimo"} di 3 anni`);return p2.length?`${esc(g)}: ${p2.join(", ")}`:null;}).filter(Boolean);
+ if(D.categorie)righe.push(`<b>Banche e hedge fund</b> (report TFF, informativo): ${est.length?est.join(" &middot; "):"posizioni nella norma"}. <span class="small">Dal 2018 la posizione delle banche ha anticipato le valute meglio di quella degli speculatori; prima del 2018 no.</span>`);
  // --- contratti aperti
  const oi=gambe.map(g=>{const x=(D.assets[g]||{}).oi4;return x&&Math.abs(x.d_oi)>=2?`${esc(g)} ${pc1(x.d_oi)} (${esc(x.txt)})`:null;}).filter(Boolean);
  if(oi.length)righe.push(`<b>Contratti aperti</b> nelle ultime 4 settimane: ${oi.join(" &middot; ")}.`);

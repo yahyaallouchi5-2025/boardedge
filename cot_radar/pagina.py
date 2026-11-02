@@ -157,11 +157,11 @@ def build(data_source=load_all, demo=False, sito=False):
         log.warning("backtest non calcolato:\n%s", traceback.format_exc())
     # ARCHIVI COT EXTRA (combined, TFF, Disaggregated): solo per il confronto nel backtest (confronto.py),
     # non cambiano nulla nella pagina. Ognuno isolato: se uno non arriva, gli altri e il sito vanno avanti.
-    rie_extra = {}
+    rie_extra, righe_extra = {}, {}
     if not demo:
         for nome in ARCHIVI_COT:
             try:
-                rie_extra[nome] = storico.aggiorna_extra(nome, scarica_archivio(nome))[1]
+                righe_extra[nome], rie_extra[nome] = storico.aggiorna_extra(nome, scarica_archivio(nome))
             except Exception:
                 log.warning("archivio %s non aggiornato:\n%s", nome, traceback.format_exc())
                 rie_extra[nome] = {"stato": "errore"}
@@ -217,6 +217,14 @@ def build(data_source=load_all, demo=False, sito=False):
                                       scrivi=sito and not demo)
     except Exception:
         log.error("forecaster non calcolato:\n%s", traceback.format_exc())
+    # CHI TIENE LE VALUTE (categorie.py, v6.80): banche dealer, hedge fund e asset manager dal report TFF della CFTC.
+    # Solo informativo (non entra nei segnali). Isolato: senza archivio TFF il blocco non compare.
+    cat_pag = None
+    try:
+        from . import categorie
+        cat_pag = categorie.calcola(righe_extra.get("TFF") if not demo else storico.leggi_extra("TFF"))
+    except Exception:
+        log.warning("categorie TFF non calcolate:\n%s", traceback.format_exc())
     # PAESI EMERGENTI (paesi.py, v6.72): crescita del PIL secondo il FMI. Isolato; in demo solo la copia salvata.
     paesi_pag = None
     try:
@@ -260,7 +268,7 @@ def build(data_source=load_all, demo=False, sito=False):
             "assets": assets, "pairs": pairs, "corr": corr, "corr_px": corr_px, "market": market, "fed": fed,
             "order": [a[0] for a in ASSETS] + ["USD"], "sectors": SECTORS, "stato": pubblico(stato), "admin": "__ADMIN__", "eventi": news["prossimi"], "agenda": agenda_out,
             "stag": stag, "stag_meta": stag_meta, "reg": reg, "bt": bt, "vol": vol, "port": port, "fore": fore,
-            "carry": carry_pag, "carry_st": carry_st, "paesi": paesi_pag,
+            "carry": carry_pag, "carry_st": carry_st, "paesi": paesi_pag, "categorie": cat_pag,
             "tv": {k: {"s": v[0], "inv": v[1]} for k, v in TV_SYMBOLS.items()}, "tvp": TV_PAIRS}
     # "stato" pubblico = solo esito e fonti; "admin" = segnaposto che main.py sostituisce con il registro
     # completo (cifrato sul sito, in chiaro sul PC). Vedi cot_radar/admin.py
