@@ -42,8 +42,13 @@ try{(function(){const h=document.documentElement,mob=()=>matchMedia("(max-width:
   tg.style.marginTop="0px";
   // posizioni "da pagina ferma" con offsetTop (le schede sono sticky: il rettangolo cambia mentre si scorre)
   const su=el=>{let y=0;for(let x=el;x;x=x.offsetParent)y+=x.offsetTop;return y;};
+  // v6.79 BUG "barra laterale vuota": le schede (#nav) sono sticky e, a pagina scorsa, offsetTop restituisce la
+  // posizione "attaccata" (migliaia di px): il margine del Telegram esplodeva e la barra si svuotava (es. clic su un
+  // filtro dei Paesi emergenti, che cambia l'altezza della pagina). Si misura con le schede per un istante non sticky.
+  const pos=nav.style.position;nav.style.position="static";
   const centroNav=su(nav)+nav.offsetHeight/2,centroTg=su(tg)-su(side)+tg.offsetHeight/2;
-  tg.style.marginTop=Math.max(0,Math.round(centroNav-centroTg))+"px";}
+  nav.style.position=pos;
+  tg.style.marginTop=Math.min(160,Math.max(0,Math.round(centroNav-centroTg)))+"px";}   // tetto di sicurezza
  allinea();addEventListener("resize",allinea);addEventListener("load",allinea);
  if(document.fonts&&document.fonts.ready)document.fonts.ready.then(allinea);
  if(window.ResizeObserver){const ro=new ResizeObserver(()=>requestAnimationFrame(allinea));
