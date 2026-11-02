@@ -1635,3 +1635,9 @@ html.ridotta .sagg{display:none}
  .ptdett table.compatta th,.ptdett table.compatta td{padding:8px 6px;font-size:12.5px}}
 @media (max-width:600px){.ptdett .ptdata{white-space:nowrap}.ptdett table.compatta th:first-child,.ptdett table.compatta td:first-child{padding-left:10px}}
 @media(max-width:640px){.ptdett .ptlg{display:none}.ptdett .ptsh{display:inline}}
+
+/* v6.81: etichetta IN CORSO sulla pill della rotazione (puntino che pulsa, stesso verde accento) */
+.pcount.ora .pcd{display:inline-flex;align-items:center;gap:7px;letter-spacing:.06em}
+.pcount .pcdot{width:8px;height:8px;border-radius:50%;background:#04211e;flex:none;animation:pcdot 1.6s ease-in-out infinite}
+@keyframes pcdot{0%,100%{opacity:1}50%{opacity:.3}}
+@media (prefers-reduced-motion:reduce){.pcount .pcdot{animation:none}}

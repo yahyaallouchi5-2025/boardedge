@@ -486,7 +486,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const out=box.querySelector(".pcd"),z=n=>String(n).padStart(2,"0");
   const tick=()=>{if(!document.body.contains(box)){clearInterval(timer);return;}
    const ms=fine-Date.now();
-   if(ms<=0){out.textContent="oggi";box.classList.add("ora");clearInterval(timer);return;}
+   // v6.81: arrivata l'ora (09:00 di Roma del giorno di rotazione) niente piu' "tra oggi": etichetta IN CORSO
+   if(ms<=0){if(box.firstChild&&box.firstChild.nodeType===3)box.firstChild.textContent="Rotazione ";
+    out.innerHTML='<i class="pcdot"></i>IN CORSO';box.classList.add("ora");
+    box.title="Rotazione in corso: si esegue oggi all'apertura delle borse europee (09:00 ora italiana)";clearInterval(timer);return;}
    const t=Math.floor(ms/1000),gi=Math.floor(t/86400),o=Math.floor(t%86400/3600),mi=Math.floor(t%3600/60),se=t%60;
    out.innerHTML=`${gi?`<u>${gi}</u>g `:""}<u>${z(o)}</u>h <u>${z(mi)}</u>m <u>${z(se)}</u>s`;};
   tick();timer=setInterval(()=>{if(!document.hidden)tick();},1000);}
