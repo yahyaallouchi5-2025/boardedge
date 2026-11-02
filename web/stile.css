@@ -1607,3 +1607,22 @@ html.ridotta .sagg{display:none}
  .ptstudio td:first-child{white-space:normal;line-height:1.35}}
 .ptsh{display:none}
 @media(max-width:640px){.ptstudio .ptlg{display:none}.ptstudio .ptsh{display:inline}}
+
+/* --- v6.78 PULSANTE "SCARICA PDF" (Portafogli e Azionario, generatore in js/01b_pdf.js) ---
+   Pillola come i filtri: icona di download + testo; al passaggio del mouse bordo e testo turchesi; mentre crea il
+   file e' disattivato ("Creo il PDF..."). Su telefono resta solo l'icona (tocco ampio 40 px) per non spingere a capo
+   il titolo della card. */
+.pdfbtn{display:inline-flex;align-items:center;justify-content:center;gap:7px;height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--line);
+ background:var(--soft);color:var(--ink2);font-size:13px;font-weight:650;line-height:1;font-family:inherit;cursor:pointer;white-space:nowrap;flex:none;
+ transition:border-color .18s,color .18s,background .18s,transform .18s}
+.pdfbtn svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.pdfbtn:hover{border-color:var(--acc);color:var(--ink);background:color-mix(in srgb,var(--acc) 10%,var(--soft));transform:translateY(-1px)}
+.pdfbtn:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+.pdfbtn:disabled{opacity:.65;cursor:progress;transform:none}
+/* card principale del portafoglio: etichetta del rischio e pulsante affiancati a destra del nome */
+.phazioni{display:flex;align-items:center;gap:10px;flex:none}
+/* Azionario: titolo "Classifica" a sinistra e pulsante a destra sulla stessa riga */
+.azclt{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:28px 0 10px}
+.azclt .vft.azcl{margin:0}
+@media (max-width:600px){.pdfbtn{width:40px;height:40px;padding:0}.pdfbtn span{display:none}.phazioni{gap:8px}
+ .azclt{align-items:flex-start;margin-top:24px}}
