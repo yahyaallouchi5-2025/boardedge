@@ -115,33 +115,57 @@ try{(function(){const el=$("pattern");if(!el)return;
   el.querySelectorAll("[data-id]").forEach(r=>{r.onclick=()=>apri(r.dataset.id);r.onkeydown=e=>{if(e.key=="Enter")apri(r.dataset.id);};});}
 
  // --- grafico a candele con i pattern evidenziati (pannello laterale, stesso stile del dettaglio Azionario)
- function apri(id){const s=ST.d.strumenti.find(x=>x.id==id);if(!s)return;const tf=ST.tf,a=s[tf],u=a.ultimo;
-  let ov=document.querySelector(".azdett");if(!ov){ov=document.createElement("div");ov.className="azdett";document.body.appendChild(ov);}
-  const chiudi=()=>{ov.classList.remove("on");document.removeEventListener("keydown",tasto);setTimeout(()=>{ov.innerHTML="";},250);};
-  const tasto=e=>{if(e.key=="Escape")chiudi();};document.addEventListener("keydown",tasto);
-  ov.onclick=e=>{if(e.target==ov||e.target.closest(".azx"))chiudi();};
-  const C=a.candele,W=680,H=320,L=8,R=70,T=14,B=26;
+ /* DETTAGLIO di uno strumento (v6.80): PAGINA INTERA come l'Azionario, con barra "Indietro" in alto (anche il tasto
+    indietro del telefono/browser e Esc chiudono). Contenuto centrato con margini (.azwrap). Il grafico NON si deforma
+    piu': il viewBox ha la stessa larghezza del riquadro (prima era 680 px "stirato" su tutto lo schermo e le scritte
+    BUY/SELL e i prezzi uscivano schiacciati); se cambia la larghezza della finestra si ridisegna. */
+ function grafico(a,u,tf,W){const C=a.candele,H=W<520?260:340,L=8,R=W<520?58:70,T=14,B=26;
   const lo=Math.min(...C.map(c=>c[3])),hi=Math.max(...C.map(c=>c[2])),Y=v=>T+(hi-v)/(hi-lo||1)*(H-T-B),bw=(W-L-R)/C.length,X=i=>L+i*bw+bw/2;
   const idx=new Map(C.map((c,i)=>[c[0],i]));
-  let ultimaEt=-99;
-  const bande=a.segnali.filter(p=>idx.has(p.t)&&idx.get(p.t)>=2).map(p=>{const i=idx.get(p.t),ult=u&&p.t==u.t,et=i-ultimaEt>=4||ult;if(et)ultimaEt=i;
-   return `<rect x="${(L+(i-2)*bw).toFixed(1)}" y="${T}" width="${(3*bw).toFixed(1)}" height="${H-T-B}" class="ptband ${p.lato=="BUY"?"buy":"sell"}${ult?" ult":""}"/>${et?`<text x="${X(i).toFixed(1)}" y="${H-B-6}" text-anchor="middle" class="ptbl ${p.lato=="BUY"?"buy":"sell"}">${p.lato}</text>`:""}`;}).join("");
+  // etichette BUY/SELL: almeno 38 px tra una e l'altra; si parte dalla piu' recente (quella del segnale attuale
+  // resta sempre), andando indietro si salta chi si sovrapporrebbe
+  const sg=a.segnali.filter(p=>idx.has(p.t)&&idx.get(p.t)>=2),conEt=new Set();let ultX=1e9;
+  [...sg].reverse().forEach(p=>{const x=X(idx.get(p.t)-1);if(ultX-x>=38){conEt.add(p.t);ultX=x;}});
+  const bande=sg.map(p=>{const i=idx.get(p.t),ult=u&&p.t==u.t,et=conEt.has(p.t);
+   return `<rect x="${(L+(i-2)*bw).toFixed(1)}" y="${T}" width="${(3*bw).toFixed(1)}" height="${H-T-B}" class="ptband ${p.lato=="BUY"?"buy":"sell"}${ult?" ult":""}"/>${et?`<text x="${X(i-1).toFixed(1)}" y="${H-B-6}" text-anchor="middle" class="ptbl ${p.lato=="BUY"?"buy":"sell"}">${p.lato}</text>`:""}`;}).join("");
   const cand=C.map((c,i)=>{const su=c[4]>=c[1],top=Y(Math.max(c[1],c[4])),h=Math.max(1,Math.abs(Y(c[1])-Y(c[4])));
-   return `<line x1="${X(i).toFixed(1)}" x2="${X(i).toFixed(1)}" y1="${Y(c[2]).toFixed(1)}" y2="${Y(c[3]).toFixed(1)}" class="ptw ${su?"su":"giu"}"/><rect x="${(X(i)-bw*0.36).toFixed(1)}" y="${top.toFixed(1)}" width="${(bw*0.72).toFixed(1)}" height="${h.toFixed(1)}" class="ptk ${su?"su":"giu"}"><title>${quando(c[0],tf)} · A ${c[1]} · M ${c[2]} · m ${c[3]} · C ${c[4]}</title></rect>`;}).join("");
+   return `<line x1="${X(i).toFixed(1)}" x2="${X(i).toFixed(1)}" y1="${Y(c[2]).toFixed(1)}" y2="${Y(c[3]).toFixed(1)}" class="ptw ${su?"su":"giu"}"/><rect x="${(X(i)-bw*0.36).toFixed(1)}" y="${top.toFixed(1)}" width="${Math.max(1,bw*0.72).toFixed(1)}" height="${h.toFixed(1)}" class="ptk ${su?"su":"giu"}"><title>${quando(c[0],tf)} · A ${c[1]} · M ${c[2]} · m ${c[3]} · C ${c[4]}</title></rect>`;}).join("");
   let linee="";if(u&&idx.has(u.t)){const i=idx.get(u.t);
-   linee=`<line x1="${X(i-2)}" x2="${W-R}" y1="${Y(u.livello)}" y2="${Y(u.livello)}" class="ptl lv"/><text x="${W-R+4}" y="${Y(u.livello)+4}" class="ptlt lv">${num(u.livello,cifre(u.livello))}</text>
-    <line x1="${X(i)}" x2="${W-R}" y1="${Y(u.ingresso)}" y2="${Y(u.ingresso)}" class="ptl in"/><text x="${W-R+4}" y="${Y(u.ingresso)+4}" class="ptlt in">${num(u.ingresso,cifre(u.ingresso))}</text>`;}
+   linee=`<line x1="${X(i-2)}" x2="${W-R}" y1="${Y(u.livello)}" y2="${Y(u.livello)}" class="ptl lv"/><text x="${W-R+6}" y="${Y(u.livello)+4}" class="ptlt lv">${num(u.livello,cifre(u.livello))}</text>
+    <line x1="${X(i)}" x2="${W-R}" y1="${Y(u.ingresso)}" y2="${Y(u.ingresso)}" class="ptl in"/><text x="${W-R+6}" y="${Y(u.ingresso)+4}" class="ptlt in">${num(u.ingresso,cifre(u.ingresso))}</text>`;}
   const tick=[0,.25,.5,.75,1].map(k=>lo+(hi-lo)*k).map(v=>`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" class="pgr"/>`).join("");
-  ov.innerHTML=`<aside class="azpan" role="dialog" aria-modal="true" aria-label="${esc(s.n)}"><button class="azx" aria-label="Chiudi">&times;</button>
+  return `<svg viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" class="ptsvg">${tick}${bande}${cand}${linee}</svg>`;}
+ function apri(id){const s=ST.d.strumenti.find(x=>x.id==id);if(!s)return;const tf=ST.tf,a=s[tf],u=a.ultimo;
+  // riquadro proprio (.ptdett): non si mescola con quello dell'Azionario
+  let ov=document.querySelector(".ptdett");if(!ov){ov=document.createElement("div");ov.className="azdett ptdett";document.body.appendChild(ov);
+   ov.addEventListener("click",e=>{if(e.target.closest(".azx"))ov._chiudi&&ov._chiudi();});
+   window.addEventListener("popstate",()=>{if(ov.classList.contains("on"))ov._chiudi&&ov._chiudi(true);});}
+  if(!ov.classList.contains("on")){try{history.pushState({ptStrumento:id},"");}catch(e){}}
+  const largo=()=>{const g=ov.querySelector(".azgraf");return Math.max(300,Math.round(g?g.clientWidth:Math.min(980,innerWidth)-56));};
+  const ridisegna=()=>{const g=ov.querySelector(".azgraf");if(g)g.innerHTML=grafico(a,u,tf,largo());};
+  const chiudi=daCronologia=>{if(!ov.classList.contains("on"))return;
+   if(!daCronologia){try{if(history.state&&history.state.ptStrumento){history.back();return;}}catch(e){}}   // il popstate richiama chiudi(true)
+   ov.classList.remove("on");document.documentElement.classList.remove("azaperto");document.removeEventListener("keydown",tasto);
+   removeEventListener("resize",ridisegna);setTimeout(()=>{if(!ov.classList.contains("on"))ov.innerHTML="";},250);};
+  ov._chiudi=chiudi;
+  const tasto=e=>{if(e.key=="Escape")chiudi();};document.removeEventListener("keydown",ov._tasto||(()=>{}));ov._tasto=tasto;document.addEventListener("keydown",tasto);
+  removeEventListener("resize",ov._rid||(()=>{}));ov._rid=ridisegna;addEventListener("resize",ridisegna);
+  document.documentElement.classList.add("azaperto");                                  // blocca lo scorrimento della pagina sotto
+  const C=a.candele;
+  ov.innerHTML=`<div class="azpan" role="dialog" aria-modal="true" aria-label="${esc(s.n)}">
+   <div class="azbarra"><button class="azx" aria-label="Torna al Pattern Detector"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Indietro</button>
+    <span class="azbt"><b>${esc(s.n)}</b><small>${tf=="h4"?"H4":"Daily"}</small></span></div>
+   <div class="azwrap">
    <div class="aztesta"><span class="small">${s.g=="forex"?"Forex":"Materie prime"} &middot; ${tf=="h4"?"H4":"Daily"} &middot; ultime ${C.length} candele chiuse</span><h3>${esc(s.n)}</h3>
     ${u?`<div class="azprz">${badge(u.lato)}<span class="small">pattern chiuso il ${quando(u.t,tf)} &middot; ${fa(u.fa)}</span></div>`:""}</div>
-   <div class="azgraf"><svg viewBox="0 0 ${W} ${H}" class="ptsvg" preserveAspectRatio="none">${tick}${bande}${cand}${linee}</svg></div>
+   <div class="azgraf ptgraf"></div>
    ${u?`<div class="pleg ptleg"><span><i class="lv"></i>Apertura candela 1 (${num(u.livello,cifre(u.livello))})</span><span><i class="in"></i>Chiusura candela 3 = ingresso (${num(u.ingresso,cifre(u.ingresso))})</span></div>
    <div class="azmini"><div><span>Ingresso</span><b>${num(u.ingresso,cifre(u.ingresso))}</b></div><div><span>${u.lato=="BUY"?"Minimo":"Massimo"} del pattern</span><b>${num(u.estremo,cifre(u.estremo))}</b></div><div><span>Da ingresso</span>${pc(u.mossa)}</div></div>`:""}
    <h4 class="aztit">Pattern passati <span class="small">(esito dopo ${ST.d.dopo} candele nella direzione del segnale)</span></h4>
-   <div class="tablewrap"><table class="compatta"><tr><th>Chiusura candela 3</th><th>Segnale</th><th class="num">Ingresso</th><th class="num">Esito</th></tr>
-    ${[...a.segnali].reverse().map(p=>`<tr><td>${quando(p.t,tf)}</td><td>${badge(p.lato)}</td><td class="num">${num(p.ingresso,cifre(p.ingresso))}</td><td class="num">${p.esito==null?'<span class="small">in corso</span>':pc(p.esito)}</td></tr>`).join("")||'<tr><td colspan="4" class="small">Nessun pattern nel periodo.</td></tr>'}</table></div>
-   <p class="small azfonte">${s.fonte&&s.fonte.endsWith("=F")?"Prezzi del future (approssimazione dello spot). ":""}Le candele H4 sono allineate alle ore UTC 00-04-08-12-16-20 e possono differire da quelle del proprio broker.</p></aside>`;
-  requestAnimationFrame(()=>ov.classList.add("on"));ov.querySelector(".azx").focus({preventScroll:true});
+   <div class="tablewrap"><table class="compatta"><tr><th><span class="ptlg">Chiusura candela 3</span><span class="ptsh">Candela 3</span></th><th>Segnale</th><th class="num">Ingresso</th><th class="num">Esito</th></tr>
+    ${[...a.segnali].reverse().map(p=>`<tr><td class="ptdata">${quando(p.t,tf)}</td><td>${badge(p.lato)}</td><td class="num">${num(p.ingresso,cifre(p.ingresso))}</td><td class="num">${p.esito==null?'<span class="small">aperto</span>':pc(p.esito)}</td></tr>`).join("")||'<tr><td colspan="4" class="small">Nessun pattern nel periodo.</td></tr>'}</table></div>
+   <p class="small azfonte">${s.fonte&&s.fonte.endsWith("=F")?"Prezzi del future (approssimazione dello spot). ":""}Le candele H4 sono allineate alla chiusura di New York (17:00, come MT4/MT5) e possono differire di poco da quelle del proprio broker.</p></div></div>`;
+  ridisegna();                                               // dopo l'inserimento: ora si conosce la larghezza vera
+  requestAnimationFrame(()=>{ov.classList.add("on");ridisegna();});ov.querySelector(".azx").focus({preventScroll:true});
   try{window.ebStat&&ebStat.ev("pattern",{strumento:id,tf:tf});}catch(e){}}
 })();}catch(e){fail('Pattern Detector','pattern',e);}

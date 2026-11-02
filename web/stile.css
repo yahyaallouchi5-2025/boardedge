@@ -1626,3 +1626,12 @@ html.ridotta .sagg{display:none}
 .azclt .vft.azcl{margin:0}
 @media (max-width:600px){.pdfbtn{width:40px;height:40px;padding:0}.pdfbtn span{display:none}.phazioni{gap:8px}
  .azclt{align-items:flex-start;margin-top:24px}}
+
+/* --- v6.80 PATTERN DETECTOR, dettaglio a pagina intera (come l'Azionario): grafico che NON si deforma.
+   Il viewBox ha la larghezza reale del riquadro (24_pattern.js), quindi l'altezza segue in proporzione. */
+.ptgraf .ptsvg{width:100%;height:auto;max-width:100%}
+.ptdett .ptleg{margin:14px 0 4px}
+@media (max-width:600px){.ptdett .azmini{grid-template-columns:repeat(3,minmax(0,1fr))}.ptdett .azmini span{font-size:10.5px}
+ .ptdett table.compatta th,.ptdett table.compatta td{padding:8px 6px;font-size:12.5px}}
+@media (max-width:600px){.ptdett .ptdata{white-space:nowrap}.ptdett table.compatta th:first-child,.ptdett table.compatta td:first-child{padding-left:10px}}
+@media(max-width:640px){.ptdett .ptlg{display:none}.ptdett .ptsh{display:inline}}
