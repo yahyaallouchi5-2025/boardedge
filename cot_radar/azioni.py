@@ -39,11 +39,16 @@ from .log import log
 
 QUI = os.path.dirname(os.path.abspath(__file__))
 ELENCO = os.path.join(QUI, "azioni_elenco.csv")
-YAHOO = "https://query1.finance.yahoo.com/v8/finance/chart/{t}?{q}"
+YAHOO = "https://{h}.finance.yahoo.com/v8/finance/chart/{t}?{q}"
+HOST = ("query1", "query2")    # v6.82: i due server di Yahoo, alternati a ogni tentativo (se uno limita, l'altro spesso no)
 TENTATIVI = 3                  # tentativi per richiesta
 DI_FILA = 5                    # fallimenti consecutivi oltre i quali Yahoo e' considerato fermo
 SOGLIA_ANOMALIA = 0.10         # quota di titoli falliti oltre la quale scatta l'avviso di manutenzione
 PAUSA = 0.35                   # secondi tra una richiesta e l'altra (gentili con Yahoo)
+# v6.82 - BLOCCO TEMPORANEO: il 03/11/2026 Yahoo ha smesso di rispondere dopo 84 titoli (limite di richieste sull'IP
+# del server GitHub) e il giro si e' fermato. Ora, ai 5 fallimenti di fila, si aspetta e si riprende dai titoli falliti:
+# prima 2 minuti, poi 5. Solo dopo la seconda ripresa fallita Yahoo e' davvero "fermo".
+RIPRESE = (120, 300)
 CODICE_ERRORE = "503"
 CHIUSURA_UTC = "21:00"         # dopo quest'ora (UTC) i prezzi del giorno sono definitivi anche per Wall Street
 
@@ -110,7 +115,8 @@ def scarica(ticker, intervallo="1d", periodo="2y", timeout=20, tentativi=TENTATI
                                     "events": "div,split"})
     for n in range(tentativi):
         try:
-            req = urllib.request.Request(YAHOO.format(t=urllib.parse.quote(ticker), q=q),
+            # tentativo 1 -> query1, 2 -> query2, 3 -> query1 ...
+            req = urllib.request.Request(YAHOO.format(h=HOST[n % len(HOST)], t=urllib.parse.quote(ticker), q=q),
                                          headers={"User-Agent": "cot-radar/azioni"})
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 res = json.load(r)["chart"]["result"][0]
@@ -191,14 +197,19 @@ def giorno_mensile(t):
     return zlib.crc32(t.encode()) % 5
 
 
-def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA):
+def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, riprese=None):
     """Aggiorna le copie grezze (cartella/grezzi/<T>.json). Restituisce lo stato del giro:
     {quando, ok, copia [titoli rimasti alla copia], falliti [senza nessun dato], fermo (Yahoo giu'), anomalia}."""
     oggi = oggi or date.today()
     titoli = titoli if titoli is not None else [x["t"] for x in elenco()] + [i[0] for i in INDICI]
     stato = {"quando": ora_italia().strftime("%Y-%m-%d %H:%M"), "ok": 0, "copia": [], "falliti": [], "fermo": False}
     di_fila = 0
-    for t in titoli:
+    # riprese dopo un blocco: solo nel giro vero (pausa > 0); nei test (pausa=0) ci si ferma subito come prima
+    riprese = list(RIPRESE if pausa else ()) if riprese is None else list(riprese)
+    coda, i, ultimi = list(titoli), 0, []          # ultimi = titoli falliti di fila (da rifare dopo la pausa)
+    while i < len(coda):
+        t = coda[i]
+        i += 1
         f = os.path.join(cartella, "grezzi", _nome_file(t) + ".json")
         vecchio = _leggi(f) or {}
         # gia' aggiornato DOPO la chiusura USA di oggi (giro ripetuto): niente nuove richieste.
@@ -207,12 +218,25 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA):
             stato["ok"] += 1
             continue
         nuovo = None
+        if di_fila >= DI_FILA and riprese:
+            # BLOCCO: pausa, poi si rifanno i titoli falliti di fila (tolti dalla copia) e si prosegue
+            sec = riprese.pop(0)
+            log.warning("azioni: Yahoo non risponde da %d titoli: pausa di %d s e ripresa", di_fila, sec)
+            time.sleep(sec)
+            for x in ultimi:
+                for lista in (stato["copia"], stato["falliti"]):
+                    if x in lista:
+                        lista.remove(x)
+            coda[i - 1:i - 1] = ultimi             # si rifanno prima del titolo corrente
+            t, ultimi, di_fila = coda[i - 1], [], 0
+            f = os.path.join(cartella, "grezzi", _nome_file(t) + ".json")
+            vecchio = _leggi(f) or {}
         if di_fila < DI_FILA:
             nuovo = scarica(t)
             if pausa:
                 time.sleep(pausa)
         if nuovo:
-            di_fila = 0
+            di_fila, ultimi = 0, []
             meta, d = nuovo
             rec = dict(vecchio, t=t, agg=oggi.isoformat(), agg_ora=datetime.now(timezone.utc).strftime("%H:%M"), d=d,
                        **{k: v for k, v in meta.items() if v})
@@ -235,6 +259,8 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA):
             stato["ok"] += 1
         else:
             di_fila += 1
+            if di_fila <= DI_FILA:
+                ultimi.append(t)
             (stato["copia"] if vecchio.get("d") else stato["falliti"]).append(t)
     stato["fermo"] = di_fila >= DI_FILA
     mancati = len(stato["copia"]) + len(stato["falliti"])

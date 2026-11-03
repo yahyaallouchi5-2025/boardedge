@@ -85,6 +85,37 @@ class Azioni(unittest.TestCase):
         out = [r["t"] for r in A.in_sconto(righe, [{"s": "tech"}])]
         self.assertEqual(out, ["F1", "U1", "U2"])
 
+    def test_blocco_temporaneo_pausa_e_ripresa(self):
+        # v6.82: Yahoo blocca per un po' (6 richieste a vuoto) e poi riprende: dopo la pausa si rifanno i titoli falliti
+        chiesti, giu = [], [6]
+        def a_tratti(t, *a, **k):
+            chiesti.append(t)
+            if giu[0] > 0:
+                giu[0] -= 1
+                return None
+            return finto(t)
+        titoli = [f"X{i}" for i in range(40)]
+        with mock.patch.object(A.time, "sleep"):
+            st = A.aggiorna(self.dir, titoli, oggi=date(2026, 11, 3), scarica=a_tratti, pausa=0, riprese=[0, 0])
+        self.assertFalse(st["fermo"])
+        self.assertIsNone(st["anomalia"])
+        self.assertEqual(st["ok"], 39)                                            # rifatti X1..X4 dopo la pausa
+        self.assertEqual(st["copia"] + st["falliti"], ["X0"])                     # solo il 6o fallimento resta
+        # ordine delle richieste (senza i doppioni dello storico mensile): X0..X4, pausa, X0..X4 di nuovo, poi X5
+        seq = [t for n, t in enumerate(chiesti) if n == 0 or t != chiesti[n - 1]]
+        self.assertEqual(seq[:11], [f"X{i}" for i in range(5)] * 2 + ["X5"])
+
+    def test_blocco_che_non_passa_resta_fermo(self):
+        chiesti = []
+        def giu(t, *a, **k):
+            chiesti.append(t)
+            return None
+        titoli = [f"X{i}" for i in range(20)]
+        st = A.aggiorna(self.dir, titoli, oggi=date(2026, 11, 3), scarica=giu, pausa=0, riprese=[0, 0])
+        self.assertEqual(len(chiesti), 3 * A.DI_FILA)                             # 5 + 5 + 5 richieste, poi stop
+        self.assertTrue(st["fermo"])
+        self.assertEqual(sorted(st["falliti"]), sorted(titoli))                   # nessun titolo perso o doppio
+
     def test_yahoo_fermo_copia_e_anomalia(self):
         A.aggiorna(self.dir, ["AAA"], oggi=date(2026, 10, 23), scarica=finto, pausa=0)
         chiesti = []

@@ -136,7 +136,8 @@ def get_fred(sid, since):
     return sorted(out)
 
 
-ECB_RIPROVA = 4                 # secondi di attesa prima dell'UNICO nuovo tentativo verso la BCE
+ECB_RIPROVA = (10, 30)          # v6.84: due nuovi tentativi verso la BCE, dopo 10 s e dopo altri 30 s
+ECB_CACHE_OK_GIORNI = 4         # v6.84: dati BCE salvati da meno di 4 giorni (3 lavorativi) = ritardo NON critico
 
 
 def _temporaneo(e):
@@ -147,23 +148,36 @@ def _temporaneo(e):
     if isinstance(e, urllib.error.HTTPError):
         return 500 <= e.code < 600
     if isinstance(e, urllib.error.URLError):
-        return isinstance(e.reason, (socket.timeout, TimeoutError)) or "timed out" in str(e.reason)
+        # v6.84: anche connessione rifiutata/interrotta o DNS momentaneo sono passeggeri (03/11/2026 la BCE non
+        # rispondeva affatto): si riprova. Gli errori 4xx sono HTTPError e restano esclusi sopra.
+        return True
     return isinstance(e, (socket.timeout, TimeoutError))
+
+
+def _recente(salvato, giorni, adesso=None):
+    """True se il timestamp ISO 'salvato' (es. '2026-11-03T05:31') ha meno di `giorni` giorni."""
+    try:
+        return (adesso or datetime.now()) - datetime.fromisoformat(str(salvato)) < timedelta(days=giorni)
+    except (TypeError, ValueError):
+        return False
 
 
 def get_ecb(flow, key, since):
     """Una richiesta BCE -> {chiave_serie: [[periodo, valore], ...]} (una richiesta puo' contenere piu' serie).
     Il servizio dati della BCE ogni tanto risponde "504 Gateway Time-out" quando e' carico: in quel caso (e solo per
-    errori temporanei) si riprova UNA volta dopo ECB_RIPROVA secondi, poi si rinuncia e si usano i dati salvati."""
+    errori temporanei) si riprova due volte (ECB_RIPROVA), poi si rinuncia e si usano i dati salvati."""
     url = ECB_URL.format(flow=flow, key=key, since=since)
-    try:
-        text = http(url)
-    except Exception as e:                           # noqa: BLE001 - si decide qui se vale la pena riprovare
-        if not _temporaneo(e):
-            raise
-        log.info("BCE %s.%s: errore temporaneo (%s), riprovo una volta tra %d s", flow, key, e, ECB_RIPROVA)
-        time.sleep(ECB_RIPROVA)
-        text = http(url)
+    attese = list(ECB_RIPROVA)
+    while True:
+        try:
+            text = http(url)
+            break
+        except Exception as e:                       # noqa: BLE001 - si decide qui se vale la pena riprovare
+            if not _temporaneo(e) or not attese:
+                raise
+            sec = attese.pop(0)
+            log.info("BCE %s.%s: errore temporaneo (%s), riprovo tra %d s", flow, key, e, sec)
+            time.sleep(sec)
     out = {}
     for r in csv.DictReader(io.StringIO(text)):
         try:
@@ -290,6 +304,11 @@ def load_all():
             ecb["saved"] = now
         cache["ecb"] = ecb
         status["ecb"] = "online" if bad == 0 else ("parziale" if ok else ("cache" if ecb["data"] else "assente"))
+        # v6.84: BCE tutta giu' ma dati salvati RECENTI (i tassi BCE cambiano ogni ~6 settimane): non e' un'emergenza.
+        # Si segna "parziale" (avviso nel registro admin, niente mail critica). Oltre ECB_CACHE_OK_GIORNI resta "cache".
+        if status["ecb"] == "cache" and _recente(ecb.get("saved"), ECB_CACHE_OK_GIORNI):
+            log.warning("BCE non raggiungibile: uso i dati salvati il %s (recenti, non critico)", ecb.get("saved"))
+            status["ecb"] = "parziale"
 
     # pulizia: elimina righe non valide eventualmente salvate da versioni precedenti del programma
     for grp in ("fred", "ecb"):
