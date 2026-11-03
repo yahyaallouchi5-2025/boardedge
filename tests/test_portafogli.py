@@ -263,3 +263,50 @@ class InEuro(unittest.TestCase):
         fx = {"2020-01-02": 1.0, "2020-01-03": 1.1}            # il 6 manca: si usa l'ultimo cambio noto
         self.assertEqual([round(v, 4) for _, v in PF.in_euro(curva, fx)], [100.0, 100.0, 100.0])
         self.assertIsNone(PF.stat_eur(curva, fx))                # troppo pochi giorni
+
+
+class MisuraProdente(unittest.TestCase):
+    """v6.87: acquisto alla chiusura del giorno di rotazione, euro, liquidita' BCE, metriche nuove."""
+
+    def griglia(self):
+        d0 = date(2024, 1, 1)
+        giorni = [(d0 + timedelta(days=i)).isoformat() for i in range(10)]
+        # SPY +10% solo il giorno 5 (giorno di rotazione), poi fermo
+        spy = [(g, 100.0 if i < 5 else 110.0) for i, g in enumerate(giorni)]
+        return P.Griglia({"SPY": spy, "SHY": [(g, 100.0) for g in giorni]}), giorni
+
+    def test_movimento_del_giorno_di_rotazione_resta_al_portafoglio_vecchio(self):
+        g, _ = self.griglia()
+        piani = {0: {"CASH": 1.0}, 5: {"SPY": 1.0}}
+        vecchio = P.simula(g, {k: v for k, v in piani.items()}, 0)
+        nuovo = P.simula_prudente(g, piani, 0)
+        self.assertGreater(vecchio[-1][1], 109)                  # simula(): compra alla chiusura del giorno prima
+        self.assertLess(nuovo[-1][1], 100.01)                     # prudente: il +10% del giorno 5 non si prende
+
+    def test_liquidita_in_euro_al_tasso_bce(self):
+        g, giorni = self.griglia()
+        fx = {d: 1.0 for d in giorni}
+        c = P.simula_prudente(g, {0: {"CASH": 1.0}}, 0, fx=fx, tassi={giorni[0]: 365.0})
+        self.assertGreater(c[-1][1], 100)                         # la liquidita' matura il tasso, non il prezzo SHY
+
+    def test_cinque_azioni_prudenti_come_sp500(self):
+        g, giorni = self.griglia()
+        px = {"SPY": [(d, 100.0 + i) for i, d in enumerate(giorni)], "SHY": [(d, 100.0) for d in giorni],
+              "SAT": [(d, 100.0 + 5 * i) for i, d in enumerate(giorni)]}
+        g = P.Griglia(px)
+        sel = P.simula_prudente(g, {0: {"AZ": 1.0}}, 0)
+        pru = P.simula_prudente(g, {0: {"AZ": 1.0}}, 0, sostituisci={"AZ": "SPY"})
+        self.assertGreater(sel[-1][1], pru[-1][1])
+
+    def test_calmar_recupero_e_oltre_la_liquidita(self):
+        d0 = date(2020, 1, 1)
+        curva, v = [], 100.0
+        for i in range(800):
+            v *= 0.999 if 100 <= i < 200 else 1.001
+            curva.append(((d0 + timedelta(days=i)).isoformat(), v))
+        liq = [(d, 100 * 1.00001 ** i) for i, (d, _) in enumerate(curva)]
+        s = P.statistiche(curva, liq)
+        self.assertLess(s["maxdd"], 0)
+        self.assertIsNotNone(s["recupero_mesi"])
+        self.assertAlmostEqual(s["calmar"], round(s["cagr"] / abs(s["maxdd"]), 2), places=1)
+        self.assertAlmostEqual(s["oltre_liq"], s["cagr"] - s["liq_cagr"], places=1)

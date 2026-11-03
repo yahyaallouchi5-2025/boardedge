@@ -1657,3 +1657,7 @@ html.ridotta .sagg{display:none}
 .avman-x:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 @media (max-width:520px){.avman{font-size:12.5px;gap:8px;padding:7px 6px 7px 12px}.avman-s{display:none}.avman-d{display:block;color:var(--mute)}}
 @media (prefers-reduced-motion:reduce){.avman{animation:none}}
+
+/* v6.87: fumetto (i) nella riga "in euro" della card del portafoglio */
+.pheur .pheuri{margin-left:auto}.pheur .pheuri>div{left:auto;right:0;width:min(380px,calc(100vw - 48px))}
+@media (max-width:520px){.pheur .pheuri{margin-left:0}.pheur .pheuri>div{left:-4px;right:auto}}
