@@ -1,0 +1,74 @@
+# dati-notizie.yml - DATE STORICHE DELLE NOTIZIE MACRO USA per lo studio "notizia -> continuazione o inversione"
+# (tools/studio_notizie.py). Scrive solo nel ramo "dati-notizie": il sito e il ramo main non cambiano.
+#   cpi.csv  / nfp.csv  date di uscita di CPI e occupazione (NFP) = "vintage dates" FRED di CPIAUCSL e PAYEMS
+#                       (chiave FRED dal secret FRED_API_KEY: mai stampata, mai scritta nei file)
+#   fomc.csv            date dei comunicati Fed (pagine pubbliche federalreserve.gov, link "monetaryAAAAMMGGa.htm")
+#   dgs2.csv            tasso USA a 2 anni giornaliero (FRED), per misurare la sorpresa come fa il sito
+# Parte da solo quando si crea/modifica questo file, oppure a mano da Actions -> "Dati notizie" -> Run workflow.
+name: Dati notizie
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/dati-notizie.yml']
+permissions:
+  contents: write
+jobs:
+  scarica:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Scarica le date delle notizie
+        env:
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: |
+          mkdir out && cd out
+          python3 - <<'PY'
+          # nessuna stampa della chiave: negli errori si mostra solo il tipo di errore
+          import json, os, re, time, urllib.request
+          CHIAVE = os.environ["FRED_API_KEY"]
+          def scarica(url, testo=False):
+              for n in range(3):                               # 3 tentativi con attesa crescente
+                  try:
+                      req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/dati-notizie"})
+                      with urllib.request.urlopen(req, timeout=60) as r:
+                          b = r.read()
+                          return b.decode("utf-8", "replace") if testo else json.loads(b)
+                  except Exception as e:
+                      print("tentativo", n + 1, "fallito:", type(e).__name__)
+                      time.sleep(5 * (n + 1))
+              return None
+          FRED = "https://api.stlouisfed.org/fred/"
+          # 1) date di uscita di CPI e NFP (vintage dates: ogni giorno in cui FRED ha ricevuto nuovi dati)
+          for nome, sid in (("cpi", "CPIAUCSL"), ("nfp", "PAYEMS")):
+              j = scarica(f"{FRED}series/vintagedates?series_id={sid}&file_type=json&api_key={CHIAVE}")
+              date_ = (j or {}).get("vintage_dates") or []
+              with open(nome + ".csv", "w") as f:
+                  f.write("data\n" + "\n".join(d for d in date_ if d >= "2004-01-01") + "\n")
+              print(nome, len(date_), "date")
+          # 2) tasso USA a 2 anni giornaliero
+          j = scarica(f"{FRED}series/observations?series_id=DGS2&observation_start=2004-01-01&file_type=json&api_key={CHIAVE}")
+          with open("dgs2.csv", "w") as f:
+              f.write("data,valore\n")
+              for o in (j or {}).get("observations") or []:
+                  if o.get("value") not in (None, "."):
+                      f.write(f"{o['date']},{o['value']}\n")
+          # 3) comunicati FOMC: pagina attuale + pagine storiche per anno
+          trovate = set()
+          pagine = ["https://www.federalreserve.gov/monetarypolicy/fomccalendars.htm"] + \
+                   [f"https://www.federalreserve.gov/monetarypolicy/fomchistorical{a}.htm" for a in range(2005, 2021)]
+          for u in pagine:
+              t = scarica(u, testo=True) or ""
+              trovate |= set(re.findall(r"monetary(\d{8})a\.htm", t))
+              time.sleep(1)
+          with open("fomc.csv", "w") as f:
+              f.write("data\n" + "\n".join(f"{d[:4]}-{d[4:6]}-{d[6:]}" for d in sorted(trovate)) + "\n")
+          print("fomc", len(trovate), "comunicati")
+          PY
+      - name: Salva nel ramo "dati-notizie" (un solo commit, sovrascritto)
+        run: |
+          cd out
+          git init -q -b dati-notizie
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "dati notizie: $(date -u +%F)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" dati-notizie:dati-notizie
