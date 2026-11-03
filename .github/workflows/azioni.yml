@@ -1,4 +1,4 @@
-# azioni.yml - SCHEDA AZIONI: ogni sera (dopo la chiusura USA) scarica da Yahoo i ~630 titoli e li salva nel ramo
+# azioni.yml - SCHEDA AZIONI: tre giri al giorno (Asia, Europa, USA, v6.86) scaricano da Yahoo i ~1.000 titoli e li salva nel ramo
 # "azioni" (cot_radar/azioni.py). Il sito (sito.yml, 22:15 UTC) copia poi i file pubblici nella scheda Azioni.
 # Il ramo "azioni" viene riscritto con UN solo commit: niente storia, quindi non si gonfia mai.
 # Se l'aggiornamento non riesce (Yahoo fermo o >10% dei titoli falliti): i dati restano quelli di ieri, la scheda
@@ -6,9 +6,16 @@
 # A mano: Actions -> Azioni -> Run workflow.
 name: Azioni
 on:
+  # v6.86 TRE GIRI PER AREA (ognuno dopo la chiusura delle sue borse): Yahoo riceve tre gruppi piccoli a ore di distanza
   schedule:
-    - cron: "35 21 * * 1-5"    # 22:35/23:35 in Italia: chiusura USA + 30-90 minuti
+    - cron: "35 10 * * 1-5"    # ASIA   (11:35/12:35 in Italia): Tokyo, Hong Kong, Cina, India chiuse
+    - cron: "15 17 * * 1-5"    # EUROPA (18:15/19:15 in Italia): Milano, Francoforte, Parigi... chiuse
+    - cron: "35 21 * * 1-5"    # USA    (22:35/23:35 in Italia): chiusura USA + 30-90 minuti (+ 5 azioni, bilanci SEC)
   workflow_dispatch:
+    inputs:
+      area:
+        description: "Area da aggiornare (tutte, asia, europa, usa)"
+        default: "tutte"
 permissions:
   contents: write
 concurrency:
@@ -17,7 +24,7 @@ concurrency:
 jobs:
   aggiorna:
     runs-on: ubuntu-latest
-    timeout-minutes: 60          # il primo giro dei bilanci SEC scarica ~520 aziende
+    timeout-minutes: 120         # v6.86: pause di 1,5-3 s; un giro "tutte" a mano richiede ~70 minuti
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -33,9 +40,19 @@ jobs:
         id: az
         env:
           SEC_CONTATTO: ${{ secrets.SEC_CONTATTO }}     # email di contatto richiesta dalla SEC per i bilanci
+          ORARIO: ${{ github.event.schedule }}
+          SCELTA: ${{ github.event.inputs.area }}
         run: |
           set +e
-          python -m cot_radar.azioni dati_azioni
+          # area del giro: dall'orario (giri automatici) o dalla scelta a mano (Run workflow); se no tutte
+          case "$ORARIO" in
+            "35 10 * * 1-5") AREA=asia ;;
+            "15 17 * * 1-5") AREA=europa ;;
+            "35 21 * * 1-5") AREA=usa ;;
+            *) AREA=${SCELTA:-tutte} ;;
+          esac
+          echo "Giro: $AREA"
+          python -m cot_radar.azioni dati_azioni --area "$AREA"
           echo "codice=$?" >> "$GITHUB_OUTPUT"
       - name: Salva nel ramo "azioni" (un solo commit, sovrascritto)
         run: |
