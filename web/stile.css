@@ -1641,3 +1641,19 @@ html.ridotta .sagg{display:none}
 .pcount .pcdot{width:8px;height:8px;border-radius:50%;background:#04211e;flex:none;animation:pcdot 1.6s ease-in-out infinite}
 @keyframes pcdot{0%,100%{opacity:1}50%{opacity:.3}}
 @media (prefers-reduced-motion:reduce){.pcount .pcdot{animation:none}}
+
+/* v6.85: avviso di manutenzione NON bloccante (striscia sottile in cima alla scheda, al posto del popup) */
+.avman{display:flex;align-items:center;gap:10px;margin:0 0 14px;padding:8px 8px 8px 14px;border-radius:12px;font-size:13.5px;
+ border:1px solid color-mix(in srgb,var(--warn) 32%,var(--line));background:color-mix(in srgb,var(--warn) 7%,var(--card,#0b1426));
+ color:var(--ink2,var(--ink));animation:avmanin .25s ease-out;transition:opacity .2s,transform .2s}
+.avman.via{opacity:0;transform:translateY(-4px)}
+@keyframes avmanin{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.avman-p{flex:none;width:8px;height:8px;border-radius:50%;background:var(--warn);box-shadow:0 0 0 4px color-mix(in srgb,var(--warn) 18%,transparent)}
+.avman-t{flex:1;min-width:0;line-height:1.4}.avman-t>b{color:var(--warn);font-weight:750}.avman-d b{color:var(--ink);font-weight:700}
+.avman-i{flex:none}.avman .avman-i>div{font-style:normal;right:-36px;left:auto;width:min(340px,calc(100vw - 48px))}
+.avman-x{flex:none;width:28px;height:28px;border:0;border-radius:8px;background:transparent;color:var(--mute);font-size:20px;line-height:1;
+ cursor:pointer;transition:background .15s,color .15s}
+.avman-x:hover{background:color-mix(in srgb,var(--ink) 8%,transparent);color:var(--ink)}
+.avman-x:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+@media (max-width:520px){.avman{font-size:12.5px;gap:8px;padding:7px 6px 7px 12px}.avman-s{display:none}.avman-d{display:block;color:var(--mute)}}
+@media (prefers-reduced-motion:reduce){.avman{animation:none}}
