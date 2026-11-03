@@ -213,3 +213,72 @@ class TestMensileRiserva(unittest.TestCase):
             self.assertIsNone(A.scarica("X", "1mo", "max", attesa=2))
             self.assertEqual(u.call_count, 1)
             s.assert_not_called()
+
+
+class TestTreGiri(unittest.TestCase):
+    """v6.86: tre giri per area, download incrementale degli ultimi 5 giorni, stato per area."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def test_area_dei_ticker(self):
+        casi = {"AAPL": "usa", "BRK-B": "usa", "^GSPC": "usa", "ENI.MI": "europa", "MC.PA": "europa",
+                "NDA-FI.HE": "europa", "7203.T": "asia", "0005.HK": "asia", "600519.SS": "asia",
+                "RELIANCE.NS": "asia", "^N225": "asia", "FTSEMIB.MI": "europa", "000001.SS": "asia"}
+        for t, a in casi.items():
+            self.assertEqual(A.area(t), a, t)
+
+    def test_unisci_aggiunge_solo_i_giorni_nuovi(self):
+        vecchi = [["2026-10-28", 100.0], ["2026-10-29", 101.0], ["2026-10-30", 102.0]]
+        nuovi = [("2026-10-29", 101.0), ("2026-10-30", 102.0), ("2026-11-02", 103.0)]
+        out = A.unisci(vecchi, nuovi, date(2026, 11, 3))
+        self.assertEqual(out[-1], ["2026-11-02", 103.0])
+        self.assertEqual(len(out), 4)
+
+    def test_unisci_rettifica_dividendo_riscarica(self):
+        vecchi = [["2026-10-29", 101.0], ["2026-10-30", 102.0]]
+        nuovi = [("2026-10-29", 99.0), ("2026-10-30", 100.0), ("2026-11-02", 101.0)]   # passato cambiato del 2%
+        self.assertIsNone(A.unisci(vecchi, nuovi, date(2026, 11, 3)))
+
+    def test_unisci_buco_riscarica(self):
+        vecchi = [["2026-10-01", 100.0]]
+        self.assertIsNone(A.unisci(vecchi, [("2026-11-02", 101.0)], date(2026, 11, 3)))
+
+    def test_giorno_normale_chiede_solo_5_giorni(self):
+        oggi = date(2026, 10, 26)
+        A.aggiorna(self.dir, ["AAA"], oggi=oggi, scarica=finto, pausa=0)            # primo giro: storico intero
+        richieste = []
+
+        def sca(t, intervallo="1d", periodo="2y"):
+            richieste.append((intervallo, periodo))
+            return finto(t, intervallo, periodo)
+        # giorno dopo, non il giorno settimanale del titolo
+        dopo = oggi + timedelta(days=1)
+        while dopo.weekday() == A.giorno_mensile("AAA") or dopo.weekday() > 4:
+            dopo += timedelta(days=1)
+        st = A.aggiorna(self.dir, ["AAA"], oggi=dopo, scarica=sca, pausa=0)
+        self.assertEqual(st["ok"], 1)
+        self.assertEqual(richieste, [("1d", "5d")])
+
+    def test_main_area_aggiorna_solo_la_sua_area_e_tiene_lo_stato_delle_altre(self):
+        el = [{"t": "AAA", "nome": "A", "s": "tech", "l": ["sp500"]},
+              {"t": "BBB.MI", "nome": "B", "s": "fin", "l": ["mib"]},
+              {"t": "CCC.T", "nome": "C", "s": "ind", "l": ["n225"]}]
+        chiesti = []
+
+        def sca(t, *a, **k):
+            chiesti.append(t)
+            return finto(t, *a, **k)
+        with mock.patch.object(A, "elenco", return_value=el), mock.patch.object(A, "INDICI", []), \
+                mock.patch.object(A, "scarica", sca), mock.patch.object(A, "PAUSA", 0), \
+                mock.patch("cot_radar.azioni.aggiorna.__defaults__",
+                           (None, None, sca, 0, None, A.CHIUSURA_UTC)):
+            A.main(["x", self.dir, "--area", "europa"])
+            self.assertEqual(set(chiesti), {"BBB.MI"})
+            st = json.load(open(os.path.join(self.dir, "stato.json")))
+            self.assertEqual(st["area"], "europa")
+            self.assertIn("europa", st["aree"])
+            self.assertIsNone(st["anomalia"])
