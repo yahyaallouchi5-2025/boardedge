@@ -99,3 +99,30 @@ def calcola(pairs, prezzi):
         except Exception as e:                     # noqa: BLE001 - un mercato non deve fermare gli altri
             log.warning("lettura tattica di %s non calcolata: %s", nome, e)
     return out
+
+
+# --------------------------------------------------------------------------- v6.89 FORZA DELLE VALUTE
+# Per il riepilogo del grafico: "EUR forte / USD debole". Ogni valuta principale contro tutte le altre nelle ultime
+# 4 settimane (20 sedute comuni): rendimento in dollari meno la media di tutte (il dollaro vale 0 contro se stesso).
+# Classifica su 8 valute: le prime 3 = "forte", le ultime 3 = "debole", le 2 in mezzo = "neutra". Solo informativa.
+VALUTE = ("EUR", "GBP", "JPY", "CHF", "CAD", "AUD", "NZD")
+FORZA_N = 20
+
+
+def forza(prezzi, n=FORZA_N):
+    """{valuta: {"r": forza %, "rank": 1-8, "stato": forte/neutra/debole}} oppure {} se mancano i prezzi."""
+    serie = {v: dict(prezzi[v]) for v in VALUTE if prezzi.get(v)}
+    if len(serie) < len(VALUTE):
+        return {}
+    comuni = sorted(set.intersection(*(set(s) for s in serie.values())))
+    if len(comuni) <= n:
+        return {}
+    d0, d1 = comuni[-n - 1], comuni[-1]
+    r = {v: math.log(s[d1] / s[d0]) * 100 for v, s in serie.items()}
+    r["USD"] = 0.0
+    media = sum(r.values()) / len(r)
+    forze = {v: x - media for v, x in r.items()}
+    ordine = sorted(forze, key=lambda v: -forze[v])
+    return {v: {"r": round(forze[v], 2), "rank": ordine.index(v) + 1,
+                "stato": "forte" if ordine.index(v) < 3 else "debole" if ordine.index(v) >= len(ordine) - 3 else "neutra",
+                "dal": d0, "al": d1} for v in forze}

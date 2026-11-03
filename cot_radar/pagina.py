@@ -183,6 +183,8 @@ def build(data_source=load_all, demo=False, sito=False):
     tat = {}
     try:
         tat = tattica.calcola(pairs, prezzi) if prezzi else {}
+        if prezzi:                                   # v6.89: forza delle valute per il riepilogo del grafico
+            tat["_forza"] = tattica.forza(prezzi)
     except Exception:
         log.warning("lettura tattica non calcolata:\n%s", traceback.format_exc())
     # PORTAFOGLI MODELLO a rotazione mensile (portafogli.py): conservativo, moderato, aggressivo.

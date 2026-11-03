@@ -42,3 +42,30 @@ class Tattica(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ContestoValute(unittest.TestCase):
+    """v6.89: forza delle valute e politica monetaria per il riepilogo del grafico."""
+
+    def test_forza_classifica_otto_valute(self):
+        d0 = date(2026, 1, 1)
+        giorni = [(d0 + timedelta(days=i)).isoformat() for i in range(30)]
+        trend = {"EUR": 0.002, "GBP": 0.001, "JPY": -0.002, "CHF": 0.0, "CAD": 0.0005, "AUD": -0.001, "NZD": 0.0}
+        px = {v: [(g, 1.0 * math.exp(t * i)) for i, g in enumerate(giorni)] for v, t in trend.items()}
+        f = T.forza(px)
+        self.assertEqual(len(f), 8)
+        self.assertEqual(f["EUR"]["rank"], 1)
+        self.assertEqual(f["EUR"]["stato"], "forte")
+        self.assertEqual(f["JPY"]["stato"], "debole")
+
+    def test_forza_mancano_valute(self):
+        self.assertEqual(T.forza({"EUR": [("2026-01-01", 1.1)]}), {})
+
+    def test_politica_monetaria(self):
+        from cot_radar import carry
+        pv = {"USD": {"2026-06": 4.0, "2026-07": 4.0, "2026-08": 3.75, "2026-09": 3.5},
+              "EUR": {"2026-06": 2.0, "2026-07": 2.0, "2026-08": 2.0, "2026-09": 2.05}}
+        p = carry.politica(pv)
+        self.assertEqual(p["USD"]["stato"], "taglio")
+        self.assertEqual(p["EUR"]["stato"], "ferma")
+        self.assertAlmostEqual(p["USD"]["d"], -0.5)

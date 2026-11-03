@@ -318,6 +318,25 @@ def tassi_demo():
     return {"scaricato": None, "serie": serie, "errori": {}, "demo": True}
 
 
+POLITICA_MESI = 3        # v6.89: direzione della politica monetaria = variazione del tasso negli ultimi 3 mesi
+POLITICA_SOGLIA = 0.15   # punti %: sotto questa variazione la politica e' "ferma"
+
+
+def politica(per_val, mesi=POLITICA_MESI):
+    """v6.89 {valuta: {"d": variazione del tasso in punti negli ultimi `mesi` mesi disponibili, "stato": rialzo /
+    taglio / ferma, "al": ultimo mese}}. Serve al riepilogo del grafico: per una coppia conta la DIFFERENZA tra base e
+    quotata (la valuta che alza i tassi, o li taglia meno, attira capitali). Dati mensili, 1-2 mesi di ritardo."""
+    out = {}
+    for val, m in per_val.items():
+        ks = sorted(m)
+        if len(ks) <= mesi:
+            continue
+        d = m[ks[-1]] - m[ks[-1 - mesi]]
+        out[val] = {"d": round(d, 2), "al": ks[-1],
+                    "stato": "rialzo" if d >= POLITICA_SOGLIA else "taglio" if d <= -POLITICA_SOGLIA else "ferma"}
+    return out
+
+
 def calcola(pairs, prezzi, cot_righe=None, scarica=None, cartella=CARTELLA):
     """Tutto il carry in un passo. scarica = fonti.get_fred (sito) oppure None (demo: archivio salvato o finto).
     Aggiunge carry e carry_cot alle coppie; restituisce (dati per la pagina, studio storico per la Verifica)."""
@@ -332,6 +351,7 @@ def calcola(pairs, prezzi, cot_righe=None, scarica=None, cartella=CARTELLA):
     except Exception as e:                         # lo studio non deve mai togliere il carry dalla tabella
         log.warning("carry: studio storico non calcolato (%s: %s)", type(e).__name__, e)
     pag = {"tassi": {v: dict(x, nome=NOMI.get(v, v)) for v, x in ultimo.items()},
+           "politica": politica(per_val),
            "paniere": st["paniere"] if st else None, "min": MIN_CARRY,
            "verdetto": {k: x["verdetto"] for k, x in (st or {}).get("varianti", {}).items()}}
     return pag, st

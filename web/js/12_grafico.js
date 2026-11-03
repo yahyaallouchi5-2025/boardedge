@@ -67,6 +67,27 @@ function conferme(k,p){const parti=[],col=v=>v=="conferma"?"var(--sb)":v=="contr
 /* RIEPILOGO SEMPLICE sotto il grafico (richiudibile): una riga riassuntiva sempre visibile e, aprendola,
    poche frasi in italiano semplice. Niente doppioni: i numeri tecnici restano nelle schede di approfondimento.
    Ordine: speculatori -> Commercials -> contratti aperti -> notizie -> storico -> prossima settimana (stagionalita'). */
+/* v6.89 CONTESTO DELLA COPPIA nel riepilogo: ultima notizia (medio/alto impatto), forza delle valute e politica
+   monetaria. Ogni pezzo ha un "verso" (+1 favorisce il BUY della coppia, -1 il SELL, 0 nessuno): verde se concorda
+   con il segnale COT, rosso se va contro; senza segnale si dice solo quale valuta favorisce. Solo informativo. */
+function contesto(p){if(!p||!p.base||!p.quote)return null;const b=p.base,q=p.quote,lati={[b]:1,[q]:-1};
+ const vs=(p.label||"").includes("BUY")?1:(p.label||"").includes("SELL")?-1:0,out={};
+ // --- ultima notizia uscita negli ultimi 7 giorni su una delle due valute
+ const lim=new Date(Date.now()-7*864e5).toISOString().slice(0,10);
+ const ev=((D.agenda&&D.agenda.eventi)||[]).filter(e=>e.uscito&&lati[e.valuta]&&e.data>=lim).sort((x,y)=>(x.data+(x.utc||"")).localeCompare(y.data+(y.utc||""))).pop();
+ if(ev){const forte=ev.z!=null&&Math.abs(ev.z)>=1,verso=forte?Math.sign(ev.z)*lati[ev.valuta]:0;
+  out.news={ev,verso,imp:(ev.impatto||"high")=="high"?"alto":"medio",
+   txt:ev.z==null?"reazione non misurabile":forte?`${NOMEV[ev.valuta]||ev.valuta} ${ev.z>0?"pi&ugrave; forte":"pi&ugrave; debole"}`:"reazione nella norma"};}
+ // --- forza delle valute (ultime 4 settimane, classifica su 8)
+ const F=(D.tat||{})._forza||{};
+ if(F[b]&&F[q]){const d=F[b].r-F[q].r;out.forza={b:F[b],q:F[q],verso:Math.abs(d)>=0.5?Math.sign(d):0};}
+ // --- politica monetaria (variazione dei tassi negli ultimi 3 mesi, base meno quotata)
+ const P=(D.carry||{}).politica||{};
+ if(P[b]&&P[q]){const d=P[b].d-P[q].d;out.pol={b:P[b],q:P[q],d,verso:Math.abs(d)>=0.15?Math.sign(d):0};}
+ out.vs=vs;out.b=b;out.q=q;return out;}
+const NOMEV={USD:"dollaro",EUR:"euro",GBP:"sterlina",JPY:"yen",CHF:"franco",CAD:"dollaro canadese",AUD:"dollaro australiano",NZD:"dollaro neozelandese",MXN:"peso",ZAR:"rand",BRL:"real"};
+/* colore di un pezzo del contesto: verde se concorda con il segnale, rosso se contro, normale se neutro/senza segnale */
+const ctxCol=(verso,vs)=>!verso||!vs?"var(--ink)":verso==vs?"var(--sb)":"var(--ss)";
 function lettura(spec,f,p,k,inv){
  const pc1=x=>`${x>=0?"+":"&minus;"}${fx(Math.abs(x),1)}%`,verde="var(--sb)",rosso="var(--ss)";
  const t=tre(f),[ud,uv]=f[f.length-1],ven=new Date(ud);ven.setDate(ven.getDate()+3);
@@ -88,6 +109,13 @@ function lettura(spec,f,p,k,inv){
  // --- contratti aperti
  const oi=gambe.map(g=>{const x=(D.assets[g]||{}).oi4;return x&&Math.abs(x.d_oi)>=2?`${esc(g)} ${pc1(x.d_oi)} (${esc(x.txt)})`:null;}).filter(Boolean);
  if(oi.length)righe.push(`<b>Contratti aperti</b> nelle ultime 4 settimane: ${oi.join(" &middot; ")}.`);
+ // --- v6.89 CONTESTO (notizia, forza valute, politica monetaria): dettaglio della riga riassuntiva
+ const cx=contesto(p);
+ if(cx&&(cx.news||cx.forza||cx.pol)){const sg=x=>`${x>=0?"+":"&minus;"}${fx(Math.abs(x),2)}`,parti=[];
+  if(cx.news){const e=cx.news.ev;parti.push(`ultima notizia <b>${esc(e.nome)}</b> (${cx.news.imp} impatto, ${fd(e.data)})${e.z!=null?` &rarr; tasso a 2 anni ${e.pb>=0?"+":""}${fx(e.pb,1)} pb (${e.z>=0?"+":""}${fx(e.z,1)}&sigma;), <b style="color:${ctxCol(cx.news.verso,cx.vs)}">${cx.news.txt}</b>`:` &rarr; ${cx.news.txt}`}`);}
+  if(cx.forza)parti.push(`forza 4 settimane: <b>${cx.b} ${cx.forza.b.stato}</b> (${sg(cx.forza.b.r)}%, ${cx.forza.b.rank}&ordf; su 8) / <b>${cx.q} ${cx.forza.q.stato}</b> (${sg(cx.forza.q.r)}%, ${cx.forza.q.rank}&ordf;)`);
+  if(cx.pol)parti.push(`tassi negli ultimi 3 mesi: ${cx.b} ${sg(cx.pol.b.d)} punti (${cx.pol.b.stato}), ${cx.q} ${sg(cx.pol.q.d)} (${cx.pol.q.stato}) &rarr; <b style="color:${ctxCol(cx.pol.verso,cx.vs)}">${cx.pol.verso?"favorisce "+(cx.pol.verso>0?cx.b:cx.q):"neutra"}</b>`);
+  righe.push(`<div class="tatt"><p><b>Contesto</b>: ${parti.join(" &middot; ")}.</p><details class="info tatti"><summary title="Come leggerlo" aria-label="Informazioni">i</summary><div><b>Notizia</b>: ultima notizia di medio o alto impatto degli ultimi 7 giorni su una delle due valute. La sorpresa &egrave; misurata dal mercato (tasso a 2 anni oltre la norma, |&sigma;| &ge; 1): disponibile per dollaro ed euro. <b>Forza</b>: rendimento di ogni valuta contro la media delle 8 principali nelle ultime 4 settimane (prime 3 = forte, ultime 3 = debole). <b>Politica monetaria</b>: variazione dei tassi a breve negli ultimi 3 mesi disponibili (dati mensili, 1-2 mesi di ritardo): la valuta che alza di pi&ugrave; (o taglia di meno) attira capitali. Verde = a favore del segnale COT, rosso = contro. Informativo: non cambia il punteggio.</div></details></div>`);}
  // --- v6.88 LETTURA TATTICA (cot_radar/tattica.py): regressione e indicatori sulle chiusure, SOLO informativa
  const tt=(D.tat||{})[p?p.pair:k];
  if(tt){const est=x=>`<b style="color:var(--warn)">${x}</b>`,pc2=x=>`${x>=0?"+":"&minus;"}${fx(Math.abs(x),1)}%`;
@@ -113,6 +141,10 @@ function lettura(spec,f,p,k,inv){
   stg+=` <a href="#stag" data-vai="stag">Approfondisci nella scheda Stagionalit&agrave;</a>`;righe.push(stg);}
  // --- riga riassuntiva (sempre visibile)
  const pezzi=[`Speculatori: <b style="color:${n3<2?"var(--ink)":compra?verde:rosso}">${dir}</b>`];
+ if(cx){
+  if(cx.news)pezzi.push(`Notizia: ${esc(cx.news.ev.nome.replace(/\s*\(.*\)/,""))} &rarr; <b style="color:${ctxCol(cx.news.verso,cx.vs)}">${cx.news.txt}</b>`);
+  if(cx.forza)pezzi.push(`Valute: <b style="color:${ctxCol(cx.forza.verso,cx.vs)}">${cx.b} ${cx.forza.b.stato} / ${cx.q} ${cx.forza.q.stato}</b>`);
+  if(cx.pol)pezzi.push(`Politica monetaria: <b style="color:${ctxCol(cx.pol.verso,cx.vs)}">${cx.pol.verso?(cx.vs?(cx.pol.verso==cx.vs?"a favore":"contro"):"favorisce "+(cx.pol.verso>0?cx.b:cx.q)):"neutra"}</b>`);}
  if(acc)pezzi.push(`Commercials: <b style="color:${acc=="conferma"?verde:rosso}">${acc=="conferma"?"a favore":"contrari"}</b>`);
  if(nw&&nw.effetto=="penalizza")pezzi.push(`<b style="color:${rosso}">notizia contraria</b>`);
  if(g1)pezzi.push(`Stagionalit&agrave;: <b style="color:${g1[1]}">${g1[0]}</b>`);
