@@ -26,7 +26,7 @@ from .cot import cot_series
 from .fonti import get_cftc_tutto, get_fred, load_all, scarica_archivio
 from .log import log, raccoglitore
 from .mercato import fed_liquidity
-from . import agenda, backtest, carry, correlazioni, notizie, portafogli, registro, stagionalita, storico, volatilita
+from . import agenda, backtest, carry, correlazioni, notizie, portafogli, registro, stagionalita, storico, tattica, volatilita
 from .admin import pubblico
 
 
@@ -179,6 +179,12 @@ def build(data_source=load_all, demo=False, sito=False):
         vol = volatilita.calcola(pairs, prezzi) if prezzi else {}
     except Exception:
         log.warning("volatilita' non calcolata:\n%s", traceback.format_exc())
+    # v6.88 LETTURA TATTICA (regressione, RSI, media a 200, movimento medio): solo informativa, vedi tattica.py
+    tat = {}
+    try:
+        tat = tattica.calcola(pairs, prezzi) if prezzi else {}
+    except Exception:
+        log.warning("lettura tattica non calcolata:\n%s", traceback.format_exc())
     # PORTAFOGLI MODELLO a rotazione mensile (portafogli.py): conservativo, moderato, aggressivo.
     # Isolati come il resto: se Yahoo o il calcolo falliscono manca solo la scheda "Portafogli".
     port, px, sat = None, None, None
@@ -267,7 +273,7 @@ def build(data_source=load_all, demo=False, sito=False):
     data = {"meta": meta, "sources": sources,
             "assets": assets, "pairs": pairs, "corr": corr, "corr_px": corr_px, "market": market, "fed": fed,
             "order": [a[0] for a in ASSETS] + ["USD"], "sectors": SECTORS, "stato": pubblico(stato), "admin": "__ADMIN__", "eventi": news["prossimi"], "agenda": agenda_out,
-            "stag": stag, "stag_meta": stag_meta, "reg": reg, "bt": bt, "vol": vol, "port": port, "fore": fore,
+            "stag": stag, "stag_meta": stag_meta, "reg": reg, "bt": bt, "vol": vol, "tat": tat, "port": port, "fore": fore,
             "carry": carry_pag, "carry_st": carry_st, "paesi": paesi_pag, "categorie": cat_pag,
             "tv": {k: {"s": v[0], "inv": v[1]} for k, v in TV_SYMBOLS.items()}, "tvp": TV_PAIRS}
     # "stato" pubblico = solo esito e fonti; "admin" = segnaposto che main.py sostituisce con il registro

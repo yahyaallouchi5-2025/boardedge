@@ -1661,3 +1661,9 @@ html.ridotta .sagg{display:none}
 /* v6.87: fumetto (i) nella riga "in euro" della card del portafoglio */
 .pheur .pheuri{margin-left:auto}.pheur .pheuri>div{left:auto;right:0;width:min(380px,calc(100vw - 48px))}
 @media (max-width:520px){.pheur .pheuri{margin-left:0}.pheur .pheuri>div{left:-4px;right:auto}}
+
+/* v6.88: lettura tattica nel riepilogo del grafico (testo + fumetto (i) a destra) */
+.tvcot .cotinfo .tatt{display:flex;align-items:flex-start;gap:10px;padding:7px 10px;border-radius:10px;
+ background:color-mix(in srgb,var(--soft) 55%,transparent);border:1px solid color-mix(in srgb,var(--line) 70%,transparent)}
+.tvcot .cotinfo .tatt>p{flex:1;margin:0;padding:0;background:none;border:0}
+.cotinfo .tatti{flex:none;margin-top:1px}.cotinfo .tatti>div{left:auto;right:0;width:min(380px,calc(100vw - 48px));font:400 13px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif;font-style:normal;text-transform:none;letter-spacing:0}

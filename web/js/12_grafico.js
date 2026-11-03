@@ -88,6 +88,13 @@ function lettura(spec,f,p,k,inv){
  // --- contratti aperti
  const oi=gambe.map(g=>{const x=(D.assets[g]||{}).oi4;return x&&Math.abs(x.d_oi)>=2?`${esc(g)} ${pc1(x.d_oi)} (${esc(x.txt)})`:null;}).filter(Boolean);
  if(oi.length)righe.push(`<b>Contratti aperti</b> nelle ultime 4 settimane: ${oi.join(" &middot; ")}.`);
+ // --- v6.88 LETTURA TATTICA (cot_radar/tattica.py): regressione e indicatori sulle chiusure, SOLO informativa
+ const tt=(D.tat||{})[p?p.pair:k];
+ if(tt){const est=x=>`<b style="color:var(--warn)">${x}</b>`,pc2=x=>`${x>=0?"+":"&minus;"}${fx(Math.abs(x),1)}%`;
+  righe.push(`<div class="tatt"><p><b>Lettura tattica</b> <span class="small">(informativa, chiusura del ${fd(tt.data)})</span>:
+   ${/parte/.test(tt.txt_canale)?est(tt.txt_canale):"<b>"+tt.txt_canale+"</b>"} a 100 giorni &middot; <b>${tt.txt_trend}</b> (${pc2(tt.pend)} annuo, R&sup2; ${fx(tt.r2,2)})
+   &middot; RSI ${tt.txt_rsi=="neutro"?"<b>"+tt.rsi+"</b>":est(tt.rsi+" "+tt.txt_rsi)} &middot; <b>${pc2(tt.d200)}</b> dalla media a 200 giorni &middot; movimento medio ${fx(tt.mov,2)}% al giorno</p>
+   <details class="info tatti"><summary title="Come leggerla" aria-label="Informazioni">i</summary><div><b>Canale</b>: retta di regressione sugli ultimi 100 giorni; "parte alta/bassa" = prezzo oltre 1,5 deviazioni standard dalla retta (canale = &plusmn;2). <b>R&sup2;</b> = quanto il prezzo segue la retta: da 0,6 in su il trend &egrave; pulito. <b>RSI</b> 14 giorni: sopra 70 ipercomprato, sotto 30 ipervenduto. <b>Movimento medio</b> = variazione tipica di un giorno (ultime 4 settimane). Solo chiusure giornaliere. <b>Informativa</b>: nei test questi indicatori non hanno migliorato i segnali COT, quindi non entrano nel punteggio.</div></details></div>`);}
  // --- notizie (solo se cambiano qualcosa)
  const nw=p&&p.news;if(nw&&nw.effetto!="neutro"){const ev=[...(nw.oggi||[]),...(nw.eventi||[]).map(x=>x.nome)].filter(Boolean);
   righe.push(`<b>Notizie</b>: ${ev.length?esc(ev.join(", "))+" &rarr; ":""}<b style="color:${nw.effetto=="rafforza"?verde:rosso}">${nw.effetto=="rafforza"?"rafforzano il segnale":"vanno contro il segnale"}</b>.`);}
@@ -110,7 +117,7 @@ function lettura(spec,f,p,k,inv){
  if(nw&&nw.effetto=="penalizza")pezzi.push(`<b style="color:${rosso}">notizia contraria</b>`);
  if(g1)pezzi.push(`Stagionalit&agrave;: <b style="color:${g1[1]}">${g1[0]}</b>`);
  return `<button class="sintesi" id="cotinfo" title="Mostra / nascondi il riepilogo"><b>Riepilogo:</b> ${pezzi.join(" &middot; ")} <span class="freccia">&#9662;</span></button>
-  <div class="cotinfo">${righe.map(r=>`<p>${r}</p>`).join("")}</div>`;}
+  <div class="cotinfo">${righe.map(r=>r.startsWith("<div")?r:`<p>${r}</p>`).join("")}</div>`;}
 /* SINTESI DEI FLUSSI COT in una riga (al posto delle barre, che si aprono con un clic):
    quante settimane in acquisto/vendita, da quante settimane di fila nello stesso verso,
    e se la spinta sta crescendo o calando (media delle ultime 3 settimane contro le 3 prima). */
