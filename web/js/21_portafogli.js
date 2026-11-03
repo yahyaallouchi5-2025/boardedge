@@ -145,7 +145,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="phmleg">${hmLeg(hmModo)}</div>
    <div class="pmini">${k("Peggior "+m.mese,pc(m.peggiore[1]),String(m.peggiore[0]),"down")}${k(m.mese[0].toUpperCase()+m.mese.slice(1)+" medio",pc(m.media),`su ${m.n} anni`,m.media>=0?"up":"down")}
     ${k("Anni positivi",`${m.positivi} su ${m.n}`,`win rate ${wr}%`)}${k("Max drawdown storico",pc(ddTot),"intero backtest del profilo","down")}</div>
-   ${m.mercati.length?`<div class="pstag"><div class="pstag-t">Stagionalit&agrave; di ${m.mese} per mercato <span class="small">(informativa)</span></div>${m.mercati.map(x=>`<div class="pstag-r"><span>${esc(nomeK(x.k))}</span><i><s class="${x.media>=0?"su":"giu"}" style="width:${Math.min(100,Math.abs(x.media)*8)}%"></s></i><b class="${x.media>=0?"up":"down"}">${pc(x.media)}</b><em>${x.pos}% positivi</em></div>`).join("")}</div>`:""}</div>`;}
+   ${m.mercati.length?`<div class="pstag"><div class="pstag-t">Stagionalit&agrave; di ${m.mese} per mercato <span class="small">(informativa)</span></div>${m.mercati.map(x=>`<div class="pstag-r"><span>${esc(nomeK(x.k))}</span><i><s class="${x.media>=0?"su":"giu"}" style="width:${Math.min(100,Math.abs(x.media)*8)}%"></s></i><b class="${x.media>=0?"up":"down"}">${pc(x.media)}</b><em>${x.pos}% positivi &middot; ${x.n} anni</em></div>`).join("")}</div>`:""}</div>`;}
 
 
  // --- MESE IN CORSO (v6.43): come sta andando adesso il portafoglio del profilo scelto, dalla rotazione a oggi.
@@ -238,8 +238,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      <tr class="pcfsto"><td>Storico dal ${esc((PR[0].stat.totale.dal||"").slice(0,4))}: mesi positivi</td>${PR.map(x=>`<td class="num${x.id==evid?" ev":""}">${x.stat.totale.mesi_pos??"n/d"}%</td>`).join("")}<td class="pcfw small">la regola, su tutta la storia</td></tr>
      <tr><td>Storico: max drawdown</td>${PR.map(x=>`<td class="num down${x.id==evid?" ev":""}">${pc(x.stat.totale.maxdd)}</td>`).join("")}<td class="pcfw"></td></tr>
      <tr><td>Storico: rendimento annuo</td>${PR.map(x=>`<td class="num up${x.id==evid?" ev":""}">${pc(x.stat.totale.cagr)}</td>`).join("")}<td class="pcfw"></td></tr>
-     ${PR.some(x=>x.stat_eur)?`<tr class="pcfsto"><td>In euro: rendimento annuo</td>${PR.map(x=>`<td class="num up${x.id==evid?" ev":""}">${x.stat_eur?pc(x.stat_eur.totale.cagr):"n/d"}</td>`).join("")}<td class="pcfw small">senza copertura del cambio</td></tr>
-     <tr><td>In euro: max drawdown</td>${PR.map(x=>`<td class="num down${x.id==evid?" ev":""}">${x.stat_eur?pc(x.stat_eur.totale.maxdd):"n/d"}</td>`).join("")}<td class="pcfw"></td></tr>`:""}</table></div>
+     <tr><td>Storico: oltre la liquidit&agrave;</td>${PR.map(x=>`<td class="num${x.id==evid?" ev":""}">${x.stat.totale.oltre_liq!=null?pc(x.stat.totale.oltre_liq):"n/d"}</td>`).join("")}<td class="pcfw small">rendimento annuo meno la liquidit&agrave; in euro</td></tr>
+     <tr><td>Storico: mesi per recuperare</td>${PR.map(x=>`<td class="num${x.id==evid?" ev":""}">${x.stat.totale.recupero_mesi??"in corso"}</td>`).join("")}<td class="pcfw small">dal drawdown peggiore</td></tr>
+     ${PR.some(x=>x.stat_sel)?`<tr class="pcfsto"><td>Con la selezione dei 5 titoli</td>${PR.map(x=>`<td class="num${x.id==evid?" ev":""}">${x.stat_sel?pc(x.stat_sel.totale.cagr):"n/d"}</td>`).join("")}<td class="pcfw small">rendimento annuo, ottimista (titoli di oggi)</td></tr>
+     <tr><td>In dollari</td>${PR.map(x=>`<td class="num${x.id==evid?" ev":""}">${x.stat_usd?pc(x.stat_usd.totale.cagr):"n/d"}</td>`).join("")}<td class="pcfw small">rendimento annuo per chi investe in USD</td></tr>`:""}</table></div>
     <p class="small pcfnota">Un mese negativo su tre &egrave; normale per un portafoglio diversificato: nello storico i mesi positivi sono circa due su tre. Il risultato si misura sull'anno, non sul singolo mese. ${pe.live_dal?`Prima del ${gg(pe.live_dal)} i mesi sono calcolati applicando le regole attuali al passato (simulazione), non operazioni reali.`:""} Non &egrave; un consiglio di investimento.</p></div>`;}
 
  // --- AVVISO DATI NON AGGIORNATI (P.avviso dal backend): solo il popup comune di manutenzione (manutenzione.js),
@@ -257,8 +259,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <div><em>Max drawdown</em><b class="down">${pc(t.maxdd)}</b><span>dal picco al minimo</span></div>
     <div><em>10.000 € nel ${anno}</em><b>${eur(finale)}</b><span>valore di oggi${p.stat_eur&&p.stat_eur.totale?" (in euro)":""}</span></div>
     <div><em>Mesi positivi</em><b>${t.mesi_pos??"n/d"}%</b><span>su tutti i mesi</span></div></div>
-   ${(()=>{const e=p.stat_eur&&p.stat_eur.totale,o=p.stat_eur&&p.stat_eur.oos;if(!e)return "";   /* v6.57: come lo vede chi investe in euro */
-    return `<div class="pheur"><span class="pheurl">&euro; In euro</span><span>senza copertura del cambio: rendimento annuo <b class="up">${pc(e.cagr)}</b></span><span>max drawdown <b class="down">${pc(e.maxdd)}</b></span>${o?`<span>dal 2016 <b class="${o.cagr>=0?"up":"down"}">${pc(o.cagr)}</b> l'anno</span>`:""}</div>`;})()}
+   ${(()=>{const sel=p.stat_sel&&p.stat_sel.totale,usd=p.stat_usd&&p.stat_usd.totale;   /* v6.87: numeri onesti, spiegazione nel fumetto */
+    const eu=p.valuta=="EUR";
+    return `<div class="pheur"><span class="pheurl">${eu?"&euro; In euro":"$ In dollari"}</span>${t.oltre_liq!=null?`<span>oltre la liquidit&agrave; <b class="${t.oltre_liq>=0?"up":"down"}">${pc(t.oltre_liq)}</b> l'anno</span>`:""}${t.calmar!=null?`<span>Calmar <b>${fx(t.calmar,2)}</b></span>`:""}<span>recupero dal drawdown peggiore <b>${t.recupero_mesi!=null?t.recupero_mesi+" mesi":"in corso"}</b></span>
+     <details class="info pheuri"><summary title="Come si misura" aria-label="Informazioni">i</summary><div><b>Numeri prudenti${eu?", in euro":""}.</b> ${eu?"Ogni mercato &egrave; convertito in euro senza copertura del cambio; la liquidit&agrave; rende il tasso BCE sui depositi (come l'ETF overnight indicato). ":""}L'acquisto &egrave; contato alla chiusura del giorno di rotazione (un po' peggio dell'acquisto reale alle 09:00), costi 0,10% inclusi. Le 5 azioni scelte sono contate come l'S&amp;P 500: lo storico usa i titoli che oggi sono negli indici e sarebbe ottimista.${sel?` Con la selezione vera dei 5 titoli: <b>${pc(sel.cagr)}</b> l'anno.`:""}${usd?` In dollari: <b>${pc(usd.cagr)}</b> l'anno, max drawdown ${pc(usd.maxdd)}.`:""}${t.liq_cagr!=null?` Liquidit&agrave; in euro nello stesso periodo: ${pc(t.liq_cagr)} l'anno.`:""} Calmar = rendimento annuo diviso il drawdown massimo (pi&ugrave; alto = meglio).</div></details></div>`;})()}
    <div class="phcomp"><h4>Composizione del mese</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;background:${CL[x[0]]}"></s></i></div>`).join("")}</div>
    <div class="phaz"><h4>Le 5 azioni del mese <span class="small">(${p.az}% del portafoglio${az&&az.titoli&&az.titoli.length?`, ${fx(az.peso_titolo,1)}% ciascuna`:""})</span></h4>
     ${pausa?`<div class="small">${esc(pausa.motivo)}.</div>`:az&&az.titoli&&az.titoli.length?`<div class="ptit">${az.titoli.map(x=>`<button class="pchip clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">${esc(x.t)} <small>${esc(x.n)}</small></button>`).join("")}</div>`
@@ -270,7 +274,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <li><b>Filtro di mercato</b>: se l'S&amp;P 500 &egrave; sotto la sua media a 200 giorni tutta la quota azioni va in liquidit&agrave; (nel 2008, senza filtro, questa quota perdeva il 55%).</li>
     <li><b>Durante il mese non si tocca nulla</b>. Al mese dopo chi resta tra i migliori rimane, chi esce si vende, chi entra si compra. Costi inclusi: 0,10% sugli ETF, 0,20% sulle azioni.</li>
     <li><b>Registro</b>: ogni rotazione e ogni scelta di titoli vengono salvate e non si modificano pi&ugrave;: la linea live non si pu&ograve; aggiustare dopo.</li></ol>
-    <p class="small">${esc((P.azioni||{}).nota||"")} Storico fino al 2015, fuori campione dal 2016. Prezzi in dollari di ETF ed ETC equivalenti e azioni in valuta locale (cambi non inclusi).</p></details></div>`;}
+    <p class="small">${esc((P.azioni||{}).nota||"")} Storico fino al 2015, fuori campione dal 2016. Risultati in euro (cambio EUR/USD senza copertura, liquidit&agrave; al tasso BCE), acquisto alla chiusura del giorno di rotazione, 5 azioni contate come l'S&amp;P 500.</p></details></div>`;}
 
  // --- v6.78 PDF DEL PORTAFOGLIO (generatore in 01b_pdf.js): gli stessi dati della pagina su un foglio chiaro, pensato
  //     per la stampa. Pagina 1: rischio, numeri chiave, composizione (ciambella + classi) e righe del portafoglio con
@@ -299,7 +303,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const bw=(LW-24)/4;K.forEach((k,i)=>{const x=M+i*(bw+8);d.rett(x,y,bw,56,{f:C.soft,r:7});
    d.testo(x+11,y+16,k[0],{s:7.8,c:C.mute});d.testo(x+11,y+36,k[1],{s:15,b:true,c:k[3]});d.testo(x+11,y+48,k[2],{s:7.2,c:C.mute});});
   y+=56;
-  if(te){const o=p.stat_eur.oos;y+=16;d.testo(M,y,`In euro, senza copertura del cambio: rendimento annuo ${pc(te.cagr)} · max drawdown ${pc(te.maxdd)}${o?` · dal 2016 ${pc(o.cagr)} l'anno`:""}`,{s:8.5,c:C.mute});}
+  // v6.87: stessa misura prudente della pagina (euro, acquisto alla chiusura del giorno di rotazione, 5 azioni = S&P 500)
+  {const sel=p.stat_sel&&p.stat_sel.totale,usd=p.stat_usd&&p.stat_usd.totale;y+=16;
+   d.testo(M,y,`${p.valuta=="EUR"?"In euro":"In dollari"} · oltre la liquidità ${t.oltre_liq!=null?pc(t.oltre_liq):"n/d"} l'anno · Calmar ${t.calmar!=null?fx(t.calmar,2):"n/d"} · recupero ${t.recupero_mesi!=null?t.recupero_mesi+" mesi":"in corso"}`,{s:8.5,c:C.mute});
+   y+=12;y+=d.paragrafo(M,y,`Numeri prudenti: acquisto alla chiusura del giorno di rotazione, costi inclusi, 5 azioni contate come l'S&P 500 (lo storico usa i titoli di oggi).${sel?` Con la selezione vera: ${pc(sel.cagr)} l'anno.`:""}${usd?` In dollari: ${pc(usd.cagr)} l'anno.`:""}`,LW,{s:7.8,c:C.mute});}
   // composizione: ciambella dei pesi (colore = classe) e barre per classe
   y=E.sezione(d,y+30,"Composizione del mese",`${nM} ${nM==1?"mercato":"mercati"}`);
   const cx=M+62,cy=y+60;let a=0;
