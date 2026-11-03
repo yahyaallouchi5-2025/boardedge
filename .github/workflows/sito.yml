@@ -57,6 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       esito: ${{ steps.crea.outputs.esito }}
+      fred: ${{ steps.crea.outputs.fred }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -115,9 +116,13 @@ jobs:
           B: ${{ needs.build.result }}
           D: ${{ needs.deploy.result }}
           E: ${{ needs.build.outputs.esito }}
+          F: ${{ needs.build.outputs.fred }}
           ORARIO: ${{ github.event.schedule }}
         run: |
-          echo "build=$B pubblicazione=$D esito=${E:-?}"
+          echo "build=$B pubblicazione=$D esito=${E:-?} fred=${F:-?}"
           if [ "$B" = success ] && [ "$D" = success ] && [ "$E" != errori ] && [ "$E" != critico ]; then echo "Tutto regolare."; exit 0; fi
+          # v6.86: il giro ORARIO serve solo a riprendere FRED. Se FRED e' tornata e il sito e' pubblicato, un'altra
+          # fonte momentaneamente giu' (es. BCE) non manda la mail: la controlla il giro serale delle 22:15.
+          if [ "$ORARIO" = "40 * * * *" ] && [ "$B" = success ] && [ "$D" = success ] && [ "$F" = online ]; then echo "FRED ripresa; altre fonti al giro serale."; exit 0; fi
           if [ "$ORARIO" = "15 22 * * 1-5" ] || [ "$ORARIO" = "20 22 * * 1-5" ]; then echo "Non riuscito: riprovo tra 5 minuti."; exit 0; fi
           echo "::error::COT Radar CRITICO (esito=${E:-?}): online restano gli ultimi dati validi. Dettagli nel registro admin."; exit 1
