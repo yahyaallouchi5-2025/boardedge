@@ -28,6 +28,7 @@ import csv
 import json
 import math
 import os
+import random
 import sys
 import time
 import urllib.parse
@@ -44,13 +45,33 @@ HOST = ("query1", "query2")    # v6.82: i due server di Yahoo, alternati a ogni 
 TENTATIVI = 3                  # tentativi per richiesta
 DI_FILA = 5                    # fallimenti consecutivi oltre i quali Yahoo e' considerato fermo
 SOGLIA_ANOMALIA = 0.10         # quota di titoli falliti oltre la quale scatta l'avviso di manutenzione
-PAUSA = 0.35                   # secondi tra una richiesta e l'altra (gentili con Yahoo)
+# v6.86 RITMO UMANO: pausa A CASO tra 1,5 e 3 secondi tra una richiesta e l'altra (prima 0,35 s fissi = raffica che
+# Yahoo riconosce e blocca). Un numero fisso (es. 0 nei test) resta valido.
+PAUSA = (1.5, 3.0)
 # v6.82 - BLOCCO TEMPORANEO: il 03/11/2026 Yahoo ha smesso di rispondere dopo 84 titoli (limite di richieste sull'IP
 # del server GitHub) e il giro si e' fermato. Ora, ai 5 fallimenti di fila, si aspetta e si riprende dai titoli falliti:
 # prima 2 minuti, poi 5. Solo dopo la seconda ripresa fallita Yahoo e' davvero "fermo".
 RIPRESE = (120, 300)
 CODICE_ERRORE = "503"
 CHIUSURA_UTC = "21:00"         # dopo quest'ora (UTC) i prezzi del giorno sono definitivi anche per Wall Street
+
+# v6.86 TRE GIRI PER AREA (workflow azioni.yml), ognuno dopo la chiusura delle SUE borse, cosi' Yahoo riceve tre gruppi
+# piccoli a ore di distanza invece di ~1.000 richieste tutte insieme:
+#   asia   ~10:30 UTC  Tokyo, Hong Kong, Shanghai, India (l'India chiude alle 10:00 UTC)
+#   europa ~17:15 UTC  Milano, Francoforte, Parigi, Amsterdam, Madrid... (chiusura 16:30 UTC)
+#   usa    ~21:35 UTC  Wall Street (chiusura 21:00 UTC; anche fondamentali SEC, profili e 5 azioni scelte)
+# CHIUSURA = ora UTC dopo la quale i prezzi del giorno di quell'area sono definitivi (giro ripetuto = niente richieste).
+AREE = ("asia", "europa", "usa")
+CHIUSURA = {"asia": "10:00", "europa": "16:35", "usa": CHIUSURA_UTC}
+SUFFISSI_ASIA = (".T", ".HK", ".SS", ".SZ", ".NS", ".BO")
+INDICI_AREA = {"^N225": "asia", "^HSI": "asia", "^NSEI": "asia", "000001.SS": "asia",
+               "FTSEMIB.MI": "europa", "^GDAXI": "europa", "^STOXX50E": "europa"}
+# DOWNLOAD INCREMENTALE: ogni giorno solo gli ultimi 5 giorni (risposta leggera) aggiunti alla copia. Lo storico di 2 anni
+# si riscarica intero una volta a settimana per titolo (stesso giorno dello storico mensile) o se la copia non torna:
+# i prezzi sono RETTIFICATI, quindi un dividendo o uno split cambia anche i giorni passati -> giorni in comune diversi
+# oltre lo 0,5% = storico da riscaricare.
+DIFF_RETTIFICA = 0.005
+GIORNI_STORICO = 745           # ~2 anni di copia (come range=2y)
 
 SETTORI = [  # id, nome, ETF di riferimento USA (SPDR)
     ("tech", "Tecnologia", "XLK"), ("tlc", "Comunicazione", "XLC"), ("cdis", "Beni voluttuari", "XLY"),
@@ -197,7 +218,40 @@ def giorno_mensile(t):
     return zlib.crc32(t.encode()) % 5
 
 
-def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, riprese=None):
+def area(t):
+    """Area di borsa del ticker Yahoo: 'asia', 'europa' o 'usa' (decide in quale dei tre giri si aggiorna)."""
+    if t in INDICI_AREA:
+        return INDICI_AREA[t]
+    if t.startswith("^") or "." not in t:
+        return "usa"                                   # indici USA e titoli USA (BRK-B, BF-B: trattino, nessun punto)
+    return "asia" if t.endswith(SUFFISSI_ASIA) else "europa"
+
+
+def _dormi(pausa):
+    """Pausa tra le richieste: numero fisso oppure (minimo, massimo) = a caso nell'intervallo."""
+    if not pausa:
+        return
+    time.sleep(random.uniform(*pausa) if isinstance(pausa, tuple) else pausa)
+
+
+def unisci(vecchi, nuovi, oggi):
+    """Copia [(data, prezzo)] + ultimi giorni da Yahoo -> serie unita, oppure None se va riscaricato tutto
+    (giorni in comune con prezzo diverso = rettifica per dividendo/split, oppure un buco tra copia e nuovi dati)."""
+    if not vecchi or not nuovi:
+        return None
+    vv = {g: v for g, v in vecchi}
+    for g, v in nuovi:
+        if g in vv and vv[g] and abs(v / vv[g] - 1) > DIFF_RETTIFICA:
+            return None
+    ultimo = vecchi[-1][0]
+    nuovi_dopo = [(g, v) for g, v in nuovi if g > ultimo]
+    if nuovi_dopo and (date.fromisoformat(nuovi_dopo[0][0]) - date.fromisoformat(ultimo)).days > 6:
+        return None                                    # mancano giorni in mezzo: la copia e' troppo vecchia
+    taglio = (oggi - timedelta(days=GIORNI_STORICO)).isoformat()
+    return [list(x) for x in vecchi if x[0] >= taglio] + [list(x) for x in nuovi_dopo]
+
+
+def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, riprese=None, chiusura=CHIUSURA_UTC):
     """Aggiorna le copie grezze (cartella/grezzi/<T>.json). Restituisce lo stato del giro:
     {quando, ok, copia [titoli rimasti alla copia], falliti [senza nessun dato], fermo (Yahoo giu'), anomalia}."""
     oggi = oggi or date.today()
@@ -214,7 +268,7 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, rip
         vecchio = _leggi(f) or {}
         # gia' aggiornato DOPO la chiusura USA di oggi (giro ripetuto): niente nuove richieste.
         # Un aggiornamento fatto durante la seduta (prezzi provvisori) invece si ripete la sera.
-        if vecchio.get("agg") == oggi.isoformat() and vecchio.get("agg_ora", "") >= CHIUSURA_UTC:
+        if vecchio.get("agg") == oggi.isoformat() and vecchio.get("agg_ora", "") >= chiusura:
             stato["ok"] += 1
             continue
         nuovo = None
@@ -231,15 +285,30 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, rip
             t, ultimi, di_fila = coda[i - 1], [], 0
             f = os.path.join(cartella, "grezzi", _nome_file(t) + ".json")
             vecchio = _leggi(f) or {}
+        completo = (oggi.weekday() == giorno_mensile(t) and vecchio.get("agg_full", "") < (oggi - timedelta(days=3)).isoformat()) \
+            or vecchio.get("agg_full", "") < (oggi - timedelta(days=8)).isoformat() or len(vecchio.get("d") or []) < 200
+        d = None
         if di_fila < DI_FILA:
-            nuovo = scarica(t)
-            if pausa:
-                time.sleep(pausa)
-        if nuovo:
+            if not completo:
+                # giorno normale: solo gli ultimi 5 giorni, uniti alla copia
+                nuovo = scarica(t, "1d", "5d")
+                _dormi(pausa)
+                if nuovo:
+                    d = unisci(vecchio.get("d"), nuovo[1], oggi)
+                    if d is None:
+                        log.info("azioni %s: la copia non torna (dividendo/split o buco): riscarico 2 anni", t)
+                        completo = True
+            if completo:
+                nuovo = scarica(t)
+                _dormi(pausa)
+                d = nuovo[1] if nuovo else None
+        if nuovo and d:
             di_fila, ultimi = 0, []
-            meta, d = nuovo
+            meta = nuovo[0]
             rec = dict(vecchio, t=t, agg=oggi.isoformat(), agg_ora=datetime.now(timezone.utc).strftime("%H:%M"), d=d,
                        **{k: v for k, v in meta.items() if v})
+            if completo:
+                rec["agg_full"] = oggi.isoformat()
             # storico mensile: nel giorno del titolo (al massimo una volta a settimana) o se e' vecchio di oltre 10 giorni.
             # Se Yahoo non da' uno storico mensile valido, si ricava dai prezzi giornalieri (ultimo prezzo di ogni mese)
             # e si segna la data lo stesso: cosi' NON si richiede di nuovo ogni sera (prima ~3 tentativi a vuoto al giorno).
@@ -247,8 +316,7 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, rip
             if (oggi.weekday() == giorno_mensile(t) and vecchio_m < (oggi - timedelta(days=3)).isoformat()) \
                     or vecchio_m < (oggi - timedelta(days=10)).isoformat():
                 mm = scarica(t, "1mo", "max")
-                if pausa:
-                    time.sleep(pausa)
+                _dormi(pausa)
                 if mm:
                     rec["m"], rec["agg_m"] = mm[1], oggi.isoformat()
                 else:
@@ -491,8 +559,28 @@ def main(argv):
     titoli = None
     if "--prova" in argv:
         titoli = elenco()[:12]
-    stato = aggiorna(cartella, [x["t"] for x in titoli] + [i[0] for i in INDICI] if titoli else None)
+    # v6.86 --area asia|europa|usa: si scaricano solo i titoli di quell'area (gli altri restano alla copia del loro giro).
+    # Senza --area (o "tutte", es. avvio a mano) si aggiornano tutti come prima.
+    sel = argv[argv.index("--area") + 1] if "--area" in argv and argv.index("--area") + 1 < len(argv) else "tutte"
+    sel = sel if sel in AREE else "tutte"
+    tutti = [x["t"] for x in (titoli or elenco())] + [i[0] for i in INDICI]
+    da_fare = tutti if sel == "tutte" else [t for t in tutti if area(t) == sel]
+    stato = aggiorna(cartella, da_fare, chiusura=CHIUSURA.get(sel, CHIUSURA_UTC))
+    errore_giro = bool(stato.get("anomalia"))
+    # STATO PER AREA: un giro riuscito toglie solo l'anomalia della SUA area; il popup/striscia resta finche' un'area
+    # e' ancora indietro. stato.json conserva {aree: {asia: {...}, europa: {...}, usa: {...}}}.
+    aree = (_leggi(os.path.join(cartella, "stato.json")) or {}).get("aree") or {}
+    for a in (AREE if sel == "tutte" else (sel,)):
+        aree[a] = {"quando": stato["quando"], "anomalia": stato.get("anomalia"), "ok": stato["ok"],
+                   "mancati": len(stato["copia"]) + len(stato["falliti"])}
+    stato["area"], stato["aree"] = sel, aree
+    stato["anomalia"] = next((v["anomalia"] for v in aree.values() if v.get("anomalia")), None)
     pubblica(cartella, stato, titoli)
+    if sel not in ("usa", "tutte"):
+        # giri Asia/Europa: solo prezzi e scheda. 5 azioni scelte, bilanci SEC e profili restano al giro USA della sera
+        # (le 5 azioni scelte devono decidere con TUTTI i prezzi del giorno, come prima).
+        print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in stato.items()}, ensure_ascii=False))
+        return 1 if errore_giro else 0
     # quota "Azioni scelte" dei portafogli modello (satellite.py): mai bloccante per la scheda Azionario
     try:
         from . import satellite
@@ -522,7 +610,7 @@ def main(argv):
         import traceback
         log.error("profili aziende non aggiornati:\n%s", traceback.format_exc())
     print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in stato.items()}, ensure_ascii=False))
-    return 1 if stato.get("anomalia") else 0
+    return 1 if errore_giro else 0
 
 
 if __name__ == "__main__":
