@@ -439,6 +439,61 @@ def _ticker(k):
     return TUTTI[k][1] if k in TUTTI else k
 
 
+def _ribilancia(valore, quote, nuovi):
+    """Nuove quote dopo il ribilanciamento (costo sul capitale scambiato). -> (valore, quote)."""
+    tot = sum(quote.values()) or 1.0
+    vecchi = {k: v / tot for k, v in quote.items()}
+    scambio = sum(abs(nuovi.get(k, 0) - vecchi.get(k, 0)) for k in set(nuovi) | set(vecchi))
+    valore *= (1 - COSTO * scambio)
+    return valore, {k: valore * w for k, w in nuovi.items()}
+
+
+def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None, tassi=None):
+    """v6.87 - IL NUMERO ONESTO DEL PORTAFOGLIO (in pagina, PDF, confronti):
+      - ACQUISTO PRUDENTE: decisione sulla chiusura del giorno prima, acquisto alla CHIUSURA del giorno di rotazione
+        (abbiamo solo prezzi di chiusura). Il movimento del giorno di rotazione resta al portafoglio VECCHIO: e' un
+        po' peggio dell'acquisto reale alle 09:00, quindi il numero non e' mai gonfiato;
+      - IN EURO (fx = {data: dollari per 1 euro}): ogni mercato rende in dollari x variazione del cambio, senza copertura;
+        la LIQUIDITA' matura il tasso BCE sui depositi (tassi, come l'ETF overnight XEON). Senza fx: in dollari;
+      - sostituisci = {"AZ": "SPY"}: versione PRUDENTE delle 5 azioni (rendono come l'S&P 500, nessun merito di
+        selezione): toglie il possibile vantaggio del bias di sopravvivenza (lo storico usa i titoli di OGGI).
+    Stessi pesi, stesse date e stessi costi di simula()."""
+    al_i = len(g.date) - 1 if al_i is None else al_i
+    sost = sostituisci or {}
+    cambio, tasso, ult_fx, ult_t = [], [], None, 0.0
+    for d in g.date:
+        ult_fx = (fx or {}).get(d, ult_fx)
+        ult_t = (tassi or {}).get(d, ult_t)
+        cambio.append(ult_fx)
+        tasso.append(ult_t)
+    valore, curva, quote = 100.0, [], {}
+    for i in range(dal_i, al_i + 1):
+        if quote:
+            f = cambio[i - 1] / cambio[i] if fx and cambio[i] and cambio[i - 1] else 1.0
+            if fx:
+                gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
+                r_cash = (1 + tasso[i] / 100) ** (gg / 365) - 1
+            quote = {k: v * (1 + r_cash) if (fx and k == "CASH") else
+                     v * (1 + g.rend(_ticker(sost.get(k, k)), i)) * f for k, v in quote.items()}
+            valore = sum(quote.values())
+        if i in pianificati:                       # acquisto alla chiusura del giorno di rotazione
+            valore, quote = _ribilancia(valore, quote, pianificati[i])
+        curva.append((g.date[i], valore))
+    return curva
+
+
+def indice_liquidita(g, tassi, dal_i):
+    """Valore di 100 euro tenuti in liquidita' al tasso BCE sui depositi (per "oltre la liquidita'")."""
+    v, out, ult = 100.0, [], 0.0
+    for i in range(dal_i, len(g.date)):
+        ult = tassi.get(g.date[i], ult)
+        if i > dal_i:
+            gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
+            v *= (1 + ult / 100) ** (gg / 365)
+        out.append((g.date[i], v))
+    return out
+
+
 def simula(g, pianificati, dal_i, al_i=None):
     """Valore del portafoglio giorno per giorno. pianificati = {indice giorno: {chiave: peso}}.
     I pesi derivano liberamente tra un ribilanciamento e l'altro (come in un conto reale)."""
@@ -462,28 +517,50 @@ def simula(g, pianificati, dal_i, al_i=None):
     return curva
 
 
-def statistiche(curva):
+def statistiche(curva, liq=None):
     """CAGR, volatilita', drawdown massimo, peggior mese, % di mesi positivi (niente statistiche per anno solare:
-    il portafoglio ruota ogni mese, il rischio si legge mese per mese)."""
+    il portafoglio ruota ogni mese, il rischio si legge mese per mese).
+    v6.87: anche CALMAR (rendimento annuo / drawdown massimo), RECUPERO (mesi dal picco prima del drawdown peggiore
+    al ritorno sopra quel picco; None = non ancora recuperato) e, con liq = curva della liquidita' in euro,
+    OLTRE LA LIQUIDITA' (rendimento annuo meno quello della liquidita' nello stesso periodo)."""
     if len(curva) < 40:
         return None
     v = [x[1] for x in curva]
     anni = (date.fromisoformat(curva[-1][0]) - date.fromisoformat(curva[0][0])).days / 365.25
     r = [v[i] / v[i - 1] - 1 for i in range(1, len(v))]
-    picco, dd, dd_data = v[0], 0.0, curva[0][0]
+    picco, dd, dd_data, picco_data, dd_picco = v[0], 0.0, curva[0][0], curva[0][0], curva[0][0]
     for d, x in curva:
-        picco = max(picco, x)
+        if x > picco:
+            picco, picco_data = x, d
         if x / picco - 1 < dd:
-            dd, dd_data = x / picco - 1, d
+            dd, dd_data, dd_picco = x / picco - 1, d, picco_data
+    # recupero: dal picco prima del drawdown peggiore al primo giorno di nuovo sopra quel picco
+    recupero = None
+    if dd < 0:
+        livello = dict(curva)[dd_picco]
+        dopo = [d for d, x in curva if d > dd_data and x >= livello]
+        if dopo:
+            a, b = date.fromisoformat(dd_picco), date.fromisoformat(dopo[0])
+            recupero = round((b - a).days / 30.44)
     fine_mese = {}
     for d, x in curva:
         fine_mese[d[:7]] = x
     mesi = list(fine_mese.items())
     rm = [(mesi[i][0], mesi[i][1] / mesi[i - 1][1] - 1) for i in range(1, len(mesi))]
     pm = min(rm, key=lambda x: x[1]) if rm else None
+    cagr = round(((v[-1] / v[0]) ** (1 / anni) - 1) * 100, 1) if anni > 0.5 else None
+    oltre = liq_cagr = None
+    if liq and cagr is not None:
+        lq = [x for d, x in liq if curva[0][0] <= d <= curva[-1][0]]
+        if len(lq) > 1:
+            liq_cagr = round(((lq[-1] / lq[0]) ** (1 / anni) - 1) * 100, 1)
+            oltre = round(cagr - liq_cagr, 1)
     return {
+        "calmar": round(cagr / abs(dd * 100), 2) if cagr is not None and dd < 0 else None,
+        "recupero_mesi": recupero, "recupero_da": dd_picco if dd < 0 else None,
+        "liq_cagr": liq_cagr, "oltre_liq": oltre,
         "dal": curva[0][0], "al": curva[-1][0],
-        "cagr": round(((v[-1] / v[0]) ** (1 / anni) - 1) * 100, 1) if anni > 0.5 else None,
+        "cagr": cagr,
         "totale": round((v[-1] / v[0] - 1) * 100, 1),
         "vol": round((_std(r) or 0) * math.sqrt(252) * 100, 1),
         "maxdd": round(dd * 100, 1), "maxdd_data": dd_data,
@@ -896,6 +973,12 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
 
     fx = cambio_eur(cartella)                       # v4: per le statistiche in euro
     te = tassi_eur(cartella)                       # v6.59: tasso BCE per la liquidita' in euro
+    # v6.87 NUMERO PRINCIPALE = in EURO (liquidita' al tasso BCE) con ACQUISTO PRUDENTE; senza cambio/tassi in archivio
+    # si ripiega sui dollari (stesso acquisto prudente). liq = 100 euro in liquidita', per "oltre la liquidita'".
+    eur_ok = bool(fx and te)
+    fxp, tep = (fx, te) if eur_ok else (None, None)
+    liq = indice_liquidita(g, te, giorni[0]) if eur_ok else None
+    bench_p = simula_prudente(g, {i: dict(BENCH) for i in giorni}, giorni[0], fx=fxp, tassi=tep) if "IEF" in px else None
     rotazioni = leggi_rotazioni(cartella)
     out_prof, composizioni, comp_reg = [], {}, {}
     corrente, chiusi = [], {}
@@ -919,7 +1002,12 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
                 piani[i] = pesi
             prec = insieme
             storia.append((g.date[i], pesi))
-        curva = simula(g, piani, giorni[0])
+        curva = simula(g, piani, giorni[0])          # serie "tecnica" in dollari: mese in corso e mesi chiusi (come prima)
+        # v6.87 serie per i NUMERI in pagina: euro + acquisto prudente; principale con le 5 azioni = S&P 500 (prudente),
+        # "sel" con la selezione vera dei 5 titoli, "usd" = principale ma in dollari (per chi investe in dollari)
+        cp = simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"}, fx=fxp, tassi=tep)
+        c_sel = simula_prudente(g, piani, giorni[0], fx=fxp, tassi=tep)
+        c_usd = simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"})
         pesi, info, esclusi = scegli(prof, g, ultimo_rib, sc)
         comp_reg[prof["id"]] = pesi                # registro live: solo rotazioni gia' nei prezzi (data vera)
         if attesa:                                 # composizione del mese nuovo, decisa sulla chiusura precedente
@@ -931,7 +1019,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
         if rotazioni:
             pl = {g.pos[r["data"]]: dict(r["profili"].get(prof["id"], [])) for r in rotazioni if r["data"] in g.pos}
             if pl:
-                live = simula(g, pl, min(pl))
+                live = simula_prudente(g, pl, min(pl), fx=fxp, tassi=tep)      # live: titoli veri, in euro
         # MESE IN CORSO: dal giorno di rotazione (ingresso alla chiusura) a oggi, con i prezzi a fine giornata (EOD).
         # In attesa il mese nuovo non e' ancora iniziato: zero giorni, nessun risultato.
         r_m, dd_m = (0.0, 0.0) if attesa else mese_tratto(curva, giorni[0], ultimo_rib, len(g.date) - 1)
@@ -975,14 +1063,17 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
                          "gg": 0 if attesa else len(g.date) - ultimo_rib, "tot": giorni_feriali(mese_rot),
                          "live": (attesa or g.date[ultimo_rib]) >= LIVE_V3_DAL, **({"attesa": True} if attesa else {}),
                          **dict(corrente)[prof["id"]]},
-            "stat": {"storico": statistiche(_tagli(curva, al=OOS_DAL)),
-                     "oos": statistiche(_tagli(curva, dal=OOS_DAL)),
-                     "totale": statistiche(curva),
-                     "live": statistiche(live) if live else None},
-            # v6.59: con il tasso BCE in archivio la liquidita' e' davvero in euro; senza, conversione semplice
-            "stat_eur": (stat_eur(simula_eur(g, piani, giorni[0], fx, te), {d: 1.0 for d in g.date}) if te and fx
-                         else stat_eur(curva, fx)),
-            "curva": _settimanale(curva), "live_dal": live[0][0] if live else None,
+            # v6.87: "stat" e' IN EURO (se c'e' il cambio), acquisto prudente, 5 azioni prudenti (= S&P 500)
+            "valuta": "EUR" if eur_ok else "USD",
+            "stat": {"storico": statistiche(_tagli(cp, al=OOS_DAL), liq),
+                     "oos": statistiche(_tagli(cp, dal=OOS_DAL), liq),
+                     "totale": statistiche(cp, liq),
+                     "live": statistiche(live, liq) if live else None},
+            "stat_eur": {"totale": statistiche(cp, liq), "oos": statistiche(_tagli(cp, dal=OOS_DAL), liq)}
+                        if eur_ok else None,
+            "stat_sel": {"totale": statistiche(c_sel, liq), "oos": statistiche(_tagli(c_sel, dal=OOS_DAL), liq)},
+            "stat_usd": {"totale": statistiche(c_usd), "oos": statistiche(_tagli(c_usd, dal=OOS_DAL))},
+            "curva": _settimanale(cp), "live_dal": live[0][0] if live else None,
             "rotazioni": list(reversed(cambi)),
             "mesi_chiusi": dettaglio_mesi(g, piani, giorni_c, curva, sat),
         })
@@ -1001,10 +1092,12 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
         **({"attesa": True, "decisa_al": g.date[-1]} if attesa else {}),
         "dal": g.date[giorni[0]], "oos_dal": OOS_DAL, "fonte": "Yahoo Finance (prezzi rettificati)",
         "profili": out_prof, "chiusure": chiusure,
-        "bench": {"nome": "60/40 (S&P 500 + Treasury 10 anni)", "curva": _settimanale(bench),
-                  "stat": {"storico": statistiche(_tagli(bench, al=OOS_DAL)),
-                           "oos": statistiche(_tagli(bench, dal=OOS_DAL)), "totale": statistiche(bench)},
-                  "stat_eur": stat_eur(bench, fx)} if bench else None,
+        # v6.87: benchmark misurato come i portafogli (euro, acquisto prudente)
+        "bench": {"nome": "60/40 (S&P 500 + Treasury 10 anni)", "curva": _settimanale(bench_p),
+                  "stat": {"storico": statistiche(_tagli(bench_p, al=OOS_DAL), liq),
+                           "oos": statistiche(_tagli(bench_p, dal=OOS_DAL), liq), "totale": statistiche(bench_p, liq)},
+                  "stat_eur": {"totale": statistiche(bench_p, liq)} if eur_ok else None} if bench_p else None,
+        "valuta": "EUR" if eur_ok else "USD",
         "avviso": avviso,
         "azioni": {"live_dal": (sat or {}).get("live_dal"), "nota": (sat or {}).get("nota"),
                    "disponibili": bool(ss)},
