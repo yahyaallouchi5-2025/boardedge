@@ -14,13 +14,14 @@ permissions:
 jobs:
   scarica:
     runs-on: ubuntu-latest
-    timeout-minutes: 120
+    timeout-minutes: 90
     steps:
       - name: Scarica le candele orarie dei giorni di notizia
         run: |
           mkdir out && cd out
-          python3 - <<'PY'
+          python3 -u - <<'PY'
           import csv, io, lzma, struct, time, urllib.request
+          from concurrent.futures import ThreadPoolExecutor
           from datetime import datetime, timezone
           RAW = "https://raw.githubusercontent.com/${{ github.repository }}/dati-notizie/"
           # strumento -> divisore del prezzo nei file Dukascopy (coppie con lo yen e oro: 3 decimali)
@@ -30,7 +31,7 @@ jobs:
               for n in range(3):                               # 3 tentativi con attesa crescente
                   try:
                       req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/dati-notizie-h1"})
-                      with urllib.request.urlopen(req, timeout=60) as r:
+                      with urllib.request.urlopen(req, timeout=20) as r:
                           return r.read()
                   except Exception as e:
                       if getattr(e, "code", None) == 404:
@@ -49,25 +50,35 @@ jobs:
           giorni = sorted(set(d for d in date_evento("cpi", 8, 20) + date_evento("nfp", 1, 12) + date_evento("fomc", None, None)
                               if d >= "2016-01-01"))
           print("giorni di notizia:", len(giorni))
+          # v2: prova veloce su un file (si vede subito se Dukascopy risponde), poi 4 download in parallelo per
+          # strumento (garbato ma non lentissimo), avanzamento stampato ogni 50 giorni, file scritto anche se parziale
+          t = time.time(); b = get("https://datafeed.dukascopy.com/datafeed/EURUSD/2024/00/10/BID_candles_hour_1.bi5")
+          print("prova Dukascopy:", "ok" if b else "NESSUNA RISPOSTA", len(b or b""), "byte in", round(time.time() - t, 1), "s")
+          def giorno(s, div, d):
+              y, m, g = int(d[:4]), int(d[5:7]), int(d[8:10])
+              b = get(f"https://datafeed.dukascopy.com/datafeed/{s}/{y}/{m - 1:02d}/{g:02d}/BID_candles_hour_1.bi5")
+              time.sleep(0.2)
+              if not b:
+                  return []
+              try:
+                  raw = lzma.decompress(b)
+              except lzma.LZMAError:
+                  return []
+              t0 = int(datetime(y, m, g, tzinfo=timezone.utc).timestamp())
+              out = []
+              for k in range(0, len(raw) - 23, 24):            # record: secondi, open, close, low, high (int), volume (float)
+                  sec, o, c, lo_, hi_, vol = struct.unpack(">iiiiif", raw[k:k + 24])
+                  out.append([t0 + sec, o / div, hi_ / div, lo_ / div, c / div])
+              return out
           for s, div in STRUMENTI.items():
               n_ok = 0
-              with open(f"h1_{s}.csv", "w", newline="") as f:
+              with open(f"h1_{s}.csv", "w", newline="") as f, ThreadPoolExecutor(4) as ex:
                   w = csv.writer(f); w.writerow(["ts", "o", "h", "l", "c"])
-                  for d in giorni:
-                      y, m, g = int(d[:4]), int(d[5:7]), int(d[8:10])
-                      b = get(f"https://datafeed.dukascopy.com/datafeed/{s}/{y}/{m - 1:02d}/{g:02d}/BID_candles_hour_1.bi5")
-                      time.sleep(0.4)
-                      if not b:
-                          continue
-                      try:
-                          raw = lzma.decompress(b)
-                      except lzma.LZMAError:
-                          continue
-                      t0 = int(datetime(y, m, g, tzinfo=timezone.utc).timestamp())
-                      for k in range(0, len(raw) - 23, 24):    # record: secondi, open, close, low, high (int), volume (float)
-                          sec, o, c, lo_, hi_, vol = struct.unpack(">iiiiif", raw[k:k + 24])
-                          w.writerow([t0 + sec, o / div, hi_ / div, lo_ / div, c / div])
-                      n_ok += 1
+                  for i, righe in enumerate(ex.map(lambda d: giorno(s, div, d), giorni)):
+                      if righe:
+                          w.writerows(righe); n_ok += 1
+                      if i % 50 == 0:
+                          print(s, i, "/", len(giorni))
               print(s, "giorni scaricati:", n_ok)
           PY
       - name: Salva nel ramo "dati-notizie-h1" (un solo commit, sovrascritto)
