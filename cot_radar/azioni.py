@@ -265,6 +265,24 @@ def data_minima(oggi, ora_utc, chiusura):
     return g.isoformat()
 
 
+def freschezza(cartella, titoli, chiusura, oggi=None, ora_utc=None):
+    """v6.95 AUTO-GUARIGIONE: rilegge le copie salvate (nessun download) e dice se un'area e' ancora indietro.
+    Ritorna l'anomalia {codice, quando} se piu' di SOGLIA_ANOMALIA titoli hanno dati piu' vecchi di data_minima,
+    altrimenti None. Usata a OGNI giro per tutte le aree: l'avviso sparisce da solo appena i dati tornano freschi."""
+    if not titoli:
+        return None
+    oggi = oggi or date.today()
+    minimo = data_minima(oggi, ora_utc or datetime.now(timezone.utc).strftime("%H:%M"), chiusura)
+    vecchi = 0
+    for t in titoli:
+        d = (_leggi(os.path.join(cartella, "grezzi", _nome_file(t) + ".json")) or {}).get("d") or []
+        if not d or d[-1][0] < minimo:
+            vecchi += 1
+    if vecchi / len(titoli) > SOGLIA_ANOMALIA:
+        return {"codice": CODICE_ERRORE, "quando": ora_italia().strftime("%Y-%m-%d %H:%M")}
+    return None
+
+
 def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, riprese=None, chiusura=CHIUSURA_UTC,
              ora_utc=None):
     """Aggiorna le copie grezze (cartella/grezzi/<T>.json). Restituisce lo stato del giro:
@@ -597,6 +615,11 @@ def main(argv):
     for a in (AREE if sel == "tutte" else (sel,)):
         aree[a] = {"quando": stato["quando"], "anomalia": stato.get("anomalia"), "ok": stato["ok"],
                    "mancati": len(stato["copia"]) + len(stato["falliti"])}
+    # v6.95 AUTO-GUARIGIONE delle ALTRE aree: la loro anomalia si ricalcola dalle copie salvate (senza scaricare).
+    # Se nel frattempo i dati sono freschi l'avviso sparisce; se un'area resta ferma troppo a lungo, si accende.
+    for a in AREE:
+        if a in aree and (sel != "tutte" and a != sel):
+            aree[a]["anomalia"] = freschezza(cartella, [t for t in tutti if area(t) == a], CHIUSURA.get(a, CHIUSURA_UTC))
     stato["area"], stato["aree"] = sel, aree
     stato["anomalia"] = next((v["anomalia"] for v in aree.values() if v.get("anomalia")), None)
     pubblica(cartella, stato, titoli)

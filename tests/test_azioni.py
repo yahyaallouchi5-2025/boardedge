@@ -310,3 +310,18 @@ class TestParacadute(unittest.TestCase):
             self.assertIsNotNone(st["anomalia"])                              # 2 sedute perse: avviso giusto
         finally:
             shutil.rmtree(d, ignore_errors=True)
+
+
+class TestAutoGuarigione(unittest.TestCase):
+    def test_freschezza(self):
+        import tempfile, shutil
+        from datetime import date
+        d = tempfile.mkdtemp()
+        try:
+            A._scrivi(os.path.join(d, "grezzi", "AAA.json"), {"t": "AAA", "d": [["2026-11-03", 10.0]]})
+            self.assertIsNone(A.freschezza(d, ["AAA"], "21:00", oggi=date(2026, 11, 4), ora_utc="22:00"))
+            self.assertIsNotNone(A.freschezza(d, ["AAA"], "21:00", oggi=date(2026, 11, 6), ora_utc="22:00"))
+            self.assertIsNotNone(A.freschezza(d, ["ZZZ"], "21:00", oggi=date(2026, 11, 4), ora_utc="22:00"))
+            self.assertIsNone(A.freschezza(d, [], "21:00"))
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
