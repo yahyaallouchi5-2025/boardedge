@@ -1670,3 +1670,23 @@ html.ridotta .sagg{display:none}
 
 /* v6.90: titolo che sostituisce un'azione non acquistabile su Scalable (es. Tokyo) */
 .paz-sost{display:block;margin-top:2px;font-size:11.5px;color:var(--warn);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+/* v6.91 ACQUISTO DIRETTO a quote intere (card sotto la composizione) */
+.pacq{margin-top:16px;padding:18px 20px}
+.pacq:empty{display:none}
+.pacq-t{display:flex;align-items:center;gap:10px;margin-bottom:10px}.pacq-t h3{margin:0;font-size:16px}
+.pacq-t .small{font-weight:500;margin-left:6px}.pacq-i{margin-left:auto}.pacq-i>div{left:auto;right:0;width:min(400px,calc(100vw - 48px))}
+.pacq-l{display:grid;gap:6px}
+.pacq-r{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:9px 12px;border-radius:10px;
+ background:color-mix(in srgb,var(--soft) 50%,transparent);border:1px solid color-mix(in srgb,var(--line) 70%,transparent);transition:border-color .15s}
+.pacq-r:hover{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.pacq-r.zero{opacity:.7}
+.pacq-n{min-width:0;display:grid;gap:2px}.pacq-n b{font-size:13.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pacq-n span{font-size:11.5px;color:var(--mute);overflow-wrap:anywhere}.pacq-n em{font-style:normal;color:var(--warn)}
+.pacq-q{flex:none;text-align:right;display:grid;gap:2px}.pacq-q b{font-size:14px;color:var(--acc);font-variant-numeric:tabular-nums}
+.pacq-q span{font-size:11.5px;color:var(--mute);font-variant-numeric:tabular-nums}
+.pacq-tot{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:12px;padding-top:10px;border-top:1px solid var(--line);font-size:13px;color:var(--ink2)}
+.pacq-tot b{color:var(--ink);font-variant-numeric:tabular-nums}
+.pacq-come{margin-top:12px;font-size:13px}.pacq-come summary{cursor:pointer;color:var(--acc);font-weight:700}
+.pacq-come ol{margin:8px 0 0;padding-left:20px;display:grid;gap:4px;color:var(--ink2);line-height:1.5}
+@media (max-width:520px){.pacq{padding:14px}.pacq-r{padding:8px 10px;gap:10px}.pacq-n b{white-space:normal}}

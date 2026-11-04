@@ -155,3 +155,56 @@ class Acquistabili(unittest.TestCase):
             self.assertEqual(reg["2026-11"]["titoli"][0]["t"], "6532.T")      # registro originale intatto
         finally:
             shutil.rmtree(d, ignore_errors=True)
+
+
+class AcquistoDiretto(unittest.TestCase):
+    """v6.91: prezzi per l'acquisto a quote intere (riserve, prezzi in euro degli ETF, cache giornaliera)."""
+
+    def setUp(self):
+        self.dir = tempfile.mkdtemp()
+
+    def tearDown(self):
+        shutil.rmtree(self.dir, ignore_errors=True)
+
+    def test_riserve_esclusi_i_titoli_scelti(self):
+        el = []
+        for i, s in enumerate(SETTORI):
+            t = "T%d" % i
+            scrivi_titolo(self.dir, t, 0.01 + i * 0.001, ottobre=0.03)
+            el.append({"t": t, "nome": t, "s": s, "l": ["sp500"]})
+        tt = S.carica(self.dir, el)
+        reg = S.registra(self.dir, tt, date(2026, 10, 30))
+        a = S.acquisto(self.dir, reg, tt)
+        scelti = {x["t"] for x in reg["2026-11"]["titoli"]}
+        self.assertEqual(a["mese"], "2026-11")
+        self.assertEqual(set(a["prezzi"]), scelti)
+        self.assertTrue(all(v["p"] > 0 for v in a["prezzi"].values()))
+        self.assertTrue(a["riserve"])
+        self.assertFalse({r["t"] for r in a["riserve"]} & scelti)          # una riserva non e' mai gia' in lista
+        self.assertIsNone(S.acquisto(self.dir, {}, tt))
+
+    def test_prezzi_ue_solo_euro_e_cache_del_giorno(self):
+        chiamate = []
+
+        def cerca(isin):
+            chiamate.append(isin)
+            return "SXR8.DE" if isin == "IE00B5BMR087" else None
+
+        def ultimo(sym):
+            return ("2026-11-03", 740.7)
+
+        with mock.patch.object(P.time, "sleep"):
+            p = P.prezzi_ue(self.dir, oggi=date(2026, 11, 4), cerca=cerca, ultimo=ultimo)
+        self.assertEqual(p, {"SP500": {"sym": "SXR8.DE", "p": 740.7, "d": "2026-11-03"}})
+        n = len(chiamate)
+        p2 = P.prezzi_ue(self.dir, oggi=date(2026, 11, 4), cerca=cerca, ultimo=lambda s: 1 / 0)
+        self.assertEqual(p2, p)                                             # stesso giorno: nessun nuovo download
+        self.assertEqual(len(chiamate), n)
+        with mock.patch.object(P.time, "sleep"):                             # giorno dopo, Yahoo giu': restano i vecchi
+            p3 = P.prezzi_ue(self.dir, oggi=date(2026, 11, 5), cerca=cerca, ultimo=lambda s: 1 / 0)
+        self.assertEqual(p3["SP500"]["p"], 740.7)
+
+    def test_in_euro(self):
+        self.assertEqual(P._in_euro({"p": 110.0, "val": "USD"}, {"2026-11-03": 1.10}), 100.0)
+        self.assertEqual(P._in_euro({"p": 50.0, "val": "EUR"}, None), 50.0)
+        self.assertIsNone(P._in_euro({"p": 50.0, "val": "JPY"}, {"x": 1.1}))

@@ -282,6 +282,33 @@ def _prezzo_al_giorno(cartella, t, giorno):
     return d[-1][1] if d else None
 
 
+def acquisto(cartella, reg, titoli, n_riserve=40):
+    """v6.91 ACQUISTO DIRETTO a quote intere: ultimo prezzo e valuta dei titoli del mese registrato piu' recente e una
+    lista di RISERVE (i candidati successivi della stessa regola alla stessa data, in ordine di punteggio). Se con il
+    capitale dell'utente 1 azione costa piu' della sua quota, la pagina usa la prima riserva che ci sta (altro settore
+    ammesso, sempre al massimo 1 titolo per settore). Il registro e le regole non cambiano."""
+    if not reg or not titoli:
+        return None
+    mese = max(reg)
+
+    def prezzo(t):
+        rec = A._leggi(os.path.join(cartella, "grezzi", A._nome_file(t) + ".json")) or {}
+        d = rec.get("d") or []
+        return {"p": d[-1][1], "d": d[-1][0], "val": rec.get("valuta")} if d else None
+
+    scelti = {x["t"] for x in reg[mese]["titoli"]}
+    riserve = []
+    for r in candidati(titoli, _n(mese) - 1):
+        if r["t"] in scelti:
+            continue
+        pr = prezzo(r["t"])
+        if pr:
+            riserve.append({"t": r["t"], "n": r["n"], "s": r["s"], "pt": r["pt"], **pr})
+        if len(riserve) >= n_riserve:
+            break
+    return {"mese": mese, "prezzi": {t: prezzo(t) for t in scelti}, "riserve": riserve}
+
+
 def live(cartella, reg):
     """Indice giornaliero della quota dal primo mese registrato: [[data, valore]] (parte da 1).
     Ogni mese: media dei titoli registrati (prezzo / prezzo di registrazione; posti vuoti = 1), concatenata."""
@@ -391,6 +418,7 @@ def calcola(cartella, oggi=None, titoli=None, anomalia=False):
     dati = {"aggiornato": oggi.isoformat(), "n": N, "costo": COSTO, "live_dal": LIVE_DAL, "titoli_universo": len(tt),
             "storico": st, "live": live(cartella, reg_eff), "registro": reg_eff, "anteprima": ante,
             "sfidante10": sf10,
+            "acquisto": acquisto(cartella, reg_eff, tt),        # v6.91: prezzi e riserve per l'acquisto a quote intere
             # nomi dei titoli scelti negli ultimi 13 mesi dello storico (per mostrarli nelle rotazioni)
             "nomi": {x.t: x.nome for x in tt if any(x.t in m[2] for m in st[-13:])},
             "nota": "Azioni scelte: storico simulato con i titoli che oggi stanno negli indici, quindi ottimistico "
