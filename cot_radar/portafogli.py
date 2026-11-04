@@ -205,6 +205,86 @@ def scarica_yahoo(ticker, timeout=20, tentativi=TENTATIVI, attesa=2):
     return None
 
 
+# --------------------------------------------------------------------------- v6.91 PREZZI IN EURO degli strumenti UCITS
+# Per l'ACQUISTO DIRETTO a quote intere (Scalable e gli altri broker vendono solo quote intere con l'ordine normale):
+# per ogni ISIN si cerca su Yahoo la quotazione in EURO su Xetra (.DE), poi Borsa Italiana (.MI), poi Francoforte (.F),
+# e si prende l'ultimo prezzo. Il simbolo trovato si ricorda (storico/yahoo/_ue.json): la ricerca si fa una volta sola.
+# Prezzo INDICATIVO (chiusura dell'ultimo giorno): sul broker durante la giornata cambia di poco.
+YAHOO_CERCA = "https://query2.finance.yahoo.com/v1/finance/search?{q}"
+BORSE_EUR = (".DE", ".MI", ".F")
+
+
+def _json(url, timeout=20):
+    req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/portafogli"})
+    with urllib.request.urlopen(req, timeout=timeout) as r:
+        return json.load(r)
+
+
+def prezzi_ue(cartella=CARTELLA, oggi=None, cerca=None, ultimo=None):
+    """{chiave strumento: {"sym", "p" (euro), "d" (data)}} per gli strumenti di STRUMENTI_UE. Un download al giorno;
+    se Yahoo non risponde restano gli ultimi prezzi salvati. cerca/ultimo: funzioni sostituibili nei test."""
+    oggi = (oggi or date.today()).isoformat()
+    f = os.path.join(cartella, "yahoo", "_ue.json")
+    try:
+        with open(f, encoding="utf-8") as fh:
+            cache = json.load(fh)
+    except (OSError, ValueError):
+        cache = {}
+    simboli, prezzi = cache.get("simboli", {}), cache.get("prezzi", {})
+    if cache.get("giorno") == oggi:
+        return prezzi
+
+    def _cerca(isin):                            # simbolo in euro per l'ISIN (None se non c'e')
+        js = _json(YAHOO_CERCA.format(q=urllib.parse.urlencode({"q": isin, "quotesCount": 15, "newsCount": 0})))
+        sim = [x.get("symbol", "") for x in js.get("quotes") or []]
+        for suf in BORSE_EUR:
+            for x in sim:
+                if x.endswith(suf):
+                    return x
+        return None
+
+    def _ultimo(sym):                            # (data, prezzo) in euro dell'ultima seduta, None se non e' in euro
+        q = urllib.parse.urlencode({"range": "5d", "interval": "1d"})
+        res = _json(YAHOO.format(t=urllib.parse.quote(sym), q=q))["chart"]["result"][0]
+        if (res["meta"].get("currency") or "").upper() != "EUR":
+            return None
+        pts = [(datetime.fromtimestamp(t, tz=timezone.utc).date().isoformat(), c)
+               for t, c in zip(res.get("timestamp") or [], res["indicators"]["quote"][0]["close"]) if c]
+        return pts[-1] if pts else None
+
+    cerca, ultimo = cerca or _cerca, ultimo or _ultimo
+    for k, (_, isin, _) in STRUMENTI_UE.items():
+        try:
+            sym = simboli.get(isin) or cerca(isin)
+            if not sym:
+                continue
+            simboli[isin] = sym
+            x = ultimo(sym)
+            if x:
+                prezzi[k] = {"sym": sym, "p": round(float(x[1]), 4), "d": x[0]}
+            time.sleep(0.5)
+        except Exception as e:                   # un ETF senza prezzo non deve fermare gli altri
+            log.warning("prezzo in euro di %s (%s) non disponibile: %s", k, isin, type(e).__name__)
+    try:
+        os.makedirs(os.path.dirname(f), exist_ok=True)
+        with open(f, "w", encoding="utf-8") as fh:
+            json.dump({"giorno": oggi, "simboli": simboli, "prezzi": prezzi}, fh, indent=1, sort_keys=True)
+    except OSError:
+        pass
+    return prezzi
+
+
+def _in_euro(pr, fx):
+    """{"p", "val"} -> prezzo in euro (USD diviso il cambio dollari-per-euro piu' recente), None se non convertibile."""
+    if not pr or not pr.get("p"):
+        return None
+    if (pr.get("val") or "").upper() == "EUR":
+        return round(pr["p"], 2)
+    if (pr.get("val") or "").upper() == "USD" and fx:
+        return round(pr["p"] / fx[max(fx)], 2)
+    return None
+
+
 def _file(cartella, ticker):
     return os.path.join(cartella, "yahoo", ticker.replace("^", "_") + ".csv")
 
@@ -930,7 +1010,7 @@ def serie_satellite(sat, date_borsa):
     return out
 
 
-def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
+def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, pue=None):
     """righe_cot = archivio COT; px = prezzi() (ticker -> punti); sat = satellite.json delle azioni scelte (o None:
     la quota va in liquidita'). Restituisce i dati della scheda "Portafogli" oppure None se mancano i prezzi di base
     (SPY e liquidita')."""
@@ -1040,8 +1120,18 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
             u = STRUMENTI_UE.get(c["k"])
             if u:
                 c["ue"] = {"nome": u[0], "isin": u[1], "nota": u[2]}
+                if (pue or {}).get(c["k"]):                 # v6.91: prezzo di 1 quota in euro (Xetra), indicativo
+                    c["ue"].update({"prezzo": pue[c["k"]]["p"], "sym": pue[c["k"]]["sym"], "pd": pue[c["k"]]["d"]})
             if c["k"] == "AZ":
                 c["titoli"] = titoli_az
+                # v6.91 ACQUISTO DIRETTO: prezzo di 1 azione in euro (USD convertiti col cambio BCE/FRED dell'ultimo
+                # giorno) e riserve in ordine di punteggio, per sostituire le azioni che costano piu' della quota
+                acq = (sat or {}).get("acquisto") or {}
+                if acq.get("mese") == mese_rot:
+                    for x in c["titoli"]:
+                        x["eur"] = _in_euro((acq.get("prezzi") or {}).get(x["t"]), fx)
+                    c["riserve"] = [{"t": r["t"], "n": r["n"], "s": r["s"], "pt": r["pt"], "eur": _in_euro(r, fx)}
+                                    for r in acq.get("riserve") or [] if _in_euro(r, fx)]
                 c["peso_titolo"] = round(c["peso"] / satellite_n, 1)
                 if ante and ante.get("titoli"):
                     c["anteprima"] = ante

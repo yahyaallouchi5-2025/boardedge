@@ -205,7 +205,13 @@ def build(data_source=load_all, demo=False, sito=False):
             log.warning("satellite non letto:\n%s", traceback.format_exc())
         if sat is None:
             log.warning("portafogli: dati delle azioni scelte assenti, la loro quota resta in liquidita'")
-        port = portafogli.calcola(righe, px, scrivi=sito and not demo, sat=sat)
+        pue = {}
+        if not demo:                     # v6.91: prezzi in euro degli ETF UCITS per l'acquisto a quote intere
+            try:
+                pue = portafogli.prezzi_ue()
+            except Exception:
+                log.warning("prezzi UCITS in euro non disponibili:\n%s", traceback.format_exc())
+        port = portafogli.calcola(righe, px, scrivi=sito and not demo, sat=sat, pue=pue)
         if port:
             log.info("portafogli: rotazione del %s, prossima il %s", port["rotazione"], port["prossima"])
     except Exception:
