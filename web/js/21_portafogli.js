@@ -106,6 +106,43 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="pfx"><span>Valute: nessuna posizione diretta. Esposizione al dollaro stimata <b>${fx(usd,0)}%</b> (gli strumenti UCITS in euro seguono comunque il cambio EUR/USD).</span></div>
    <p class="small pnota-ue">Strumenti UCITS / ETC / ETP acquistabili da un conto europeo: cerca l'ISIN nell'app del tuo broker. Gli ETF USA usati nei calcoli (SPY, QQQ…) non sono acquistabili dai privati in Europa. Informazione, non consulenza.</p></div>`;}
 
+ // --- v6.91 ACQUISTO DIRETTO A QUOTE INTERE (Scalable e gli altri broker: con l'ordine normale si comprano solo quote
+ //     intere). Per ogni strumento: quote = parte intera di (obiettivo / prezzo di 1 quota, con 0,5% di margine perche'
+ //     il prezzo e' quello di chiusura e durante il giorno si muove). Le 5 azioni: se 1 azione costa piu' della sua
+ //     quota, al suo posto la prima RISERVA (stessa regola, punteggio successivo) che ci sta, max 1 titolo per settore.
+ //     Quello che avanza resta sul conto. Il modello e il registro live non cambiano: e' solo come lo realizzi tu.
+ const MARG=1.005;
+ function piano(p){const righe=[];let spesa=0;
+  const ordine=[];MACRO.forEach(g=>p.composizione.filter(c=>g[1].includes(c.classe)).forEach(c=>ordine.push(c)));
+  ordine.forEach(c=>{const obi=capitale*c.peso/100;
+   if(c.k=="AZ"){const lista=c.titoli||[];if(!lista.length)return;const per=obi/lista.length,ris=(c.riserve||[]).slice(),settori=new Set(lista.map(x=>x.s));
+    lista.forEach(x=>{let t=x,nota=null;
+     if(!x.eur||x.eur*MARG>per){                                // 1 azione costa piu' della quota (o prezzo mancante)
+      settori.delete(x.s);const i=ris.findIndex(r=>r.eur*MARG<=per&&!settori.has(r.s)&&!lista.some(y=>y.t==r.t));
+      if(i>=0){t=ris.splice(i,1)[0];nota=`al posto di ${x.n}${x.eur?` (1 azione &asymp; ${eur(x.eur)})`:""}`;}else{t=null;nota=`${x.n}: 1 azione costa pi&ugrave; della quota e nessuna riserva ci sta, resta sul conto`;}
+      if(t)settori.add(t.s);}
+     if(!t){righe.push({az:true,nome:x.n,tk:x.t,q:0,prezzo:x.eur,obi:per,nota});return;}
+     const q=Math.floor(per/(t.eur*MARG));spesa+=q*t.eur;righe.push({az:true,nome:t.n,tk:t.t,q,prezzo:t.eur,obi:per,nota});});
+    return;}
+   const pr=c.ue&&c.ue.prezzo;
+   if(!pr){righe.push({nome:c.ue?c.ue.nome:c.nome,isin:c.ue&&c.ue.isin,q:null,prezzo:null,obi});return;}
+   const q=Math.floor(obi/(pr*MARG));spesa+=q*pr;
+   righe.push({nome:c.ue.nome,isin:c.ue.isin,q,prezzo:pr,obi,nota:q?null:`1 quota costa pi&ugrave; di ${eur(obi)}: resta sul conto`});});
+  const scost=righe.reduce((a,r)=>a+Math.abs((r.q||0)*(r.prezzo||0)-r.obi),0)/2/(capitale||1)*100;
+  return {righe,spesa,resto:capitale-spesa,scost};}
+ function acquistoHTML(p){const pi=piano(p);if(!pi.righe.length)return "";
+  return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
+    <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>5 azioni</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta (massimo 1 per settore). Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.</div></details></div>
+   <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?` &middot; <em>${r.nota}</em>`:""}</span></div>
+    <div class="pacq-q">${r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
+   <div class="pacq-tot"><span>Investito <b>${eur(pi.spesa)}</b></span><span>Resta sul conto <b>${eur(pi.resto)}</b></span><span>Scostamento dal modello <b>${fx(pi.scost,1)}%</b></span></div>
+   <details class="pacq-come"><summary>Come comprare su Scalable</summary><ol>
+    <li>Copia l'<b>ISIN</b> (o il ticker per le azioni) e cercalo nella barra di ricerca.</li>
+    <li>Premi <b>Acquista</b>: la borsa proposta (es. European Investor Exchange) va bene.</li>
+    <li>Scegli <b>Numero di titoli</b> e scrivi le quote indicate qui sopra.</li>
+    <li><b>Prepara ordine</b>, controlla il totale e conferma, in orario di borsa (09:00-17:30).</li>
+    <li>Niente <b>piano di accumulo</b>: si ripete ogni mese, mentre il portafoglio ruota.</li></ol></details>`;}
+
  // --- RISCHIO DEL MESE della rotazione (v6.41): la composizione di oggi tenuta nello stesso mese di ogni anno dello storico.
  //     1) TERMOMETRO: drawdown peggiore del mese contro il limite del profilo (tacca bianca), verdetto in parole;
  //     2) HEAT MAP: una casella per anno con la %, verde = guadagno, rosso = perdita (piu' intenso = piu' grande);
@@ -444,6 +481,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${hero(p)}
    ${corso(p)}
    <div class="pgrid">${composizione(p)}${contro(p)}</div>
+   <div class="card pacq" id="pacq">${acquistoHTML(p)}</div>
    <h3 class="vft">Andamento del capitale <span class="small">(base 100, scala logaritmica: la stessa percentuale ha la stessa altezza in ogni periodo. Linea turchese = portafoglio, tratteggio = 60/40 di confronto, linea luminosa = live dalla prima rotazione pubblicata)</span></h3>
    <div class="vfswitch pper">${[["tutto","Tutto"],["oos","Dal 2016"]].map(x=>`<button data-per="${x[0]}" class="${per==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
    <div class="card pgraf">${curva(p)}</div>
@@ -503,7 +541,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  // importi in euro senza ridisegnare tutto (il campo resta a fuoco mentre si scrive)
  function aggiornaEuro(p){const pesi=[];MACRO.forEach(g=>p.composizione.filter(c=>g[1].includes(c.classe)).forEach(c=>pesi.push(c.peso)));
   el.querySelectorAll(".pcomp .peur").forEach((e,i)=>{e.textContent=eur(capitale*(pesi[i]||0)/100);});
-  el.querySelectorAll(".paz-p em").forEach(e=>{e.textContent=eur(capitale*(+e.dataset.peso||0)/100);});}
+  el.querySelectorAll(".paz-p em").forEach(e=>{e.textContent=eur(capitale*(+e.dataset.peso||0)/100);});
+  const a=el.querySelector("#pacq");if(a){const aperti=[...a.querySelectorAll("details")].map(d=>d.open);a.innerHTML=acquistoHTML(p);   // v6.91
+   a.querySelectorAll("details").forEach((d,i)=>{d.open=!!aperti[i];});}}
  // tooltip del grafico del rischio del mese: anno, rendimento, max drawdown
  function tipMesi(card,p){if(!card||!p.mese)return;const m=p.mese,box=card.querySelector(".phmbox"),tip=card.querySelector(".phmtip");if(!box)return;
   // interruttore Risultato del mese / Scenario peggiore: ridisegna solo la griglia
