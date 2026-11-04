@@ -251,12 +251,30 @@ def unisci(vecchi, nuovi, oggi):
     return [list(x) for x in vecchi if x[0] >= taglio] + [list(x) for x in nuovi_dopo]
 
 
-def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, riprese=None, chiusura=CHIUSURA_UTC):
+def data_minima(oggi, ora_utc, chiusura):
+    """v6.95 PARACADUTE: data minima che l'ultimo prezzo di un titolo deve avere per essere ancora "fresco".
+    Ultima seduta chiusa = oggi se e' feriale e la borsa dell'area ha gia' chiuso (ora_utc >= chiusura, "HH:MM"),
+    altrimenti il giorno feriale prima. Tolleranza di UNA seduta (il giro dopo recupera): minimo = feriale precedente.
+    Cosi' un giro fallito durante la seduta o con un solo giorno perso NON accende "in manutenzione"."""
+    g = oggi if (oggi.weekday() < 5 and ora_utc >= chiusura) else oggi - timedelta(days=1)
+    while g.weekday() >= 5:
+        g -= timedelta(days=1)
+    g -= timedelta(days=1)
+    while g.weekday() >= 5:
+        g -= timedelta(days=1)
+    return g.isoformat()
+
+
+def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, riprese=None, chiusura=CHIUSURA_UTC,
+             ora_utc=None):
     """Aggiorna le copie grezze (cartella/grezzi/<T>.json). Restituisce lo stato del giro:
     {quando, ok, copia [titoli rimasti alla copia], falliti [senza nessun dato], fermo (Yahoo giu'), anomalia}."""
     oggi = oggi or date.today()
     titoli = titoli if titoli is not None else [x["t"] for x in elenco()] + [i[0] for i in INDICI]
     stato = {"quando": ora_italia().strftime("%Y-%m-%d %H:%M"), "ok": 0, "copia": [], "falliti": [], "fermo": False}
+    ora_utc = ora_utc or datetime.now(timezone.utc).strftime("%H:%M")
+    minimo = data_minima(oggi, ora_utc, chiusura)    # sotto questa data la copia di un titolo e' "vecchia"
+    vecchie = set()                                  # titoli rimasti con dati vecchi (o senza dati): solo loro contano
     di_fila = 0
     # riprese dopo un blocco: solo nel giro vero (pausa > 0); nei test (pausa=0) ci si ferma subito come prima
     riprese = list(RIPRESE if pausa else ()) if riprese is None else list(riprese)
@@ -330,10 +348,16 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, rip
             if di_fila <= DI_FILA:
                 ultimi.append(t)
             (stato["copia"] if vecchio.get("d") else stato["falliti"]).append(t)
+            if not vecchio.get("d") or vecchio["d"][-1][0] < minimo:
+                vecchie.add(t)
     stato["fermo"] = di_fila >= DI_FILA
     mancati = len(stato["copia"]) + len(stato["falliti"])
     stato["anomalia"] = None
-    if stato["fermo"] or (titoli and mancati / len(titoli) > SOGLIA_ANOMALIA):
+    # v6.95: l'avviso "in manutenzione" scatta SOLO se i dati sono davvero vecchi (oltre una seduta di ritardo).
+    # Yahoo bloccato ma copie fresche = nessun avviso (solo log): il sito mostra dati corretti.
+    vecchie &= set(stato["copia"]) | set(stato["falliti"])      # tolti quelli recuperati dopo la pausa
+    stato["vecchi"] = len(vecchie)
+    if titoli and len(vecchie) / len(titoli) > SOGLIA_ANOMALIA:
         stato["anomalia"] = {"codice": CODICE_ERRORE, "quando": stato["quando"]}
         log.error("azioni: aggiornamento non riuscito (%s): %d titoli non aggiornati su %d%s",
                   stato["quando"], mancati, len(titoli), ", Yahoo fermo" if stato["fermo"] else "")

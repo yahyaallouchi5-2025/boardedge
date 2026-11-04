@@ -275,10 +275,38 @@ class TestTreGiri(unittest.TestCase):
         with mock.patch.object(A, "elenco", return_value=el), mock.patch.object(A, "INDICI", []), \
                 mock.patch.object(A, "scarica", sca), mock.patch.object(A, "PAUSA", 0), \
                 mock.patch("cot_radar.azioni.aggiorna.__defaults__",
-                           (None, None, sca, 0, None, A.CHIUSURA_UTC)):
+                           (None, None, sca, 0, None, A.CHIUSURA_UTC, None)):
             A.main(["x", self.dir, "--area", "europa"])
             self.assertEqual(set(chiesti), {"BBB.MI"})
             st = json.load(open(os.path.join(self.dir, "stato.json")))
             self.assertEqual(st["area"], "europa")
             self.assertIn("europa", st["aree"])
             self.assertIsNone(st["anomalia"])
+
+
+class TestParacadute(unittest.TestCase):
+    """v6.95: "in manutenzione" solo se i dati sono davvero vecchi (oltre una seduta), non per un giro fallito."""
+
+    def test_data_minima(self):
+        from datetime import date
+        mer = date(2026, 11, 4)
+        self.assertEqual(A.data_minima(mer, "17:17", "21:00"), "2026-11-02")   # seduta USA aperta: ultima = mar 3
+        self.assertEqual(A.data_minima(mer, "21:30", "21:00"), "2026-11-03")   # dopo la chiusura: ultima = mer 4
+        self.assertEqual(A.data_minima(date(2026, 11, 9), "08:00", "21:00"), "2026-11-05")  # lunedi': ven 6 -> gio 5
+
+    def test_yahoo_fermo_ma_copie_fresche_niente_avviso(self):
+        import tempfile, shutil
+        from datetime import date
+        d = tempfile.mkdtemp()
+        try:
+            for t in ("AAA", "BBB"):
+                A._scrivi(os.path.join(d, "grezzi", t + ".json"),
+                          {"t": t, "d": [["2026-11-02", 10.0], ["2026-11-03", 10.5]], "agg_full": "2026-11-03"})
+            giu = lambda *a, **k: None                                        # Yahoo non risponde
+            st = A.aggiorna(d, ["AAA", "BBB"], oggi=date(2026, 11, 4), scarica=giu, pausa=0, ora_utc="17:17")
+            self.assertEqual(st["ok"], 0)
+            self.assertIsNone(st["anomalia"])                                 # dati al 3/11: ancora freschi
+            st = A.aggiorna(d, ["AAA", "BBB"], oggi=date(2026, 11, 6), scarica=giu, pausa=0, ora_utc="22:00")
+            self.assertIsNotNone(st["anomalia"])                              # 2 sedute perse: avviso giusto
+        finally:
+            shutil.rmtree(d, ignore_errors=True)
