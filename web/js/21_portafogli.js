@@ -182,7 +182,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="phmleg">${hmLeg(hmModo)}</div>
    <div class="pmini">${k("Peggior "+m.mese,pc(m.peggiore[1]),String(m.peggiore[0]),"down")}${k(m.mese[0].toUpperCase()+m.mese.slice(1)+" medio",pc(m.media),`su ${m.n} anni`,m.media>=0?"up":"down")}
     ${k("Anni positivi",`${m.positivi} su ${m.n}`,`win rate ${wr}%`)}${k("Max drawdown storico",pc(ddTot),"intero backtest del profilo","down")}</div>
-   ${m.mercati.length?`<div class="pstag"><div class="pstag-t">Stagionalit&agrave; di ${m.mese} per mercato <span class="small">(informativa)</span></div>${m.mercati.map(x=>`<div class="pstag-r"><span>${esc(nomeK(x.k))}</span><i><s class="${x.media>=0?"su":"giu"}" style="width:${Math.min(100,Math.abs(x.media)*8)}%"></s></i><b class="${x.media>=0?"up":"down"}">${pc(x.media)}</b><em>${x.pos}% positivi &middot; ${x.n} anni</em></div>`).join("")}</div>`:""}</div>`;}
+   ${m.mercati.length?`<div class="pstag"><div class="pstag-t">Stagionalit&agrave; di ${m.mese} per mercato <span class="small">(informativa)</span></div>${m.mercati.map(x=>`<div class="pstag-r"><span>${esc(nomeK(x.k))}</span><i><s class="${x.media>=0?"su":"giu"}" style="width:${Math.min(100,Math.abs(x.media)*8)}%"></s></i><b class="${x.media>=0?"up":"down"}">${pc(x.media)}</b><em><span>${x.pos}% positivi</span><span>${x.n} anni</span></em></div>`).join("")}</div>`:""}</div>`;}
 
 
  // --- MESE IN CORSO (v6.43): come sta andando adesso il portafoglio del profilo scelto, dalla rotazione a oggi.

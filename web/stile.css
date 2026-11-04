@@ -946,15 +946,17 @@ html.cbloccato,html.cbloccato body{overflow:hidden}
 .pmini b.up{color:var(--b)}.pmini b.down{color:var(--s)}
 .pstag{display:flex;flex-direction:column;gap:6px;flex-wrap:nowrap;align-items:stretch}
 .pstag-t{font-size:12.5px;font-weight:700;color:var(--ink2);margin-bottom:2px}
-.pstag-r{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) 58px 84px;gap:10px;align-items:center;font-size:12.5px;padding:3px 2px;border-radius:7px}
+.pstag-r{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(60px,1fr) 58px max-content;gap:10px;align-items:center;font-size:12.5px;padding:3px 2px;border-radius:7px}
 .pstag-r:hover{background:color-mix(in srgb,var(--soft) 70%,transparent)}
 .pstag-r>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)}
 .pstag-r i{height:6px;border-radius:99px;background:var(--soft);overflow:hidden;display:block}
 .pstag-r s{display:block;height:100%;border-radius:99px}.pstag-r s.su{background:var(--sb)}.pstag-r s.giu{background:var(--s)}
 .pstag-r b{text-align:right;font-variant-numeric:tabular-nums}.pstag-r b.up{color:var(--b)}.pstag-r b.down{color:var(--s)}
 .pstag-r em{font-style:normal;color:var(--mute);text-align:right;white-space:nowrap}
+/* v6.92: "% positivi" e "anni" uno sotto l'altro (PC e telefono): la colonna resta stretta e niente testo fuori card */
+.pstag-r em{display:flex;flex-direction:column;font-size:11px;line-height:1.25}
 @media (max-width:600px){.paz-r{grid-template-columns:minmax(0,1fr) auto 58px}.paz-s{display:none}.paz-b{visibility:hidden}.paz-b.no{visibility:visible}
- .pdd b{font-size:34px}.pstag-r{grid-template-columns:minmax(0,1fr) 54px 74px}.pstag-r i{display:none}
+ .pdd b{font-size:34px}.pstag-r{grid-template-columns:minmax(0,1fr) 54px max-content}.pstag-r i{display:none}
  .ptesta{align-items:flex-start}}
 /* conto alla rovescia al prossimo ribilanciamento (21_portafogli.js, conto()): pillola discreta, cifre a larghezza fissa */
 .pcount{padding:4px 4px 4px 12px;border-radius:99px;border:1px solid var(--line);background:color-mix(in srgb,var(--card) 70%,transparent);font-size:13px}
