@@ -461,7 +461,12 @@ h3.vft+p.sub.infotesto.aperta{text-transform:none;letter-spacing:0;font-size:14p
 .phcomp h4,.phaz h4{margin:0 0 12px;font-size:12.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink2)}.phaz h4 .small{text-transform:none;letter-spacing:0}
 .phbar{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:center;margin-bottom:12px}
 .phbar span{font-size:15px;font-weight:650}.phbar b{font-variant-numeric:tabular-nums;font-size:15px}
-.phbar i{grid-column:1/-1;height:8px;border-radius:99px;background:var(--soft);overflow:hidden}.phbar s{display:block;height:100%;border-radius:99px;transition:width .4s}
+.phbar i{grid-column:1/-1;height:8px;border-radius:99px;background:var(--soft)}
+/* v6.92: barre accese = sfumatura dal colore schiarito al colore pieno + alone dello stesso colore */
+.phbar s{display:block;height:100%;border-radius:99px;transition:width .4s,box-shadow .2s;
+ background:linear-gradient(90deg,color-mix(in srgb,var(--cb) 62%,#fff),var(--cb));
+ box-shadow:0 0 10px color-mix(in srgb,var(--cb) 60%,transparent),0 0 2px color-mix(in srgb,var(--cb) 80%,transparent);filter:saturate(1.35)}
+.phbar:hover s{box-shadow:0 0 16px color-mix(in srgb,var(--cb) 75%,transparent),0 0 3px var(--cb)}
 .ptit{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
 .ptit .pchip{font:inherit;font-weight:700;font-size:13px;padding:6px 10px;border-radius:9px;border:1px solid var(--line);color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:border-color .15s,transform .15s}
 .ptit .pchip small{color:var(--mute);font-size:12px}.ptit .pchip:hover{border-color:var(--acc);transform:translateY(-1px)}

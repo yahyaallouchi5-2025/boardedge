@@ -139,7 +139,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <details class="pacq-come"><summary>Come comprare su Scalable</summary><ol>
     <li>Copia l'<b>ISIN</b> (o il ticker per le azioni) e cercalo nella barra di ricerca.</li>
     <li>Premi <b>Acquista</b>: la borsa proposta (es. European Investor Exchange) va bene.</li>
-    <li>Scegli <b>Numero di titoli</b> e scrivi le quote indicate qui sopra.</li>
+    <li>Passa da <b>Importo target</b> alla scheda <b>Numero di titoli</b> e scrivi le quote indicate qui sopra (con l'importo Scalable arrotonda per difetto alle quote intere).</li>
     <li><b>Prepara ordine</b>, controlla il totale e conferma, in orario di borsa (09:00-17:30).</li>
     <li>Niente <b>piano di accumulo</b>: si ripete ogni mese, mentre il portafoglio ruota.</li></ol></details>`;}
 
@@ -300,7 +300,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     const eu=p.valuta=="EUR";
     return `<div class="pheur"><span class="pheurl">${eu?"&euro; In euro":"$ In dollari"}</span>${t.oltre_liq!=null?`<span>oltre la liquidit&agrave; <b class="${t.oltre_liq>=0?"up":"down"}">${pc(t.oltre_liq)}</b> l'anno</span>`:""}${t.calmar!=null?`<span>Calmar <b>${fx(t.calmar,2)}</b></span>`:""}<span>recupero dal drawdown peggiore <b>${t.recupero_mesi!=null?t.recupero_mesi+" mesi":"in corso"}</b></span>
      <details class="info pheuri"><summary title="Come si misura" aria-label="Informazioni">i</summary><div><b>Numeri prudenti${eu?", in euro":""}.</b> ${eu?"Ogni mercato &egrave; convertito in euro senza copertura del cambio; la liquidit&agrave; rende il tasso BCE sui depositi (come l'ETF overnight indicato). ":""}L'acquisto &egrave; contato alla chiusura del giorno di rotazione (un po' peggio dell'acquisto reale alle 09:00), costi 0,10% inclusi. Le 5 azioni scelte sono contate come l'S&amp;P 500: lo storico usa i titoli che oggi sono negli indici e sarebbe ottimista.${sel?` Con la selezione vera dei 5 titoli: <b>${pc(sel.cagr)}</b> l'anno.`:""}${usd?` In dollari: <b>${pc(usd.cagr)}</b> l'anno, max drawdown ${pc(usd.maxdd)}.`:""}${t.liq_cagr!=null?` Liquidit&agrave; in euro nello stesso periodo: ${pc(t.liq_cagr)} l'anno.`:""} Calmar = rendimento annuo diviso il drawdown massimo (pi&ugrave; alto = meglio).</div></details></div>`;})()}
-   <div class="phcomp"><h4>Composizione del mese</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;background:${CL[x[0]]}"></s></i></div>`).join("")}</div>
+   <div class="phcomp"><h4>Composizione del mese</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;--cb:${CL[x[0]]}"></s></i></div>`).join("")}</div>
    <div class="phaz"><h4>Le 5 azioni del mese <span class="small">(${p.az}% del portafoglio${az&&az.titoli&&az.titoli.length?`, ${fx(az.peso_titolo,1)}% ciascuna`:""})</span></h4>
     ${pausa?`<div class="small">${esc(pausa.motivo)}.</div>`:az&&az.titoli&&az.titoli.length?`<div class="ptit">${az.titoli.map(x=>`<button class="pchip clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">${esc(x.t)} <small>${esc(x.n)}</small></button>`).join("")}</div>`
      :`<div class="small">I titoli vengono scelti l'ultimo giorno di borsa del mese, dopo la chiusura, e entrano con la rotazione del ${gg(P.prossima)}.</div>`}</div>
