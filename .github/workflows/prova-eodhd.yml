@@ -1,0 +1,71 @@
+# prova-eodhd.yml - PROVA del fornitore EODHD con la chiave GRATUITA (20 chiamate al giorno): cosa offre in piu' di Yahoo.
+# La chiave sta SOLO nei Secrets di GitHub (EODHD_API_KEY): non viene mai scritta nei log ne' nei file.
+# Risultato: ramo "prova-eodhd", file eodhd.json (conteggi per borsa e per tipo di strumento, prova prezzi, ricerca ISIN).
+# Si lancia a mano (Actions -> Prova EODHD -> Run workflow). Usa 17 chiamate su 20.
+name: Prova EODHD
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prova:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Interroga EODHD
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: |
+          mkdir out && cd out
+          python3 -u - <<'PY'
+          import collections, json, os, time, urllib.error, urllib.request
+          KEY = os.environ.get("EODHD_API_KEY", "")
+          if not KEY:
+              raise SystemExit("manca il secret EODHD_API_KEY")
+          BASE = "https://eodhd.com/api/"
+          def get(path, extra=""):
+              """una chiamata = un'unita' del limite giornaliero; ritorna (codice http, json o None). Nessun URL nei log."""
+              url = f"{BASE}{path}?api_token={KEY}&fmt=json{extra}"
+              try:
+                  req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/prova-eodhd"})
+                  with urllib.request.urlopen(req, timeout=60) as r:
+                      return r.status, json.load(r)
+              except urllib.error.HTTPError as e:
+                  return e.code, None
+              except Exception as e:
+                  return type(e).__name__, None
+          out = {"quando": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
+          # 1) quante borse
+          c, js = get("exchanges-list/")
+          out["borse"] = {"http": c, "totale": len(js) if js else None,
+                          "elenco": [[x.get("Code"), x.get("Name"), x.get("Country"), x.get("Currency")] for x in js or []]}
+          print("borse:", c, out["borse"]["totale"])
+          # 2) quanti strumenti per borsa e per tipo (azioni, ETF, fondi...)
+          out["simboli"] = {}
+          for ex, extra in (("US", ""), ("US", "&delisted=1"), ("XETRA", ""), ("MI", ""), ("PA", ""), ("LSE", ""),
+                            ("AS", ""), ("SW", ""), ("TO", ""), ("FOREX", ""), ("CC", ""), ("INDX", "")):
+              c, js = get(f"exchange-symbol-list/{ex}", extra)
+              nome = ex + (" (delistati)" if extra else "")
+              tipi = collections.Counter(x.get("Type") for x in js or [])
+              out["simboli"][nome] = {"http": c, "totale": len(js) if js else None, "per_tipo": dict(tipi.most_common(8))}
+              print(nome, c, len(js) if js else None)
+          # 3) prova prezzi: ETF su Xetra, azione USA, cambio (ultimi 10 giorni)
+          out["prezzi"] = {}
+          for s in ("SXR8.XETRA", "EXPD.US", "EURUSD.FOREX"):
+              c, js = get(f"eod/{s}", "&from=" + time.strftime("%Y-%m-%d", time.gmtime(time.time() - 14 * 86400)))
+              out["prezzi"][s] = {"http": c, "ultimi": [[x.get("date"), x.get("close"), x.get("adjusted_close")] for x in (js or [])[-5:]]}
+              print(s, c)
+          # 4) ricerca per ISIN (oggi la facciamo su Yahoo per i prezzi in euro degli ETF)
+          c, js = get("search/IE00B5BMR087")
+          out["ricerca_isin"] = {"http": c, "risultati": [[x.get("Code"), x.get("Exchange"), x.get("Currency"), x.get("Type")] for x in js or []]}
+          print("ricerca isin:", c)
+          json.dump(out, open("eodhd.json", "w"), indent=1, ensure_ascii=False)
+          PY
+      - name: Salva nel ramo "prova-eodhd"
+        run: |
+          cd out
+          git init -q -b prova-eodhd
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "prova EODHD: $(date -u +%F)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" prova-eodhd:prova-eodhd
