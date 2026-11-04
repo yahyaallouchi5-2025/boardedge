@@ -8,6 +8,7 @@ import sys
 import tempfile
 import unittest
 from datetime import date, timedelta
+from unittest import mock
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -129,3 +130,28 @@ class MeseChiuso(unittest.TestCase):
         self.assertFalse(S2.mese_chiuso(date(2026, 11, 1)))                  # domenica 1 novembre: novembre e' appena iniziato
         self.assertFalse(S2.mese_chiuso(date(2026, 10, 28)))                 # mercoledi': restano giorni di borsa
         self.assertFalse(S2.mese_chiuso(date(2026, 10, 30)))                 # venerdi' 30 in un test: ora 0, non chiuso
+
+
+class Acquistabili(unittest.TestCase):
+    """v6.90: niente Tokyo/Hong Kong nelle 5 azioni; sostituzioni dei mesi gia' registrati."""
+
+    def test_tokyo_e_hong_kong_esclusi(self):
+        self.assertTrue("6532.T".endswith(S.NON_UE))
+        self.assertTrue("0005.HK".endswith(S.NON_UE))
+        self.assertFalse("ENI.MI".endswith(S.NON_UE))
+
+    def test_sostituzione_non_tocca_il_registro(self):
+        import tempfile, shutil
+        d = tempfile.mkdtemp()
+        try:
+            os.makedirs(os.path.join(d, "grezzi"))
+            json.dump({"d": [["2026-10-29", 190.0], ["2026-10-30", 198.85]]}, open(os.path.join(d, "grezzi", "EXPD.json"), "w"))
+            reg = {"2026-11": {"dal": "2026-10-30", "titoli": [{"t": "6532.T", "n": "Baycurrent", "s": "ind", "p0": 1.0}]}}
+            with mock.patch.object(S, "SOSTITUZIONI", {"2026-11": {"6532.T": "EXPD"}}):
+                e = S.con_sostituzioni(d, reg, [])
+            self.assertEqual(e["2026-11"]["titoli"][0]["t"], "EXPD")
+            self.assertEqual(e["2026-11"]["titoli"][0]["p0"], 198.85)        # prezzo del giorno di registrazione
+            self.assertEqual(e["2026-11"]["titoli"][0]["sost"], "6532.T")
+            self.assertEqual(reg["2026-11"]["titoli"][0]["t"], "6532.T")      # registro originale intatto
+        finally:
+            shutil.rmtree(d, ignore_errors=True)

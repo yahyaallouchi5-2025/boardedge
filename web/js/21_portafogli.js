@@ -86,7 +86,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    const quota=lista.length?c.peso/lista.length:0;
    if(lista.length)tit=`<div class="paz">${reg?"":`<div class="paz-ante"><b>Anteprima per ${MESI[+an.mese.slice(5,7)-1]}</b> &middot; calcolata il ${gg(an.al)} con i prezzi di oggi. La lista definitiva si fissa l'ultimo giorno di borsa dopo la chiusura ed entra il ${gg(P.prossima)}.</div>`}
     ${lista.map(x=>{const b=borsa(x.t),sett=(SETT[x.s]||[x.s||""])[0];return `<button class="paz-r clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">
-     <span class="paz-id"><b>${esc(x.t)}</b><span class="paz-n">${esc(x.n)}</span><span class="paz-isin" data-isinaz="${esc(x.t)}" hidden></span></span><span class="paz-s">${esc(sett)}</span><span class="paz-b${b[1]?"":" no"}" title="${b[1]?"Borsa di quotazione":"Di solito non acquistabile dai broker europei per privati"}">${b[0]}</span><span class="paz-p"><b>${fx(quota,1)}%</b><em data-peso="${quota}">${eur(capitale*quota/100)}</em></span></button>`;}).join("")}</div>`;
+     <span class="paz-id"><b>${esc(x.t)}</b><span class="paz-n">${esc(x.n)}</span>${x.sost?`<span class="paz-sost" title="${esc(x.sost_n||x.sost)} (${esc(x.sost)}) non si compra su Scalable: sostituito dal candidato acquistabile successivo, stessi filtri">al posto di ${esc(x.sost_n||x.sost)}</span>`:""}<span class="paz-isin" data-isinaz="${esc(x.t)}" hidden></span></span><span class="paz-s">${esc(sett)}</span><span class="paz-b${b[1]?"":" no"}" title="${b[1]?"Borsa di quotazione":"Di solito non acquistabile dai broker europei per privati"}">${b[0]}</span><span class="paz-p"><b>${fx(quota,1)}%</b><em data-peso="${quota}">${eur(capitale*quota/100)}</em></span></button>`;}).join("")}</div>`;
    else tit=`<div class="small paz-vuoto">I 5 titoli si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.</div>`;}
   // l'elenco dei titoli sta su una riga a parte della griglia, a tutta larghezza (leggibile anche su telefono)
   return `<div class="prow${c.k=="AZ"?" prow-az":""}"><i style="background:${col}"></i><div class="pnome"><b>${esc(c.nome)}</b>${ue}<em>${mot}</em></div>
@@ -339,7 +339,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      else{if(!reg){spazio(28);y+=d.paragrafo(M+20,y+2,`Anteprima per ${MESI[+az.anteprima.mese.slice(5,7)-1]}, calcolata il ${gg(az.anteprima.al)} con i prezzi di quel giorno: la lista definitiva si fissa l'ultimo giorno di borsa ed entra il ${gg(P.prossima)}.`,xP-M-30,{s:7.8,c:C.warn})+4;}
       lista.forEach(x=>{spazio(26);const b=borsa(x.t),st=(SETT[x.s]||[x.s||""])[0];
        d.rett(M+20,y,LW-28,22,{f:"#fafbfd",s:C.line,lw:.4,r:4});
-       d.testo(M+28,y+9.5,x.t,{s:8.2,b:true});d.testo(M+28+d.larghezza(x.t,8.2,true)+6,y+9.5,d.taglia(x.n,xP-M-110,8.2),{s:8.2});
+       d.testo(M+28,y+9.5,x.t,{s:8.2,b:true});d.testo(M+28+d.larghezza(x.t,8.2,true)+6,y+9.5,d.taglia(x.n+(x.sost?" (al posto di "+(x.sost_n||x.sost)+")":""),xP-M-110,8.2),{s:8.2});
        d.testo(M+28,y+18.5,[st,b[0]+(b[1]?"":" (di solito non acquistabile in Europa)"),isin[x.t]?"ISIN "+isin[x.t]:""].filter(Boolean).join("  ·  "),{s:7,c:isin[x.t]?C.acc:C.mute});
        d.testo(xP,y+14,fx(q,1)+"%",{s:8.5,b:true,a:"r"});d.testo(xI,y+14,eur(capitale*q/100),{s:8.5,a:"r"});y+=26;});}}
     d.linea(M+20,y-3,PW-M,y-3,{c:C.line,lw:.4});});});

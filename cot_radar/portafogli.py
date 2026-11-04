@@ -988,7 +988,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None):
     reg = ((sat or {}).get("registro") or {}).get(mese_rot)
     ante = (sat or {}).get("anteprima") or None       # anteprima dei titoli del mese prossimo (provvisoria)
     if reg:
-        titoli_az = [{"t": x["t"], "n": x["n"], "s": x["s"]} for x in reg["titoli"]]
+        titoli_az = [{"t": x["t"], "n": x["n"], "s": x["s"], **({"sost": x["sost"], "sost_n": x.get("sost_n")} if x.get("sost") else {})}
+                     for x in reg["titoli"]]                # v6.90: "sost" = al posto di un titolo non acquistabile
     else:
         ult = [x for x in (sat or {}).get("storico") or [] if x[0] == mese_rot]
         titoli_az = [{"t": t, "n": t, "s": None} for t in (ult[0][2] if ult and len(ult[0]) > 2 else [])]

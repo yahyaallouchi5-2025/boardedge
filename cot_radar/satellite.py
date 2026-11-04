@@ -46,7 +46,15 @@ SFIDANTE = "satellite_sfidante.json"   # registro separato dello sfidante a 10 t
 SFIDANTE_N = 10
 # v6.57: borse di solito NON accessibili ai privati dai broker europei (India, Cina continentale): i loro titoli
 # restano nell'Azionario ma non entrano nelle 5 azioni dei portafogli (non si potrebbero comprare davvero).
-NON_UE = (".NS", ".BO", ".SS", ".SZ")
+# v6.90: anche TOKYO (.T) e HONG KONG (.HK): su Scalable Capital (il broker di riferimento) si comprano solo titoli
+# con ISIN quotati in euro, e le azioni giapponesi/di Hong Kong di solito non ci sono (es. Baycurrent, novembre 2026).
+# Se il migliore non e' acquistabile si passa al candidato successivo che supera gli stessi filtri, anche di un
+# altro settore (sempre al massimo 1 titolo per settore).
+NON_UE = (".NS", ".BO", ".SS", ".SZ", ".T", ".HK")
+# v6.90 SOSTITUZIONI nei mesi gia' registrati PRIMA della regola nuova (il registro non si riscrive mai): i titoli non
+# acquistabili sono sostituiti dal candidato acquistabile che la regola v6.90 avrebbe scelto alla stessa data, con
+# il prezzo di chiusura del giorno di registrazione (stessa partenza degli altri titoli del mese).
+SOSTITUZIONI = {"2026-11": {"6532.T": "EXPD", "2801.T": "LYB"}}
 
 
 # --------------------------------------------------------------------------- mesi come numeri interi
@@ -247,6 +255,33 @@ def registra(cartella, titoli, oggi, ora=None):
     return reg
 
 
+def con_sostituzioni(cartella, reg, titoli):
+    """Copia del registro con le SOSTITUZIONI applicate (il file del registro resta com'e'). Ogni titolo sostituito
+    porta "sost" e "sost_n" (ticker e nome del titolo registrato all'origine) per la pagina."""
+    nomi = {x.t: (x.nome, x.s) for x in titoli or []}
+    out = {}
+    for mese, v in reg.items():
+        cambi = SOSTITUZIONI.get(mese) or {}
+        voci = []
+        for x in v["titoli"]:
+            nuovo = cambi.get(x["t"])
+            p0 = _prezzo_al_giorno(cartella, nuovo, v["dal"]) if nuovo else None
+            if nuovo and p0:
+                n, s = nomi.get(nuovo, (nuovo, x["s"]))
+                voci.append({"t": nuovo, "n": n, "s": s, "p0": p0, "sost": x["t"], "sost_n": x["n"]})
+            else:
+                voci.append(x)
+        out[mese] = dict(v, titoli=voci)
+    return out
+
+
+def _prezzo_al_giorno(cartella, t, giorno):
+    """Ultimo prezzo di chiusura del titolo entro il giorno 'AAAA-MM-GG' (None se manca)."""
+    rec = A._leggi(os.path.join(cartella, "grezzi", A._nome_file(t) + ".json")) or {}
+    d = [x for x in rec.get("d") or [] if x[0] <= giorno]
+    return d[-1][1] if d else None
+
+
 def live(cartella, reg):
     """Indice giornaliero della quota dal primo mese registrato: [[data, valore]] (parte da 1).
     Ogni mese: media dei titoli registrati (prezzo / prezzo di registrazione; posti vuoti = 1), concatenata."""
@@ -334,6 +369,7 @@ def calcola(cartella, oggi=None, titoli=None, anomalia=False):
     reg = A._leggi(os.path.join(cartella, REGISTRO)) or {}
     if not anomalia and tt:
         reg = registra(cartella, tt, oggi)
+    reg_eff = con_sostituzioni(cartella, reg, tt)          # v6.90: titoli acquistabili su Scalable
     cur = _n(oggi.strftime("%Y-%m"))
     # v6.62: il mese corrente e' CHIUSO anche prima del 1 del mese dopo se non restano giorni di borsa (es. sabato 31
     # ottobre, o venerdi' 30 dopo la chiusura): prima ottobre restava fuori fino a novembre e nel portafoglio la quota
@@ -353,7 +389,7 @@ def calcola(cartella, oggi=None, titoli=None, anomalia=False):
     except Exception as e:
         log.warning("satellite: sfidante a 10 titoli non calcolato: %s", e)
     dati = {"aggiornato": oggi.isoformat(), "n": N, "costo": COSTO, "live_dal": LIVE_DAL, "titoli_universo": len(tt),
-            "storico": st, "live": live(cartella, reg), "registro": reg, "anteprima": ante,
+            "storico": st, "live": live(cartella, reg_eff), "registro": reg_eff, "anteprima": ante,
             "sfidante10": sf10,
             # nomi dei titoli scelti negli ultimi 13 mesi dello storico (per mostrarli nelle rotazioni)
             "nomi": {x.t: x.nome for x in tt if any(x.t in m[2] for m in st[-13:])},
