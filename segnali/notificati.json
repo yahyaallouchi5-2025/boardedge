@@ -1,7 +1,7 @@
 {
- "ultimo_n": 64,
- "hash": "e8755fb8c8b5d77d0a9bd822b27a5fde25495208c739cd9191cbe07d2721f985",
- "riepilogo_cot": "2026-10-27",
+ "ultimo_n": 79,
+ "hash": "c1fb32b92704293ec06d103c5fbf8c6c3f6597979df8f29061056b4794449977",
+ "riepilogo_cot": "2026-11-03",
  "agenda": {
   "arrivo": {
    "canada-cpi-october-2026": "2026-10-19",
@@ -39,5 +39,5 @@
   "settimana": "2026-11-09"
  },
  "briefing": "2026-11-02",
- "aggiornato": "2026-11-06T21:02Z"
+ "aggiornato": "2026-11-06T22:20Z"
 }
