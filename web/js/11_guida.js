@@ -18,6 +18,7 @@ $("guide").innerHTML=`
 <ul><li><b>Come si misura</b>: in euro senza copertura del cambio, liquidit&agrave; al tasso BCE, acquisto alla chiusura del giorno di rotazione, costi inclusi. Regole decise sui dati fino al 2015 e verificate dal 2016.</li>
 <li><b>Acquisto diretto</b>: quante quote intere comprare con il tuo capitale; quello che avanza e la liquidit&agrave; del modello restano sul conto.</li>
 <li><b>Prezzi</b>: durante la giornata, ogni 15 minuti, con il ritardo di borsa (circa 15-20 minuti). Le decisioni usano solo le chiusure.</li>
+<li><b>Crisi storiche</b>: drawdown di ogni profilo nelle grandi crisi dal 2006 (2008, 2011, 2015, 2018, 2020, 2022, 2025) contro l'S&amp;P 500, chi ha difeso il portafoglio e quali mercati sono saliti. Le crisi non sono tutte uguali: in quelle di crescita difendono Treasury e oro, in quelle di inflazione materie prime e oro, nei crolli improvvisi la liquidit&agrave; del filtro di trend.</li>
 <li><b>Simulatore</b>: cosa sarebbe successo partendo in ogni mese dello storico, con o senza leva, e la rendita annua che lo storico avrebbe sostenuto per 10 anni.</li></ul>
 <h3>10. Azionario</h3><p>Oltre mille titoli di Stati Uniti, Europa e Asia, divisi negli 11 settori. Ogni sera ogni titolo riceve un <b>punteggio 0-100</b> confrontandolo con tutti gli altri: forza degli ultimi 12 e 3 mesi, <b>trend</b> (prezzo sopra o sotto la media a 200 giorni) e stagionalit&agrave; del mese in corso.</p>
 <ul><li><b>Settori</b>: rendimento medio da inizio anno e quota di titoli in trend rialzista.</li>
