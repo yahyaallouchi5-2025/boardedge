@@ -384,3 +384,17 @@ class CrisiStoriche(unittest.TestCase):
         m = P.crisi_mercati(g, giorni[0])
         self.assertEqual(len(m), len(P.CRISI))
         self.assertTrue(all(c["sp"]["dd"] <= 0 for c in m))
+
+
+class LiquiditaBCE(unittest.TestCase):
+    """v7.5: con il tasso BCE sotto zero la liquidita' resta sul conto a 0% (niente XEON che perde ogni giorno)."""
+
+    def test_tasso_sotto_zero(self):
+        from cot_radar import portafogli as P
+        self.assertEqual(P.tasso_liquidita(-0.5), 0.0)
+        self.assertEqual(P.tasso_liquidita(2.0), 2.0)
+        px = P.prezzi_demo(inizio="2014-01-02", fine="2016-12-30")
+        g = P.Griglia(px)
+        fx = {d: 1.1 for d in g.date}
+        curva = P.simula_prudente(g, {1: {"CASH": 1.0}}, 0, fx=fx, tassi={d: -0.5 for d in g.date})
+        self.assertAlmostEqual(curva[-1][1], curva[1][1], places=6)        # ferma, non scende

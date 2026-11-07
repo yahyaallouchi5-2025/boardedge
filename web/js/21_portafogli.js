@@ -128,7 +128,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      const q=Math.floor(per/(t.eur*MARG));spesa+=q*t.eur;righe.push({az:true,nome:t.n,tk:t.t,q,prezzo:t.eur,obi:per,nota});});
     return;}
    // v7.1 LIQUIDITA' SUL CONTO: niente ETF overnight da comprare, la quota resta sul conto del broker (interessi)
-   if(c.k=="CASH"){righe.push({cash:true,nome:"Liquidità sul conto",obi,real:obi,q:null,prezzo:null});return;}
+   // v7.5 regola BCE: tasso sui depositi sotto zero = niente XEON (perde ogni giorno), si resta sul conto a 0%
+   if(c.k=="CASH"){const t=P.tasso_bce,neg=t!=null&&t<=0;
+    righe.push({cash:true,neg,nome:"Liquidità sul conto",obi,real:obi,q:null,prezzo:null,
+     nota:t==null?null:neg?`tasso BCE ${fx(t,2)}%: niente XEON`:`oppure XEON (LU0290358497) &middot; tasso BCE ${fx(t,2)}%`});return;}
    const lv=window.ebLive&&ebLive.ue&&ebLive.ue[c.k],pr=(lv&&lv.p)||(c.ue&&c.ue.prezzo);   // v7.1: intraday se c'e'
    if(!pr){righe.push({nome:c.ue?c.ue.nome:c.nome,isin:c.ue&&c.ue.isin,q:null,prezzo:null,obi});return;}
    const q=Math.floor(obi/(pr*MARG));spesa+=q*pr;
@@ -143,7 +146,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
     <span class="plive${ora&&oggi?" on":""}" title="${ora?"Prezzi intraday con il ritardo di borsa (circa 15-20 minuti)":"Prezzi di chiusura dell'ultima seduta"}"><i></i>${ora?(oggi?`prezzi delle ${ora} &middot; ritardo ~15 min`:`ultimi prezzi: ${ora}`):"prezzi di chiusura"}</span>
     <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>5 azioni</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta (massimo 1 per settore). Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.</div></details></div>
-   <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash?"nessun acquisto":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?` &middot; <em>${r.nota}</em>`:""}</span></div>
+   <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash&&!r.nota?"nessun acquisto":r.cash?"":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?(r.cash&&!r.neg?r.nota:`${r.cash?"":" &middot; "}<em>${r.nota}</em>`):""}</span></div>
     <div class="pacq-q">${r.cash?`<b>${eur(r.obi)}</b><span>resta sul conto</span>`:r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
    <div class="pacq-tot"><span>Investito <b>${eur(pi.spesa)}</b></span><span>Resta sul conto <b>${eur(pi.resto)}</b></span></div>
    <details class="pacq-come"><summary>Come comprare su Scalable</summary><ol>

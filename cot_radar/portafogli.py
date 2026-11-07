@@ -590,7 +590,7 @@ def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None,
             f = cambio[i - 1] / cambio[i] if fx and cambio[i] and cambio[i - 1] else 1.0
             if fx:
                 gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
-                r_cash = (1 + tasso[i] / 100) ** (gg / 365) - 1
+                r_cash = (1 + tasso_liquidita(tasso[i]) / 100) ** (gg / 365) - 1
             nuove = {k: v * (1 + r_cash) if (fx and k == "CASH") else
                      v * (1 + g.rend(_ticker(sost.get(k, k)), i)) * f for k, v in quote.items()}
             # v7.4 traccia = [[i0, i1, {chiave: guadagno}]]: guadagno (in valuta del portafoglio) di ogni componente
@@ -836,7 +836,7 @@ def indice_liquidita(g, tassi, dal_i):
         ult = tassi.get(g.date[i], ult)
         if i > dal_i:
             gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
-            v *= (1 + ult / 100) ** (gg / 365)
+            v *= (1 + tasso_liquidita(ult) / 100) ** (gg / 365)
         out.append((g.date[i], v))
     return out
 
@@ -937,6 +937,16 @@ def in_euro(curva, fx):
     return out
 
 
+def tasso_liquidita(t):
+    """v7.5 REGOLA DELLA LIQUIDITA' (studio 07/11/2026, Ya): con il tasso BCE sui depositi SOTTO ZERO (2014-2022) l'ETF
+    overnight (XEON) perde un po' ogni giorno: la liquidita' resta ferma sul conto a 0%. Con il tasso positivo matura
+    il tasso BCE (XEON o interessi del conto). Studio 2006-2015 / verifica 2016+: +0,1-0,3% l'anno sulla liquidita',
+    nessun drawdown della liquidita' (prima -2,9%). Scartato nello stesso studio: spostare la liquidita' in Treasury
+    USA 1-3 anni quando il dollaro e' in trend (EUR/USD sotto la media a 200 giorni): +0,2% l'anno sul Conservativo
+    ma drawdown da -7,1% a -9,4% e -10% nel 2008 (la liquidita' diventa una scommessa sul cambio)."""
+    return t if t > 0 else 0.0
+
+
 def tassi_eur(cartella=CARTELLA):
     """{data: tasso BCE sui depositi in %} dall'archivio FRED (storico/ECBDFR.csv, v6.59). Vuoto se manca."""
     try:
@@ -970,7 +980,7 @@ def simula_eur(g, piani, dal_i, fx, tassi):
         if quote and cambio[i] and cambio[i - 1]:          # v6.69: anche il giorno di rotazione (vedi simula)
             f = cambio[i - 1] / cambio[i]                       # se l'euro sale, i dollari valgono meno euro
             gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
-            r_eur = (1 + tasso[i] / 100) ** (gg / 365) - 1
+            r_eur = (1 + tasso_liquidita(tasso[i]) / 100) ** (gg / 365) - 1
             quote = {k: v * (1 + r_eur) if k == "CASH" else v * (1 + g.rend(_ticker(k), i)) * f
                      for k, v in quote.items()}
             valore = sum(quote.values())
@@ -1460,6 +1470,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                   "stat_eur": {"totale": statistiche(bench_p, liq)} if eur_ok else None} if bench_p else None,
         "valuta": "EUR" if eur_ok else "USD",
         "crisi": crisi_mercati(g, giorni[0], fxp),          # v7.4: crisi storiche (S&P 500 e mappa dei mercati)
+        # v7.5: tasso BCE sui depositi in vigore (la scheda dice se la liquidita' va in XEON o resta sul conto)
+        "tasso_bce": te[max(te)] if te else None,
         "avviso": avviso,
         "azioni": {"live_dal": (sat or {}).get("live_dal"), "nota": (sat or {}).get("nota"),
                    "disponibili": bool(ss)},
