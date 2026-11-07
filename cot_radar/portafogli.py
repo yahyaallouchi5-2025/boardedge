@@ -104,6 +104,10 @@ STRUMENTI_UE = {
     "BTC": ("iShares Bitcoin ETP", "XS2940466316", None),
     "COPPER": ("WisdomTree Copper (ETC)", "GB00B15KXQ89", "segue i future sul rame: il prezzo include il costo del rinnovo dei contratti"),
     "WTI": ("WisdomTree WTI Crude Oil (ETC)", "GB00B15KXV33", "segue i future sul petrolio WTI: il prezzo include il costo del rinnovo dei contratti"),
+    # v7.6 VERSIONE COMPATTA (capitali sotto COMPATTO_SOTTO euro): stesso indice S&P 500 con una quota piu' piccola
+    # (Vanguard, Xetra VUAA, ~100-120 euro contro ~700 di SXR8), verificato il 08/11/2026. Non e' un mercato del modello.
+    "SP500C": ("Vanguard S&P 500 UCITS ETF (USD) Accumulating", "IE00BFMXXD54",
+               "stesso indice S&P 500 con una quota più piccola: per capitali sotto 10.000 €"),
     "CASH": ("Xtrackers II EUR Overnight Rate Swap UCITS ETF 1C", "LU0290358497",
              "liquidità in euro al tasso BCE (il modello usa i Treasury USA 1-3 anni in dollari)"),
 }
@@ -143,6 +147,24 @@ PROFILI = [
 # Mercati SENZA filtro di trend: la difesa resta sempre in portafoglio (il filtro li faceva entrare e uscire di
 # continuo: tanti scambi, tasse e costi per un beneficio che nello studio non c'era).
 SEMPRE = ("US10Y", "GOLD")
+# v7.6 VERSIONE COMPATTA per capitali piccoli (Ya, 08/11/2026): con poche migliaia di euro alcune quote intere non si
+# comprano (SXR8 ~700 euro, Nasdaq SXRV ~1.300) e il conto si allontana dal modello. Sotto COMPATTO_SOTTO euro:
+#   - il Nasdaq-100 si unisce all'S&P 500 (ci e' gia' dentro per circa il 40%), con il filtro di trend dell'S&P 500;
+#   - l'S&P 500 si compra con l'ETF Vanguard (STRUMENTI_UE["SP500C"]), quota piu' piccola, stesso indice.
+# Le statistiche della versione compatta sono calcolate a parte (stessa misura onesta: euro, acquisto prudente, costi).
+COMPATTO_SOTTO = 10000
+UNISCI_COMPATTO = {"NASDAQ": "SP500"}
+
+
+def profilo_compatto(prof):
+    """Copia del profilo con i mercati di UNISCI_COMPATTO uniti al mercato indicato (stessa somma dei pesi)."""
+    base = dict(prof["base"])
+    for k, dest in UNISCI_COMPATTO.items():
+        if k in base:
+            base[dest] = base.get(dest, 0) + base.pop(k)
+    return dict(prof, base=base)
+
+
 # RIBILANCIO LENTO: ogni primo giorno di borsa del mese si CONTROLLA, ma si scambia solo se un mercato entra o esce
 # (cambia un trend) oppure a inizio trimestre (gennaio, aprile, luglio, ottobre) per riportare i pesi al loro valore.
 TRIMESTRI = ("01", "04", "07", "10")
@@ -1365,6 +1387,22 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
         # "sel" con la selezione vera dei 5 titoli, "usd" = principale ma in dollari (per chi investe in dollari)
         cp = simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"}, fx=fxp, tassi=tep)
         c_sel = simula_prudente(g, piani, giorni[0], fx=fxp, tassi=tep)
+        # v7.6 versione compatta: stesso motore con il Nasdaq unito all'S&P 500 (solo se il profilo lo ha)
+        compatto = None
+        if any(k in prof["base"] for k in UNISCI_COMPATTO):
+            pc_ = profilo_compatto(prof)
+            piani_c, prec_c = {}, None
+            for i in giorni:
+                pesi_c = scegli(pc_, g, i, sc)[0]
+                ins = frozenset(k for k in pesi_c if k != "CASH")
+                if prec_c is None or ins != prec_c or g.date[i][5:7] in TRIMESTRI:
+                    piani_c[i] = pesi_c
+                prec_c = ins
+            cc = simula_prudente(g, piani_c, giorni[0], sostituisci={"AZ": "SPY"}, fx=fxp, tassi=tep)
+            pesi_ora = scegli(pc_, g, VIRT, sc, giorno=attesa)[0] if attesa else scegli(pc_, g, ultimo_rib, sc)[0]
+            compatto = {"uniti": [[k, v] for k, v in UNISCI_COMPATTO.items() if k in prof["base"]],
+                        "pesi": {k: round(w * 100, 1) for k, w in pesi_ora.items()},
+                        "stat": {"totale": statistiche(cc, liq), "oos": statistiche(_tagli(cc, dal=OOS_DAL), liq)}}
         c_usd = simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"})
         pesi, info, esclusi = scegli(prof, g, ultimo_rib, sc)
         comp_reg[prof["id"]] = pesi                # registro live: solo rotazioni gia' nei prezzi (data vera)
@@ -1445,6 +1483,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
             "curva": _settimanale(cp), "live_dal": live[0][0] if live else None,
             "sim": simulatore(cp, tep if eur_ok else {}),       # v6.100: simulatore (finestre mobili, leva, prelievo)
             "crisi": crisi_profilo(g, piani, giorni[0], fxp, tep),   # v7.4: stress test sulle crisi storiche
+            "compatto": compatto,                                     # v7.6: versione per capitali piccoli
             "rotazioni": list(reversed(cambi)),
             "mesi_chiusi": dettaglio_mesi(g, piani, giorni_c, curva, sat),
         })
@@ -1472,6 +1511,13 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
         "crisi": crisi_mercati(g, giorni[0], fxp),          # v7.4: crisi storiche (S&P 500 e mappa dei mercati)
         # v7.5: tasso BCE sui depositi in vigore (la scheda dice se la liquidita' va in XEON o resta sul conto)
         "tasso_bce": te[max(te)] if te else None,
+        # v7.6 "Il mio conto": tutti gli strumenti acquistabili (anche quelli in pausa) con l'ultimo prezzo in euro
+        "strumenti": {k: {"nome": v[0], "isin": v[1], **({"prezzo": pue[k]["p"]} if (pue or {}).get(k) else {})}
+                      for k, v in STRUMENTI_UE.items() if k != "CASH"},
+        # v7.6 versione compatta: soglia e strumento S&P 500 con la quota piccola (prezzo in euro se c'e')
+        "compatto": {"sotto": COMPATTO_SOTTO,
+                     "sp500": {"nome": STRUMENTI_UE["SP500C"][0], "isin": STRUMENTI_UE["SP500C"][1],
+                               **({"prezzo": pue["SP500C"]["p"], "pd": pue["SP500C"]["d"]} if (pue or {}).get("SP500C") else {})}},
         "avviso": avviso,
         "azioni": {"live_dal": (sat or {}).get("live_dal"), "nota": (sat or {}).get("nota"),
                    "disponibili": bool(ss)},

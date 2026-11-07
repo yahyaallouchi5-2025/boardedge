@@ -398,3 +398,16 @@ class LiquiditaBCE(unittest.TestCase):
         fx = {d: 1.1 for d in g.date}
         curva = P.simula_prudente(g, {1: {"CASH": 1.0}}, 0, fx=fx, tassi={d: -0.5 for d in g.date})
         self.assertAlmostEqual(curva[-1][1], curva[1][1], places=6)        # ferma, non scende
+
+
+class VersioneCompatta(unittest.TestCase):
+    """v7.6: sotto 10.000 euro il Nasdaq-100 si unisce all'S&P 500 (stessa somma dei pesi)."""
+
+    def test_profilo_compatto(self):
+        from cot_radar import portafogli as P
+        for prof in P.PROFILI:
+            c = P.profilo_compatto(prof)
+            self.assertNotIn("NASDAQ", c["base"])
+            self.assertAlmostEqual(sum(c["base"].values()), sum(prof["base"].values()), places=9)
+            self.assertIn("NASDAQ", prof["base"]) if prof["id"] == "aggressivo" else None
+        self.assertIn("SP500C", P.STRUMENTI_UE)
