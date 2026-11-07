@@ -136,9 +136,12 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const scost=righe.reduce((a,r)=>a+Math.abs((r.real??(r.q||0)*(r.prezzo||0))-r.obi),0)/2/(capitale||1)*100;
   return {righe,spesa,resto:capitale-spesa,scost};}
  function acquistoHTML(p){const pi=piano(p);if(!pi.righe.length)return "";
-  const L=window.ebLive,ora=L&&L.quando?new Date(L.quando*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):null;
+  // orario dei PREZZI (non della corsa): a borse chiuse e' l'ultima seduta, quindi si mostra anche la data
+  const L=window.ebLive,tt=L&&L.ue?Math.max(0,...Object.values(L.ue).map(v=>v.t||0)):0,dt=tt?new Date(tt*1000):null,
+   oggi=dt&&dt.toDateString()==new Date().toDateString(),
+   ora=dt?(oggi?"":dt.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit"})+" ")+dt.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):null;
   return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
-    <span class="plive${ora?" on":""}" title="${ora?"Prezzi intraday con il ritardo di borsa (circa 15-20 minuti)":"Prezzi di chiusura dell'ultima seduta"}"><i></i>${ora?`prezzi delle ${ora} &middot; ritardo ~15 min`:"prezzi di chiusura"}</span>
+    <span class="plive${ora&&oggi?" on":""}" title="${ora?"Prezzi intraday con il ritardo di borsa (circa 15-20 minuti)":"Prezzi di chiusura dell'ultima seduta"}"><i></i>${ora?(oggi?`prezzi delle ${ora} &middot; ritardo ~15 min`:`ultimi prezzi: ${ora}`):"prezzi di chiusura"}</span>
     <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>5 azioni</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta (massimo 1 per settore). Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.</div></details></div>
    <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash?"nessun acquisto: il broker la remunera (verifica il tasso netto)":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?` &middot; <em>${r.nota}</em>`:""}</span></div>
     <div class="pacq-q">${r.cash?`<b>${eur(r.obi)}</b><span>resta sul conto</span>`:r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
