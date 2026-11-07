@@ -1705,3 +1705,30 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
  background:var(--card,#141b2b);color:var(--ink);border:1px solid color-mix(in srgb,var(--acc) 45%,transparent);
  border-radius:12px;padding:10px 16px;font:600 13.5px system-ui;box-shadow:0 8px 28px rgba(0,0,0,.45);transition:opacity .2s,transform .2s}
 .invavv.on{opacity:1;transform:translate(-50%,0)}
+/* v6.98 PORTAFOGLI PIU' PULITI: spiegazioni nei fumetti (i), capitale in una barra unica, sezioni richiudibili */
+.psub{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.psub .info div{font-weight:400}
+.pcapbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:14px 0 4px;padding:12px 14px;border-radius:14px;
+ border:1px solid var(--line);background:var(--card);font-size:14px;color:var(--ink);font-weight:700}
+.pcapbar .small{font-weight:500;color:var(--mute);font-size:12px}
+.pnome>b{display:flex;align-items:center;gap:8px}
+.pmot{display:inline-block}.pmot summary{width:18px;height:18px;font-size:11px}
+.pmot div{font-weight:500;font-size:13px}
+.pfx{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.pfx .info div{left:auto;right:0}
+.psez{margin-top:26px;border:1px solid var(--line);border-radius:16px;background:var(--card);overflow:visible}
+.psez>summary{list-style:none;display:flex;align-items:baseline;gap:10px;padding:14px 16px;cursor:pointer;border-radius:16px;transition:background .2s}
+.psez>summary::-webkit-details-marker{display:none}
+.psez>summary:hover{background:color-mix(in srgb,var(--soft) 70%,transparent)}
+.psez>summary h3{margin:0}
+.psez>summary::after{content:"";margin-left:auto;width:8px;height:8px;border-right:2px solid var(--mute);border-bottom:2px solid var(--mute);
+ transform:rotate(45deg);transition:transform .2s;align-self:center}
+.psez[open]>summary::after{transform:rotate(-135deg)}
+.psez>:not(summary){margin:0 12px 14px}
+.vft .info{display:inline-block;vertical-align:middle;margin-left:6px}
+.vft .info div{font-weight:400;text-transform:none;letter-spacing:0}
+.pmc-al{font-style:normal}.pmc-al.fermo{color:var(--warn);font-weight:700}
+/* v6.98: fumetto del mercato ancorato alla RIGA (non al piccolo (i)): sempre dentro la card, su PC e telefono */
+.prow{position:relative}.pmot{position:static}
+.pmot div{left:12px!important;right:12px!important;top:34px!important;width:auto!important;max-width:520px}
+.pmot div,.psub .info div,.vft .info div,.pfx .info div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;font-style:normal;color:var(--ink2)}
