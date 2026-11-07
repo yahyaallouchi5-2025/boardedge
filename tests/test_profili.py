@@ -24,3 +24,31 @@ class Profili(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class RicercaWikipedia(unittest.TestCase):
+    """v7.7: se Wikidata non trova l'azienda per nome, si cerca su Wikipedia (stesso controllo: quotata, paese)."""
+
+    def test_fallback_wikipedia(self):
+        from unittest import mock
+        from cot_radar import profili as PR
+
+        def finto_get(url, timeout=40):
+            if "wbsearchentities" in url:
+                return {"search": []}                            # Wikidata non la trova
+            if "list=search" in url:
+                return {"query": {"search": [{"title": "JD.com"}, {"title": "Altro"}]}}
+            if "prop=pageprops" in url:
+                return {"query": {"pages": {"1": {"title": "JD.com", "pageprops": {"wikibase_item": "Q123"}},
+                                            "2": {"title": "Altro", "pageprops": {"wikibase_item": "Q999"}}}}}
+            return {}
+
+        def finto_sparql(q):
+            return [{"item": {"value": "http://www.wikidata.org/entity/Q123"}, "paese": {"value": "http://www.wikidata.org/entity/Q148"},
+                     "nb": {"value": "1"}, "ni": {"value": "0"}},
+                    {"item": {"value": "http://www.wikidata.org/entity/Q999"}, "nb": {"value": "0"}, "ni": {"value": "0"}}]
+        with mock.patch.object(PR, "_get", finto_get), mock.patch.object(PR, "_sparql", finto_sparql), \
+                mock.patch.object(PR, "PAUSA", 0):
+            self.assertEqual(PR.per_nome([("9618.HK", "JD.com, Inc.")]), {"9618.HK": "Q123"})
+            # paese sbagliato (Cina per un titolo USA) -> scartato
+            self.assertEqual(PR.per_nome([("JD", "JD.com, Inc.")]), {})

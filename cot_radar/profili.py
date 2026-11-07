@@ -32,6 +32,7 @@ RIASSUNTO = "https://{lingua}.wikipedia.org/api/rest_v1/page/summary/{titolo}"
 GIORNI_VALIDITA = 30            # un profilo si riscarica dopo 30 giorni
 VERSIONE = 2                    # v6.73: profili con ISIN e abbinamento migliorato (i vecchi si rifanno una volta)
 RIPROVA_VUOTI = 7               # titolo non trovato su Wikidata: si riprova dopo 7 giorni
+RICERCA = 2                     # v7.7: ricerca anche su Wikipedia; i titoli senza descrizione si riprovano subito
 RIPROVA_DESC = 3                # trovato ma riassunto Wikipedia non scaricato: si riprova dopo 3 giorni
 MAX_PER_GIRO = 2000             # titoli aggiornati al massimo in un giro (v6.54: prima 300, troppo lento)
 TEMPO_MAX = 600                 # secondi massimi per giro: oltre si riprende al giro dopo
@@ -137,31 +138,61 @@ def pulisci_nome(n):
     return n
 
 
+# v7.7 RICERCA SU WIKIPEDIA (inglese): molte aziende asiatiche, indiane e italiane hanno la voce su Wikipedia ma
+# la ricerca per nome di Wikidata non le trova (es. "JD.com", "Campari", "PetroChina"). Dai primi risultati di
+# Wikipedia si prende l'elemento Wikidata collegato alla voce, che deve superare lo STESSO controllo di per_nome
+# (azienda quotata, paese della borsa): nessun abbinamento a caso.
+CERCA_WP = "https://en.wikipedia.org/w/api.php?action=query&format=json&list=search&srlimit=3&srsearch="
+PROPS_WP = "https://en.wikipedia.org/w/api.php?action=query&format=json&prop=pageprops&ppprop=wikibase_item&titles="
+
+
+def candidati_wikipedia(nome):
+    """QID Wikidata delle prime voci di Wikipedia trovate per il nome dell'azienda (in ordine di pertinenza)."""
+    r = _get(CERCA_WP + urllib.parse.quote(nome), timeout=20) or {}
+    titoli = [x["title"] for x in (r.get("query") or {}).get("search", [])]
+    if not titoli:
+        return []
+    pp = (_get(PROPS_WP + urllib.parse.quote("|".join(titoli)), timeout=20) or {}).get("query") or {}
+    per_titolo = {x.get("title"): (x.get("pageprops") or {}).get("wikibase_item") for x in (pp.get("pages") or {}).values()}
+    norm = {x.get("to"): x.get("from") for x in pp.get("normalized") or []}
+    return [q for q in (per_titolo.get(t) or per_titolo.get(norm.get(t)) for t in titoli) if q]
+
+
+def _accetta(t, cand):
+    """Il primo candidato che e' un'azienda quotata (borsa P414 o ISIN P946) del paese della borsa, oppure None."""
+    if not cand:
+        return None
+    righe = _sparql(f"""SELECT ?item (SAMPLE(?pa) AS ?paese) (COUNT(?b) AS ?nb) (COUNT(?i) AS ?ni) WHERE {{
+      VALUES ?item {{ {" ".join("wd:" + c for c in cand)} }}
+      OPTIONAL{{?item wdt:P414 ?b}} OPTIONAL{{?item wdt:P946 ?i}} OPTIONAL{{?item wdt:P17 ?pa}} }} GROUP BY ?item""")
+    info = {_qid(_v(b, "item")): (int(_v(b, "nb") or 0) + int(_v(b, "ni") or 0), _qid(_v(b, "paese"))) for b in righe}
+    paesi = PAESE.get(ticker_borsa(t)[1], set())
+    for c in cand:                                        # nell'ordine di pertinenza della ricerca
+        quotata, pa = info.get(c, (0, None))
+        if quotata and (pa is None or not paesi or pa in paesi):
+            return c
+    return None
+
+
 def per_nome(titoli):
-    """{ticker: QID} cercando il nome dell'azienda; titoli = [(ticker, nome)]."""
+    """{ticker: QID} cercando il nome dell'azienda su Wikidata e poi (v7.7) su Wikipedia; titoli = [(ticker, nome)]."""
     out = {}
     for t, nome in titoli:
         q = pulisci_nome(nome)
         if len(q) < 3:
             continue
-        try:
-            cand = [x["id"] for x in _get(CERCA + urllib.parse.quote(q), timeout=20).get("search", [])]
-        except Exception as e:
-            log.warning("profili: ricerca per nome non riuscita per %s (%s)", t, type(e).__name__)
-            continue
-        if not cand:
-            continue
-        righe = _sparql(f"""SELECT ?item (SAMPLE(?pa) AS ?paese) (COUNT(?b) AS ?nb) (COUNT(?i) AS ?ni) WHERE {{
-          VALUES ?item {{ {" ".join("wd:" + c for c in cand)} }}
-          OPTIONAL{{?item wdt:P414 ?b}} OPTIONAL{{?item wdt:P946 ?i}} OPTIONAL{{?item wdt:P17 ?pa}} }} GROUP BY ?item""")
-        info = {_qid(_v(b, "item")): (int(_v(b, "nb") or 0) + int(_v(b, "ni") or 0), _qid(_v(b, "paese"))) for b in righe}
-        paesi = PAESE.get(ticker_borsa(t)[1], set())
-        for c in cand:                                    # nell'ordine di pertinenza della ricerca
-            quotata, pa = info.get(c, (0, None))
-            if quotata and (pa is None or not paesi or pa in paesi):
+        for fonte in ("wikidata", "wikipedia"):
+            try:
+                cand = ([x["id"] for x in _get(CERCA + urllib.parse.quote(q), timeout=20).get("search", [])]
+                        if fonte == "wikidata" else candidati_wikipedia(q))
+                c = _accetta(t, cand)
+            except Exception as e:
+                log.warning("profili: ricerca per nome (%s) non riuscita per %s (%s)", fonte, t, type(e).__name__)
+                c = None
+            if c:
                 out[t] = c
                 break
-        time.sleep(PAUSA)
+            time.sleep(PAUSA)
     return out
 
 
@@ -269,7 +300,7 @@ def componi(t, f, desc, oggi):
             "dipendenti": {"n": int(float(dip[-1][1])), "anno": dip[-1][0][:4] or None} if dip else None,
             "borse": sorted(set(f.get("borse", [])))[:4],
             "acquisita_da": sorted(f.get("da", []), key=lambda x: -x["anno"])[:1],
-            "sito": f.get("web"), "isin": scegli_isin(f.get("isin", []), t), "v": VERSIONE,
+            "sito": f.get("web"), "isin": scegli_isin(f.get("isin", []), t), "v": VERSIONE, "rv": RICERCA,
             "fonte": "Wikidata e Wikipedia"}
 
 
@@ -289,8 +320,8 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
         d = p.get("desc") or {}
         agg = p.get("agg") or ""
         if p.get("vuoto"):                       # v6.73: i titoli non trovati si riprovano ogni settimana
-            return agg < lim_vuoti
-        return (agg < limite or p.get("v") != VERSIONE or (not d and agg < lim_desc)
+            return agg < lim_vuoti or p.get("rv") != RICERCA            # v7.7: e subito con la ricerca nuova
+        return (agg < limite or p.get("v") != VERSIONE or (not d and (agg < lim_desc or p.get("rv") != RICERCA))
                 or (d.get("lingua") not in (None, "it") and not d.get("trad")))
     nomi = {x["t"]: x.get("nome") for x in (el if el is not None else A.elenco())}
     da_fare = [t for t in titoli if scaduto(t)]
@@ -315,7 +346,7 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
         for t in lotto:
             if t not in qid:
                 mancanti.append(t)
-                A._scrivi(file_di(t), {"t": t, "agg": oggi.isoformat(), "vuoto": 1})   # il sito mostra i dati base
+                A._scrivi(file_di(t), {"t": t, "agg": oggi.isoformat(), "vuoto": 1, "rv": RICERCA})   # il sito mostra i dati base
                 continue
             f = dati.get(qid[t], {})
             desc = traduci(riassunto(f.get("it")) or riassunto(f.get("en")))
