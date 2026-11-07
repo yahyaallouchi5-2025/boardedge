@@ -196,9 +196,13 @@ class AcquistoDiretto(unittest.TestCase):
         with mock.patch.object(P.time, "sleep"):
             p = P.prezzi_ue(self.dir, oggi=date(2026, 11, 4), cerca=cerca, ultimo=ultimo)
         self.assertEqual(p, {"SP500": {"sym": "SXR8.DE", "p": 740.7, "d": "2026-11-03"}})
-        n = len(chiamate)
         p2 = P.prezzi_ue(self.dir, oggi=date(2026, 11, 4), cerca=cerca, ultimo=lambda s: 1 / 0)
-        self.assertEqual(p2, p)                                             # stesso giorno: nessun nuovo download
+        self.assertEqual(p2, p)                                             # stesso giorno: quello trovato resta
+        self.assertEqual(chiamate.count("IE00B5BMR087"), 1)                 # ...e non si ricerca (solo i mancanti)
+        for _ in range(3):                                                  # dopo 3 giri nello stesso giorno: basta
+            P.prezzi_ue(self.dir, oggi=date(2026, 11, 4), cerca=cerca, ultimo=ultimo)
+        n = len(chiamate)
+        P.prezzi_ue(self.dir, oggi=date(2026, 11, 4), cerca=cerca, ultimo=ultimo)
         self.assertEqual(len(chiamate), n)
         with mock.patch.object(P.time, "sleep"):                             # giorno dopo, Yahoo giu': restano i vecchi
             p3 = P.prezzi_ue(self.dir, oggi=date(2026, 11, 5), cerca=cerca, ultimo=lambda s: 1 / 0)
