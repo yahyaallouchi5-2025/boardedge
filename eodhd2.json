@@ -1,0 +1,327 @@
+{
+ "quando": "2026-11-07 16:02 UTC",
+ "prove": {
+  "piano": {
+   "http": 200,
+   "ok": true,
+   "byte": 301,
+   "riassunto": {
+    "subscriptionType": "monthly",
+    "paymentMethod": "Stripe",
+    "apiRequests": 0,
+    "dailyRateLimit": 100000,
+    "apiRequestsDate": "2026-11-04",
+    "extraLimit": 500
+   }
+  },
+  "bulk_US": {
+   "http": 200,
+   "ok": true,
+   "byte": 6588772,
+   "riassunto": {
+    "titoli": 43837,
+    "date": [
+     "2026-11-06"
+    ],
+    "esempio": {
+     "code": "DDDX",
+     "date": "2026-11-06",
+     "close": 0.0026,
+     "adjusted_close": 0.0026,
+     "volume": 11000
+    }
+   }
+  },
+  "bulk_XETRA": {
+   "http": 200,
+   "ok": true,
+   "byte": 674562,
+   "riassunto": {
+    "titoli": 4303,
+    "date": [
+     "2026-11-06"
+    ],
+    "esempio": {
+     "code": "HDI",
+     "date": "2026-11-06",
+     "close": 308.7,
+     "adjusted_close": 308.7,
+     "volume": 740
+    }
+   }
+  },
+  "bulk_PA": {
+   "http": 200,
+   "ok": true,
+   "byte": 202978,
+   "riassunto": {
+    "titoli": 1335,
+    "date": [
+     "2026-11-06"
+    ],
+    "esempio": {
+     "code": "EXPL",
+     "date": "2026-11-06",
+     "close": 290,
+     "adjusted_close": 290,
+     "volume": 300
+    }
+   }
+  },
+  "bulk_AS": {
+   "http": 200,
+   "ok": true,
+   "byte": 80611,
+   "riassunto": {
+    "titoli": 525,
+    "date": [
+     "2026-11-06"
+    ],
+    "esempio": {
+     "code": "KPN",
+     "date": "2026-11-06",
+     "close": 4.403,
+     "adjusted_close": 4.403,
+     "volume": 11314228
+    }
+   }
+  },
+  "storico_EXPD": {
+   "http": 200,
+   "ok": true,
+   "byte": 1238571,
+   "riassunto": {
+    "righe": 10611,
+    "dal": "1984-09-26",
+    "al": "2026-11-06"
+   }
+  },
+  "delistati_US": {
+   "http": 200,
+   "ok": true,
+   "byte": 8538177,
+   "riassunto": {
+    "totale": 60345,
+    "azioni": 33369
+   }
+  },
+  "eod_delistata": {
+   "http": 200,
+   "ok": true,
+   "byte": 85483,
+   "riassunto": {
+    "ticker": "AAAB_old",
+    "righe": 771,
+    "dal": "2000-01-03",
+    "al": "2003-01-29"
+   }
+  },
+  "intraday_1h": {
+   "http": 200,
+   "ok": true,
+   "byte": 106040,
+   "riassunto": {
+    "barre": 672,
+    "ultima": "2026-11-06 21:00:00"
+   }
+  },
+  "real_time": {
+   "http": 200,
+   "ok": true,
+   "byte": 185,
+   "riassunto": {
+    "code": "EXPD.US",
+    "timestamp": 1793998800,
+    "close": 184.61,
+    "change_p": -2.2555
+   }
+  },
+  "real_time_xetra": {
+   "http": 200,
+   "ok": true,
+   "byte": 182,
+   "riassunto": {
+    "code": "SXR8.XETRA",
+    "timestamp": 1793982960,
+    "close": 719.16
+   }
+  },
+  "dividendi": {
+   "http": 200,
+   "ok": true,
+   "byte": 2527,
+   "riassunto": {
+    "n": 14
+   }
+  },
+  "split": {
+   "http": 200,
+   "ok": true,
+   "byte": 205,
+   "riassunto": {
+    "n": 4
+   }
+  },
+  "tecnico_sma": {
+   "http": 200,
+   "ok": true,
+   "byte": 376152,
+   "riassunto": {
+    "n": 10562,
+    "ultimo": {
+     "date": "2026-11-06",
+     "sma": 192.3578
+    }
+   }
+  },
+  "calendario_utili": {
+   "http": 403,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "calendario_eco": {
+   "http": 403,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "notizie": {
+   "http": 200,
+   "ok": true,
+   "byte": 12816,
+   "riassunto": {
+    "n": 3
+   }
+  },
+  "fondamentali": {
+   "http": 403,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "borse": {
+   "http": 200,
+   "ok": true,
+   "byte": 9957,
+   "riassunto": {
+    "totale": 70,
+    "euro": [
+     "F",
+     "STU",
+     "MU",
+     "HA",
+     "DU",
+     "HM",
+     "XETRA",
+     "LU",
+     "VI",
+     "PA",
+     "BR",
+     "MC",
+     "LS",
+     "AS",
+     "HE",
+     "IR",
+     "AT",
+     "ZSE",
+     "EUFUND"
+    ]
+   }
+  },
+  "milano": {
+   "http": 404,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "piano_dopo": {
+   "http": 200,
+   "ok": true,
+   "byte": 303,
+   "riassunto": {
+    "apiRequests": 442,
+    "dailyRateLimit": 100000
+   }
+  }
+ },
+ "etf_eur": {
+  "SP500": {
+   "isin": "IE00B5BMR087",
+   "simbolo_eur": "SXR8.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    719.16
+   ]
+  },
+  "NASDAQ": {
+   "isin": "IE00B53SZB19",
+   "simbolo_eur": "SXRV.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    1401.2
+   ]
+  },
+  "EAFE": {
+   "isin": "IE0006WW1TQ4",
+   "simbolo_eur": "EXUS.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    40.135
+   ]
+  },
+  "EM": {
+   "isin": "IE00BKM4GZ66",
+   "simbolo_eur": "IS3N.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    43.85
+   ]
+  },
+  "US10Y": {
+   "isin": "IE00B3VWN518",
+   "simbolo_eur": null,
+   "ultimo": null
+  },
+  "GOLD": {
+   "isin": "IE00B4ND3602",
+   "simbolo_eur": "PPFB.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    70.635
+   ]
+  },
+  "BTC": {
+   "isin": "XS2940466316",
+   "simbolo_eur": "IB1T.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    6.783
+   ]
+  },
+  "COPPER": {
+   "isin": "GB00B15KXQ89",
+   "simbolo_eur": "OD7C.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    48.082
+   ]
+  },
+  "WTI": {
+   "isin": "GB00B15KXV33",
+   "simbolo_eur": "OD7F.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    15.56
+   ]
+  },
+  "CASH": {
+   "isin": "LU0290358497",
+   "simbolo_eur": "XEON.XETRA",
+   "ultimo": [
+    "2026-11-06",
+    150.694
+   ]
+  }
+ }
+}
