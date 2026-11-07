@@ -1,5 +1,6 @@
 {
  "giorno": "2026-11-07",
+ "giri": 1,
  "prezzi": {
   "CASH": {
    "d": "2026-11-05",
@@ -15,5 +16,6 @@
  "simboli": {
   "IE00B5BMR087": "CSSPX.MI",
   "LU0290358497": "XEON.DE"
- }
+ },
+ "simboli_eodhd": {}
 }
