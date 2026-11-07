@@ -32,6 +32,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  const SETT={tech:["Tecnologia"],tlc:["Comunicazione"],cdis:["Beni voluttuari"],cstap:["Prima necessità"],salute:["Salute"],fin:["Finanza"],ind:["Industria"],mat:["Materiali"],ener:["Energia"],util:["Servizi pubblici"],imm:["Immobiliare"]};
  // capitale per calcolare gli importi in euro di ogni riga (salvato nel browser)
  let capitale=10000;try{const c=+localStorage.getItem("ebCapitale");if(c>0)capitale=c;}catch(e){}
+ // v6.100 SIMULATORE: capitale, orizzonte e leva scelti dall'utente (ricordati nel browser)
+ let simCap=100000,simOrz="5",simLeva="1.0";
+ try{const c=+localStorage.getItem("ebSimCap");if(c>0)simCap=c;simOrz=localStorage.getItem("ebSimOrz")||simOrz;simLeva=localStorage.getItem("ebSimLeva")||simLeva;}catch(e){}
  const RISK={conservativo:["Basso","r1"],moderato:["Medio","r2"],aggressivo:["Alto","r3"]};
  const pc=(v,d=1)=>v==null?"n/d":(v>0?"+":"")+fx(v,d)+"%";
  const eur=v=>v==null?"n/d":Math.round(v).toLocaleString("it-IT")+" €";
@@ -236,6 +239,37 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     ${peg&&peg.c<0?`<p class="small">Ha pesato di pi&ugrave;: <b>${esc(peg.nome)}</b> (${fx(peg.c,2)} punti sul totale).</p>`:""}
     <div class="tablewrap"><table class="compatta pdett"><tr><th>Mercato</th><th class="num">Peso</th><th class="num">Rend.</th><th class="num">Contributo</th><th class="num">Drawdown</th></tr>${m.asset.map(riga).join("")}</table></div>
     <p class="small">Contributo = peso &times; rendimento, in punti percentuali: la somma (meno i costi) d&agrave; il risultato del mese.</p></details>`;}
+ // --- v6.100 SIMULATORE: cosa sarebbe successo al capitale partendo in OGNI mese dello storico (finestre mobili),
+ //     sulla curva onesta del sito (euro, acquisto prudente, costi). Leva moderata con il costo del prestito.
+ //     Dati da p.sim (cot_radar/portafogli.py, simulatore()). Testo breve in pagina, metodo nel fumetto (i).
+ function simCorpo(p){const S=p.sim;if(!S)return "";const o=((S.leve||{})[simLeva]||{})[simOrz];
+  if(!o)return `<div class="small">Storico troppo corto per questo orizzonte.</div>`;
+  const anni=+simOrz,annuo=m=>pc((Math.pow(m,1/anni)-1)*100),v=m=>eur(simCap*m);
+  const lo=o.p5,hi=o.p95,sp=(hi-lo)||1,x=m=>Math.max(0,Math.min(100,(m-lo)/sp*100)).toFixed(1);
+  const pr=(S.prelievo||{})[simLeva];
+  return `<div class="psim-g"><span class="small">In met&agrave; dei casi, dopo ${anni} ${anni==1?"anno":"anni"}</span>
+    <b class="${o.p50>=1?"up":"down"}">${v(o.p50)}</b><span class="small">${annuo(o.p50)} l'anno</span></div>
+   <div class="psim-bar"><i style="left:${x(o.p25)}%;width:${(x(o.p75)-x(o.p25)).toFixed(1)}%"></i><s style="left:${x(o.p50)}%"></s>
+    ${lo<1&&hi>1?`<u style="left:${x(1)}%" title="capitale iniziale"></u>`:""}</div>
+   <div class="psim-bl"><span>${v(lo)}</span><span>9 casi su 10 tra questi valori</span><span>${v(hi)}</span></div>
+   <div class="pmc-k psim-k"><div><small>Partenze in perdita</small><b class="${o.perdita>0?"down":"up"}">${fx(o.perdita,0)}%</b></div>
+    <div><small>Drawdown tipico</small><b class="down">${pc(o.dd)}</b></div><div><small>Drawdown peggiore</small><b class="down">${pc(o.dd_peggiore)}</b></div></div>
+   ${pr?`<div class="psim-r"><span>Rendita sostenuta in 10 anni (capitale finale intatto)</span><b>${fx(pr.p50,1)}% l'anno &middot; ${eur(simCap*pr.p50/100)}</b><em>nel 90% dei casi almeno ${fx(pr.p10,1)}% (${eur(simCap*pr.p10/100)})</em></div>`:""}
+   <div class="small psim-n">${o.n} partenze mensili dal ${gg(S.dal)}. Risultati passati, non una promessa.</div>`;}
+ function simulatoreHTML(p){if(!p.sim)return "";
+  const b=(arr,cur,attr,lab)=>`<div class="vfswitch psim-s">${arr.map(x=>`<button data-${attr}="${x}" class="${x==cur?"on":""}">${lab(x)}</button>`).join("")}</div>`;
+  return `<div class="card psim" id="psim"><div class="psim-t"><h3>Simulatore <span class="pbprof">${esc(p.nome)}</span></h3>
+    <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div><b>Cosa mostra.</b> Il capitale investito in questo profilo partendo in ogni mese dello storico (dal ${gg(p.sim.dal)}): il valore a fine periodo nel caso medio (mediana) e la fascia che contiene 9 casi su 10. Stessa misura del sito: euro, acquisto prudente, costi inclusi.<br><br><b>Leva.</b> 1,3&times; e 1,5&times; = investire anche denaro preso a prestito, con un costo stimato di tasso BCE + ${fx(p.sim.spread,1)} punti l'anno. Guadagni e drawdown crescono insieme; costi e condizioni reali dipendono dal broker.<br><br><b>Rendita.</b> Prelievo annuo massimo che, in 10 anni, avrebbe lasciato il capitale finale almeno uguale a quello iniziale.<br><br><b>Attenzione.</b> Le regole del portafoglio sono state riviste guardando anche questi anni: i numeri futuri possono essere peggiori. Informazione, non consulenza.</div></details></div>
+   <div class="psim-c"><label class="pcap">Capitale <input type="text" inputmode="numeric" value="${simCap.toLocaleString("it-IT")}" aria-label="Capitale del simulatore in euro"> &euro;</label>
+    ${b(["1","3","5","10"],simOrz,"orz",x=>x+(x=="1"?" anno":" anni"))}${b(["1.0","1.3","1.5"],simLeva,"leva",x=>x=="1.0"?"Senza leva":"Leva "+x.replace(".",",")+"&times;")}</div>
+   <div class="psim-b">${simCorpo(p)}</div></div>`;}
+ function simEventi(p){const c=el.querySelector("#psim");if(!c)return;const corpo=()=>{c.querySelector(".psim-b").innerHTML=simCorpo(p);};
+  const salva=(k,v)=>{try{localStorage.setItem(k,v);}catch(e){}};
+  c.querySelectorAll("[data-orz]").forEach(x=>x.onclick=()=>{simOrz=x.dataset.orz;salva("ebSimOrz",simOrz);c.querySelectorAll("[data-orz]").forEach(y=>y.classList.toggle("on",y==x));corpo();});
+  c.querySelectorAll("[data-leva]").forEach(x=>x.onclick=()=>{simLeva=x.dataset.leva;salva("ebSimLeva",simLeva);c.querySelectorAll("[data-leva]").forEach(y=>y.classList.toggle("on",y==x));corpo();});
+  const ci=c.querySelector("input");ci.oninput=()=>{simCap=+ci.value.replace(/\D/g,"")||0;corpo();};
+  ci.onblur=()=>{ci.value=simCap.toLocaleString("it-IT");salva("ebSimCap",simCap);};}
+
  function rotazioni(p){const ch=k=>`<span class="pchip" title="${esc(nomeK(k))}">${esc(nomeK(k))}</span>`;
   const perMese={};(p.mesi_chiusi||[]).forEach(m=>perMese[m.mese]=m);
   return `<div class="prot${tutteRot?" aperta":""}">${p.rotazioni.map((r,i)=>`<div class="protr${i>=3?" pextra":""}"><b>${gg(r.data)}</b><div>
@@ -491,6 +525,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="vfswitch pper">${[["tutto","Tutto"],["oos","Dal 2016"]].map(x=>`<button data-per="${x[0]}" class="${per==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
    <div class="card pgraf">${curva(p)}</div>
    ${tabella(p)}
+   ${simulatoreHTML(p)}
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>
    <div class="pbasso"><h3 class="vft">Ultime rotazioni <details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div>+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato.</div></details></h3>${rotazioni(p)}</div>`;
   el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
@@ -508,6 +543,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   // capitale: ricalcola gli importi in euro mentre si scrive (solo cifre), salvato nel browser
   const ci=el.querySelector(".pcap input");if(ci){ci.oninput=()=>{const v=+ci.value.replace(/\D/g,"");capitale=v||0;
    aggiornaEuro(p);};ci.onblur=()=>{ci.value=capitale.toLocaleString("it-IT");try{localStorage.setItem("ebCapitale",capitale);}catch(e){}};}
+  simEventi(p);
   tipMesi(el.querySelector(".pcontro"),p);
   conto();
   suggerimento(el.querySelector(".pgraf"),p);}
