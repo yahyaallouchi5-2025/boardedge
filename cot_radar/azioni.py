@@ -449,7 +449,74 @@ def riassunto(rec):
             "vytd": round((d[-1][1] / inizio_anno - 1) * 100, 1) if inizio_anno else None, "v1a": _var(d, 365),
             "dmax": round((d[-1][1] / max(anno) - 1) * 100, 1) if anno else None,
             "t200": round((d[-1][1] / sma - 1) * 100, 1) if sma else None,
+            # v7.7 icona del trend accanto al nome (stessa regola di tecnica(): prezzo e SMA 50 contro SMA 200)
+            "tr": stato_trend(d[-1][1], _sma([v for _, v in d], 50), _sma([v for _, v in d], 200)),
             "sp": [round((v - lo) / (hi - lo) * 99) if hi > lo else 50 for v in sett]}
+
+
+def _rsi(chiusure, n=14):
+    """RSI di Wilder (0-100) sulle chiusure: media mobile esponenziale di Wilder di rialzi e ribassi."""
+    if len(chiusure) <= n:
+        return None
+    su = giu = 0.0
+    for i in range(1, n + 1):
+        x = chiusure[i] - chiusure[i - 1]
+        su, giu = su + max(x, 0), giu + max(-x, 0)
+    su, giu = su / n, giu / n
+    for i in range(n + 1, len(chiusure)):
+        x = chiusure[i] - chiusure[i - 1]
+        su = (su * (n - 1) + max(x, 0)) / n
+        giu = (giu * (n - 1) + max(-x, 0)) / n
+    return 100.0 if giu == 0 else round(100 - 100 / (1 + su / giu), 1)
+
+
+def _sma(v, n, fine=None):
+    """Media semplice degli n valori che finiscono all'indice fine (escluso; default: fino all'ultimo)."""
+    fine = len(v) if fine is None else fine
+    return sum(v[fine - n:fine]) / n if fine >= n else None
+
+
+def stato_trend(prezzo, sma50, sma200):
+    """1 = rialzista (prezzo e SMA 50 sopra la SMA 200), -1 = ribassista (entrambi sotto), 0 = laterale."""
+    if not (sma50 and sma200):
+        return None
+    if prezzo > sma200 and sma50 > sma200:
+        return 1
+    if prezzo < sma200 and sma50 < sma200:
+        return -1
+    return 0
+
+
+def tecnica(d):
+    """v7.7 ANALISI TECNICA del titolo (chiusure giornaliere [(data, prezzo)]), calcolata qui sui prezzi
+    dell'archivio (stesse formule dell'API tecnica di EODHD, senza chiamate in piu'):
+      - SMA 50 / SMA 200 e TREND (stato_trend) con i giorni di borsa da cui dura;
+      - RSI 14 (Wilder): sopra 70 ipercomprato, sotto 30 ipervenduto;
+      - ATR 14 % sulle chiusure (abbiamo solo le chiusure): movimento medio di un giorno, media di Wilder delle
+        variazioni assolute in %; utile per la distanza di uno stop;
+      - posizione nel range di 52 settimane (0 = minimo, 100 = massimo)."""
+    c = [v for _, v in d]
+    if len(c) < 60:
+        return None
+    s50, s200 = _sma(c, 50), _sma(c, 200)
+    tr = stato_trend(c[-1], s50, s200)
+    gg = 0
+    if tr is not None:                                  # da quanti giorni di borsa dura lo stato di oggi
+        for i in range(len(c) - 1, 199, -1):
+            if stato_trend(c[i], _sma(c, 50, i + 1), _sma(c, 200, i + 1)) != tr:
+                break
+            gg += 1
+    var = [abs(c[i] / c[i - 1] - 1) * 100 for i in range(1, len(c)) if c[i - 1]]
+    atr = sum(var[:14]) / 14 if len(var) >= 14 else None
+    for x in var[14:]:
+        atr = (atr * 13 + x) / 14
+    ult = d[-1][0]
+    anno = [v for x, v in d if x >= (date.fromisoformat(ult) - timedelta(days=365)).isoformat()]
+    lo, hi = min(anno), max(anno)
+    return {"sma50": round(s50, 4) if s50 else None, "sma200": round(s200, 4) if s200 else None,
+            "tr": tr, "tr_gg": gg if tr is not None else None, "rsi": _rsi(c[-300:]),
+            "atr": round(atr, 2) if atr is not None else None,
+            "min52": lo, "max52": hi, "pos52": round((c[-1] - lo) / (hi - lo) * 100) if hi > lo else 50}
 
 
 def stagionalita(m):
@@ -494,7 +561,8 @@ def pubblica(cartella, stato=None, titoli=None):
                            "val": rec.get("valuta"), "st_media": mese and mese["media"], "st_pos": mese and mese["pos"],
                            "st_n": mese and mese["n"]}, **r))
         det = {"t": x["t"], "n": rec.get("nome") or x["nome"], "s": x["s"], "l": x["l"], "val": rec.get("valuta"),
-               "borsa": rec.get("borsa"), "d": rec["d"], "m": rec.get("m") or [], "stag": stag}
+               "borsa": rec.get("borsa"), "d": rec["d"], "m": rec.get("m") or [], "stag": stag,
+               "tec": tecnica(rec["d"])}                                   # v7.7 analisi tecnica
         _scrivi(os.path.join(cartella, "pubblico", "titoli", _nome_file(x["t"]) + ".json"), det)
         mensili[x["t"]] = [v for _, v in (rec.get("m") or [])[:-1]]   # SMART DISCOUNT: solo mesi chiusi
         dettagli += 1

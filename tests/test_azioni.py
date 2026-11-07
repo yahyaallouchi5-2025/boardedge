@@ -325,3 +325,23 @@ class TestAutoGuarigione(unittest.TestCase):
             self.assertIsNone(A.freschezza(d, [], "21:00"))
         finally:
             shutil.rmtree(d, ignore_errors=True)
+
+
+class AnalisiTecnica(unittest.TestCase):
+    """v7.7: SMA 50/200, trend, RSI 14 (Wilder), ATR 14 sulle chiusure, range 52 settimane."""
+
+    def test_trend_e_rsi(self):
+        from datetime import date, timedelta
+        from cot_radar import azioni as A
+        d0 = date(2024, 1, 1)
+        su = [((d0 + timedelta(days=i)).isoformat(), 100 * 1.002 ** i) for i in range(400)]
+        t = A.tecnica(su)
+        self.assertEqual(t["tr"], 1)
+        self.assertEqual(t["rsi"], 100.0)                  # solo rialzi
+        self.assertEqual(t["pos52"], 100)
+        giu = [(x, 1e4 / v) for x, v in su]
+        t = A.tecnica(giu)
+        self.assertEqual(t["tr"], -1)
+        self.assertLess(t["rsi"], 1)
+        self.assertAlmostEqual(t["atr"], 0.2, places=1)    # 0,2% al giorno
+        self.assertIsNone(A.tecnica(su[:30]))

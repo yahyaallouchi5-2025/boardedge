@@ -25,6 +25,7 @@ $("guide").innerHTML=`
 <li><b>Simulatore</b>: cosa sarebbe successo partendo in ogni mese dello storico, con o senza leva, e la rendita annua che lo storico avrebbe sostenuto per 10 anni.</li></ul>
 <h3>10. Azionario</h3><p>Oltre mille titoli di Stati Uniti, Europa e Asia, divisi negli 11 settori. Ogni sera ogni titolo riceve un <b>punteggio 0-100</b> confrontandolo con tutti gli altri: forza degli ultimi 12 e 3 mesi, <b>trend</b> (prezzo sopra o sotto la media a 200 giorni) e stagionalit&agrave; del mese in corso.</p>
 <ul><li><b>Settori</b>: rendimento medio da inizio anno e quota di titoli in trend rialzista.</li>
+<li><b>Analisi tecnica</b> (scheda del titolo): trend con SMA 50 e SMA 200 (la freccia accanto al nome in tabella), RSI 14, ATR 14 e posizione nel range di 52 settimane. Nello storico solo il trend ha avuto un piccolo vantaggio; ipercomprato e ipervenduto non hanno anticipato inversioni.</li>
 <li><b>Smart Discount 0-100</b>: quanto il titolo &egrave; scontato rispetto al suo massimo dell'anno e se, in passato, comprare a quello sconto &egrave; andato meglio che comprare a caso.</li>
 <li><b>Scheda del titolo</b>: grafico, bilancio e trimestrali (aziende USA, fonte SEC), profilo dell'azienda e stagionalit&agrave; mese per mese.</li>
 <li><b>Prezzi</b>: chiusure del giorno (EODHD; Yahoo per Milano, Asia e future).</li></ul>
