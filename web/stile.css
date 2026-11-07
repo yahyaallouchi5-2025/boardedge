@@ -1777,3 +1777,11 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 #port .pctesta .info{display:inline-block;margin-left:auto}#port .pctesta .info div{left:auto;right:0}
 @media (max-width:600px){#port h3 .info div,#port h4 .info div,#port .ptab0 .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
 @media (max-width:600px){#port .psub .info div,#port .psim-t .info div,#port .pfx .info div,#port .pmc-oggi .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
+
+/* v7.3 Azionario semplificato: spiegazioni nei fumetti (i) */
+#azioni .azsub{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+#azioni .azsub .info,#azioni h3 .info{display:inline-block;vertical-align:middle}
+#azioni .azsub .info summary,#azioni h3 .info summary{width:20px;height:20px;font:600 12px system-ui,-apple-system,"Segoe UI",sans-serif;font-style:normal;text-transform:none;letter-spacing:0}
+#azioni .azsub .info div,#azioni h3 .info div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;font-style:normal;color:var(--ink2);text-transform:none;letter-spacing:0}
+@media (max-width:600px){#azioni .azsub,#azioni h3.vft{position:relative}#azioni .azsub .info,#azioni h3.vft .info{position:static}
+ #azioni .azsub .info div,#azioni h3.vft .info div{left:0!important;right:0!important;top:calc(100% + 6px);width:auto;max-width:none}}
