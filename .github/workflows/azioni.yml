@@ -39,6 +39,7 @@ jobs:
       - name: Download da Yahoo e file per il sito
         id: az
         env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}   # v6.97: EODHD fonte principale (Yahoo di riserva)
           SEC_CONTATTO: ${{ secrets.SEC_CONTATTO }}     # email di contatto richiesta dalla SEC per i bilanci
           ORARIO: ${{ github.event.schedule }}
           SCELTA: ${{ github.event.inputs.area }}
