@@ -127,18 +127,22 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      if(!t){righe.push({az:true,nome:x.n,tk:x.t,q:0,prezzo:x.eur,obi:per,nota});return;}
      const q=Math.floor(per/(t.eur*MARG));spesa+=q*t.eur;righe.push({az:true,nome:t.n,tk:t.t,q,prezzo:t.eur,obi:per,nota});});
     return;}
-   const pr=c.ue&&c.ue.prezzo;
+   // v7.1 LIQUIDITA' SUL CONTO: niente ETF overnight da comprare, la quota resta sul conto del broker (interessi)
+   if(c.k=="CASH"){righe.push({cash:true,nome:"Liquidità sul conto",obi,real:obi,q:null,prezzo:null});return;}
+   const lv=window.ebLive&&ebLive.ue&&ebLive.ue[c.k],pr=(lv&&lv.p)||(c.ue&&c.ue.prezzo);   // v7.1: intraday se c'e'
    if(!pr){righe.push({nome:c.ue?c.ue.nome:c.nome,isin:c.ue&&c.ue.isin,q:null,prezzo:null,obi});return;}
    const q=Math.floor(obi/(pr*MARG));spesa+=q*pr;
    righe.push({nome:c.ue.nome,isin:c.ue.isin,q,prezzo:pr,obi,nota:q?null:`1 quota costa pi&ugrave; di ${eur(obi)}: resta sul conto`});});
-  const scost=righe.reduce((a,r)=>a+Math.abs((r.q||0)*(r.prezzo||0)-r.obi),0)/2/(capitale||1)*100;
+  const scost=righe.reduce((a,r)=>a+Math.abs((r.real??(r.q||0)*(r.prezzo||0))-r.obi),0)/2/(capitale||1)*100;
   return {righe,spesa,resto:capitale-spesa,scost};}
  function acquistoHTML(p){const pi=piano(p);if(!pi.righe.length)return "";
+  const L=window.ebLive,ora=L&&L.quando?new Date(L.quando*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):null;
   return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
+    <span class="plive${ora?" on":""}" title="${ora?"Prezzi intraday con il ritardo di borsa (circa 15-20 minuti)":"Prezzi di chiusura dell'ultima seduta"}"><i></i>${ora?`prezzi delle ${ora} &middot; ritardo ~15 min`:"prezzi di chiusura"}</span>
     <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>5 azioni</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta (massimo 1 per settore). Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.</div></details></div>
-   <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?` &middot; <em>${r.nota}</em>`:""}</span></div>
-    <div class="pacq-q">${r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
-   <div class="pacq-tot"><span>Investito <b>${eur(pi.spesa)}</b></span><span>Resta sul conto <b>${eur(pi.resto)}</b></span><span>Scostamento dal modello <b>${fx(pi.scost,1)}%</b></span></div>
+   <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash?"nessun acquisto: il broker la remunera (verifica il tasso netto)":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?` &middot; <em>${r.nota}</em>`:""}</span></div>
+    <div class="pacq-q">${r.cash?`<b>${eur(r.obi)}</b><span>resta sul conto</span>`:r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
+   <div class="pacq-tot"><span>Investito <b>${eur(pi.spesa)}</b></span><span>Resta sul conto <b>${eur(pi.resto)}</b>${(()=>{const l=pi.righe.filter(r=>r.cash).reduce((a,r)=>a+r.obi,0);return l?` <em class="small">(liquidit&agrave; del modello ${eur(l)} + avanzo ${eur(Math.max(0,pi.resto-l))})</em>`:"";})()}</span><span>Scostamento dal modello <b>${fx(pi.scost,1)}%</b></span></div>
    <details class="pacq-come"><summary>Come comprare su Scalable</summary><ol>
     <li>Copia l'<b>ISIN</b> (o il ticker per le azioni) e cercalo nella barra di ricerca.</li>
     <li>Premi <b>Acquista</b>: la borsa proposta (es. European Investor Exchange) va bene.</li>
@@ -213,6 +217,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in corso <span class="pbprof">${esc(p.nome)}</span></h3>
     <span class="pmc-b${c.live?"":" sim"}">${c.live?"Provvisorio &middot; si chiude a fine mese":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
    <div class="pmc-g"><b class="${cl}">${pc(r)}</b><span>da inizio mese &middot; ingresso alla chiusura del ${gg(c.dal)} &middot; <em class="pmc-al${fermi(c.al)?" fermo":""}" title="${fermi(c.al)?"Prezzi non aggiornati: il risultato non include le ultime sedute":"Ultima chiusura usata"}">prezzi al ${gg(c.al)}${fermi(c.al)?" (in aggiornamento)":""}</em></span></div>
+   <div class="pmc-oggi" hidden></div>
    <div><div class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></div><div class="pmc-bl"><span>Giorno ${c.gg} di ${c.tot} di borsa</span><span>fine mese</span></div></div>
    <div class="pmc-k">${k("Drawdown peggiore",pc(c.dd),"down")}${k("Rendimento / rischio",rr==null?"n/d":fx(rr,1))}${k("Mesi storici in positivo",wr==null?"n/d":wr+"%")}</div>
    ${termo}
@@ -339,7 +344,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     return `<div class="pheur"><span class="pheurl">${eu?"&euro; In euro":"$ In dollari"}</span>${t.oltre_liq!=null?`<span>oltre la liquidit&agrave; <b class="${t.oltre_liq>=0?"up":"down"}">${pc(t.oltre_liq)}</b> l'anno</span>`:""}${t.calmar!=null?`<span>Calmar <b>${fx(t.calmar,2)}</b></span>`:""}<span>recupero dal drawdown peggiore <b>${t.recupero_mesi!=null?t.recupero_mesi+" mesi":"in corso"}</b></span>
      <details class="info pheuri"><summary title="Come si misura" aria-label="Informazioni">i</summary><div><b>Numeri prudenti${eu?", in euro":""}.</b> ${eu?"Ogni mercato &egrave; convertito in euro senza copertura del cambio; la liquidit&agrave; rende il tasso BCE sui depositi (come l'ETF overnight indicato). ":""}L'acquisto &egrave; contato alla chiusura del giorno di rotazione (un po' peggio dell'acquisto reale alle 09:00), costi 0,10% inclusi. Le 5 azioni scelte sono contate come l'S&amp;P 500: lo storico usa i titoli che oggi sono negli indici e sarebbe ottimista.${sel?` Con la selezione vera dei 5 titoli: <b>${pc(sel.cagr)}</b> l'anno.`:""}${usd?` In dollari: <b>${pc(usd.cagr)}</b> l'anno, max drawdown ${pc(usd.maxdd)}.`:""}${t.liq_cagr!=null?` Liquidit&agrave; in euro nello stesso periodo: ${pc(t.liq_cagr)} l'anno.`:""} Calmar = rendimento annuo diviso il drawdown massimo (pi&ugrave; alto = meglio).</div></details></div>`;})()}
    <div class="phcomp"><h4>Composizione del mese</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;--cb:${CL[x[0]]}"></s></i></div>`).join("")}</div>
-   <div class="phaz"><h4>Le 5 azioni del mese <span class="small">(${p.az}% del portafoglio${az&&az.titoli&&az.titoli.length?`, ${fx(az.peso_titolo,1)}% ciascuna`:""})</span></h4>
+   ${p.az?"":`<div class="small phaz-v71">Da dicembre 2026 la quota delle 5 azioni &egrave; nell'S&amp;P 500: misurate in modo onesto (anche con le aziende fallite) rendevano come l'indice con il doppio del rischio.</div>`}
+   <div class="phaz"${p.az?"":" hidden"}><h4>Le 5 azioni del mese <span class="small">(${p.az}% del portafoglio${az&&az.titoli&&az.titoli.length?`, ${fx(az.peso_titolo,1)}% ciascuna`:""})</span></h4>
     ${pausa?`<div class="small">${esc(pausa.motivo)}.</div>`:az&&az.titoli&&az.titoli.length?`<div class="ptit">${az.titoli.map(x=>`<button class="pchip clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">${esc(x.t)} <small>${esc(x.n)}</small></button>`).join("")}</div>`
      :`<div class="small">I titoli vengono scelti l'ultimo giorno di borsa del mese, dopo la chiusura, e entrano con la rotazione del ${gg(P.prossima)}.</div>`}</div>
    <details class="phcome"><summary>Come funziona la rotazione di ogni mese</summary><ol>
@@ -544,6 +550,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const ci=el.querySelector(".pcap input");if(ci){ci.oninput=()=>{const v=+ci.value.replace(/\D/g,"");capitale=v||0;
    aggiornaEuro(p);};ci.onblur=()=>{ci.value=capitale.toLocaleString("it-IT");try{localStorage.setItem("ebCapitale",capitale);}catch(e){}};}
   simEventi(p);
+  liveOggi(p);
   tipMesi(el.querySelector(".pcontro"),p);
   conto();
   suggerimento(el.querySelector(".pgraf"),p);}
@@ -580,6 +587,16 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    out.innerHTML=`${gi?`<u>${gi}</u>g `:""}<u>${z(o)}</u>h <u>${z(mi)}</u>m <u>${z(se)}</u>s`;};
   tick();timer=setInterval(()=>{if(!document.hidden)tick();},1000);}
  // importi in euro senza ridisegnare tutto (il campo resta a fuoco mentre si scrive)
+ // v7.1 VARIAZIONE DI OGGI del portafoglio (prezzi Xetra in euro, ritardo di borsa): somma di peso x variazione
+ //     dall'ultima chiusura di ogni ETF; liquidita' = 0. Si mostra solo se la seduta di oggi non e' gia' nella chiusura.
+ function liveOggi(p){const box=el.querySelector(".pmc-oggi"),L=window.ebLive,c=p.corrente;if(!box||!L||!L.ue||!c||c.attesa)return;
+  let r=0,w=0,t=0;p.composizione.forEach(x=>{const v=L.ue[x.k]||(x.k=="AZ"&&L.ue.SP500);if(x.k=="CASH")w+=x.peso;
+   else if(v&&v.p&&v.prev){r+=x.peso/100*(v.p/v.prev-1)*100;w+=x.peso;t=Math.max(t,v.t||0);}});
+  const giorno=t?new Date(t*1000).toISOString().slice(0,10):null;if(!giorno||giorno<=c.al||w<50){box.hidden=true;return;}
+  const ora=new Date(t*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),mese=((1+c.r/100)*(1+r/100)-1)*100;
+  box.hidden=false;box.innerHTML=`<span class="plive on"><i></i>Oggi alle ${ora}</span><b class="${r>=0?"up":"down"}">${pc(r,2)}</b><span>mese stimato <b class="${mese>=0?"up":"down"}">${pc(mese)}</b></span>
+   <details class="info"><summary title="Come si calcola" aria-label="Come si calcola">i</summary><div>Variazione di oggi degli ETF in euro su Xetra (ritardo di borsa di circa 15-20 minuti), pesata con la composizione del mese. &Egrave; una stima: il risultato ufficiale del mese usa le chiusure di fine giornata.</div></details>`;}
+ window.addEventListener("eb-live",()=>{const p=P.profili.find(x=>x.id==sel);if(!p)return;aggiornaEuro(p);liveOggi(p);});
  function aggiornaEuro(p){const pesi=[];MACRO.forEach(g=>p.composizione.filter(c=>g[1].includes(c.classe)).forEach(c=>pesi.push(c.peso)));
   el.querySelectorAll(".pcomp .peur").forEach((e,i)=>{e.textContent=eur(capitale*(pesi[i]||0)/100);});
   el.querySelectorAll(".paz-p em").forEach(e=>{e.textContent=eur(capitale*(+e.dataset.peso||0)/100);});
