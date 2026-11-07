@@ -147,6 +147,12 @@ SEMPRE = ("US10Y", "GOLD")
 # (cambia un trend) oppure a inizio trimestre (gennaio, aprile, luglio, ottobre) per riportare i pesi al loro valore.
 TRIMESTRI = ("01", "04", "07", "10")
 LIVE_V3_DAL = "2026-11-01"     # la linea live della versione 3 parte dalla prima rotazione con le nuove regole
+# v7.1 (Ya, 07/11/2026): dalla rotazione di DICEMBRE 2026 la quota delle "5 azioni scelte" passa all'S&P 500 (ETF).
+# Studio tools/studio_onesto.py con lo storico EODHD di 22.609 azioni USA (16.684 delistate): misurate senza bias di
+# sopravvivenza, le 5 azioni hanno reso come l'S&P 500 (8,4% l'anno con lo stesso filtro di mercato) ma con il doppio
+# della volatilita' (22,7% contro 10,4%) e drawdown -37% contro -23%: nessun vantaggio. I numeri della pagina
+# contavano gia' la quota come S&P 500 (misura prudente), quindi le statistiche non cambiano. Lo storico resta com'era.
+AZ_FINO = "2026-12-01"
 for _p in PROFILI:                                   # mercati ammessi = quelli della base (per la pagina)
     _p["ammessi"] = [k for k in _p["base"] if k != "CASH"] + (["AZ"] if _p.get("az") else [])
 INIZIO = "2006-01-01"          # primo ribilanciamento (prima i dati degli ETF sono troppo pochi)
@@ -496,7 +502,8 @@ def scegli(profilo, g, i, sc, regola=None, giorno=None):
     # del mese NON ancora nei prezzi: la scelta usa comunque solo i dati fino a i-1 (la chiusura precedente).
     giorno = giorno or g.date[i]
     pesi, info, esclusi = {}, {}, []
-    az = profilo.get("az", 0)
+    az0 = profilo.get("az", 0)                                  # quota originale (scala la base)
+    az = az0 if giorno < AZ_FINO else 0                         # v7.1: da dicembre 2026 la quota va all'S&P 500
     if az:
         # QUOTA AZIONI SCELTE: accesa solo se l'S&P 500 e' sopra la sua media a 200 giorni (filtro di MERCATO:
         # nel 2008 senza filtro la quota perdeva il 55%), altrimenti va in liquidita' come gli ETF in pausa.
@@ -517,7 +524,9 @@ def scegli(profilo, g, i, sc, regola=None, giorno=None):
             esclusi.append({"k": "AZ", "score": None, "trend": trend, "base": round(az * 100, 1),
                             "motivo": "S&P 500 sotto la media a 200 giorni: le 5 azioni scelte sono in pausa nella liquidità"})
     for k, w in profilo["base"].items():
-        w = w * (1 - az)                                        # la base occupa cio' che resta dopo la quota azioni
+        w = w * (1 - az0)                                       # la base occupa cio' che resta dopo la quota azioni
+        if k == "SP500" and az0 and not az:
+            w += az0                                            # v7.1: quota delle 5 azioni -> S&P 500 (stesso filtro)
         if k == "CASH":
             pesi["CASH"] = pesi.get("CASH", 0) + w
             continue
@@ -1271,7 +1280,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                           "liquidita": round(p1.get("CASH", 0) * 100), **({"attesa": True} if d1 == attesa else {})})
         out_prof.append({
             "id": prof["id"], "nome": prof["nome"], "descr": prof["descr"], "dd_rif": prof["dd"],
-            "rischio": prof.get("rischio"), "az": round(prof.get("az", 0) * 100),
+            "rischio": prof.get("rischio"),
+            "az": 0 if (attesa or g.date[ultimo_rib]) >= AZ_FINO else round(prof.get("az", 0) * 100),
             "base": [{"k": k, "nome": TUTTI[k][2], "peso": round(w * (1 - prof.get("az", 0)) * 100)}
                      for k, w in prof["base"].items()] + ([{"k": "AZ", "nome": TUTTI["AZ"][2], "peso": round(prof["az"] * 100)}]
                                                           if prof.get("az") else []),
