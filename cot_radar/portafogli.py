@@ -591,6 +591,105 @@ def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None,
     return curva
 
 
+# --------------------------------------------------------------------------- v6.100 SIMULATORE (punto 6)
+# Cosa sarebbe successo a un capitale investito in QUALSIASI mese dello storico (finestre mobili, partenza ogni mese)
+# per 1, 3, 5 e 10 anni, sulla stessa curva onesta del sito (euro, acquisto prudente, 5 azioni = S&P 500, costi).
+# LEVA MODERATA: rendimento giornaliero x leva, meno il costo del prestito sulla parte presa a prestito
+# (tasso BCE + SPREAD_LEVA, ipotesi prudente: il costo reale dipende dal broker). Leva ribilanciata ogni giorno.
+# PRELIEVO: per le finestre di 10 anni, il prelievo annuo massimo (in % del capitale iniziale, preso ogni mese) che
+# lascia il capitale finale almeno pari a quello iniziale: e' la "rendita" che lo storico avrebbe sostenuto.
+ORIZZONTI = (1, 3, 5, 10)
+LEVE = (1.0, 1.3, 1.5)
+SPREAD_LEVA = 2.0              # punti % sopra il tasso BCE (ipotesi; con leva 1.0 nessun costo)
+
+
+def _pct(x, q):
+    x = sorted(x)
+    if not x:
+        return None
+    k = (len(x) - 1) * q
+    a, b = int(math.floor(k)), int(math.ceil(k))
+    return x[a] + (x[b] - x[a]) * (k - a)
+
+
+def con_leva(curva, tassi, leva):
+    """Curva giornaliera con leva costante (ribilanciata ogni giorno) e costo del prestito."""
+    if leva == 1.0:
+        return list(curva)
+    out, v, ut = [curva[0]], 100.0, 0.0
+    for (d0, a), (d1, b) in zip(curva, curva[1:]):
+        ut = tassi.get(d1, ut)
+        gg = (date.fromisoformat(d1) - date.fromisoformat(d0)).days
+        costo = (leva - 1) * ((ut + SPREAD_LEVA) / 100) * gg / 365
+        v *= max(0.0, 1 + leva * (b / a - 1) - costo)
+        out.append((d1, v))
+    return out
+
+
+def _mensile(curva):
+    """Ultimo valore di ogni mese: [(AAAA-MM, valore)]."""
+    m = {}
+    for d, v in curva:
+        m[d[:7]] = v
+    return sorted(m.items())
+
+
+def _prelievo(rend, lo=0.0, hi=0.4):
+    """Prelievo annuo massimo (frazione del capitale iniziale, 1/12 ogni mese) con capitale finale >= iniziale."""
+    def finale(w):
+        v = 1.0
+        for r in rend:
+            v = v * (1 + r) - w / 12
+            if v <= 0:
+                return 0.0
+        return v
+    if finale(lo) < 1:
+        return 0.0
+    for _ in range(30):
+        mid = (lo + hi) / 2
+        lo, hi = (mid, hi) if finale(mid) >= 1 else (lo, mid)
+    return lo
+
+
+def simulatore(curva, tassi):
+    """{"dal", "spread", "leve": {leva: {orizzonte: {p5,p25,p50,p75,p95 (multipli del capitale), perdita (% finestre
+    in perdita), dd (drawdown peggiore mediano, %), n}}}, "prelievo": {leva: {p10, p50}} (% annuo, 10 anni)}"""
+    if not curva or len(curva) < 300:
+        return None
+    out = {"dal": curva[0][0], "spread": SPREAD_LEVA, "leve": {}, "prelievo": {}}
+    for L in LEVE:
+        cl = con_leva(curva, tassi or {}, L)
+        gv = [v for _, v in cl]                        # valori GIORNALIERI (per il drawdown vero, anche a meta' mese)
+        fine = {}
+        for j, (d, _) in enumerate(cl):
+            fine[d[:7]] = j                            # indice dell'ultimo giorno di ogni mese
+        idx = [fine[m] for m in sorted(fine)]
+        val = [gv[j] for j in idx]
+        rend = [val[i] / val[i - 1] - 1 for i in range(1, len(val))]
+        per_o = {}
+        for anni in ORIZZONTI:
+            n = anni * 12
+            mult, dd = [], []
+            for i in range(0, len(val) - n):
+                mult.append(val[i + n] / val[i])
+                picco, peg = gv[idx[i]], 0.0
+                for x in gv[idx[i]:idx[i + n] + 1]:
+                    picco = max(picco, x)
+                    peg = min(peg, x / picco - 1)
+                dd.append(peg)
+            if len(mult) < 12:
+                continue
+            per_o[str(anni)] = {**{f"p{q}": round(_pct(mult, q / 100), 4) for q in (5, 25, 50, 75, 95)},
+                                "perdita": round(100 * sum(1 for m in mult if m < 1) / len(mult), 1),
+                                "dd": round(100 * _pct(dd, 0.5), 1), "dd_peggiore": round(100 * min(dd), 1),
+                                "n": len(mult)}
+        out["leve"][str(L)] = per_o
+        w = [_prelievo(rend[i:i + 120]) for i in range(0, len(rend) - 120 + 1)]
+        if len(w) >= 12:
+            out["prelievo"][str(L)] = {"p10": round(100 * _pct(w, 0.10), 1), "p50": round(100 * _pct(w, 0.5), 1)}
+    return out
+
+
 def indice_liquidita(g, tassi, dal_i):
     """Valore di 100 euro tenuti in liquidita' al tasso BCE sui depositi (per "oltre la liquidita'")."""
     v, out, ult = 100.0, [], 0.0
@@ -1194,6 +1293,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
             "stat_sel": {"totale": statistiche(c_sel, liq), "oos": statistiche(_tagli(c_sel, dal=OOS_DAL), liq)},
             "stat_usd": {"totale": statistiche(c_usd), "oos": statistiche(_tagli(c_usd, dal=OOS_DAL))},
             "curva": _settimanale(cp), "live_dal": live[0][0] if live else None,
+            "sim": simulatore(cp, tep if eur_ok else {}),       # v6.100: simulatore (finestre mobili, leva, prelievo)
             "rotazioni": list(reversed(cambi)),
             "mesi_chiusi": dettaglio_mesi(g, piani, giorni_c, curva, sat),
         })

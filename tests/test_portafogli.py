@@ -310,3 +310,37 @@ class MisuraProdente(unittest.TestCase):
         self.assertIsNotNone(s["recupero_mesi"])
         self.assertAlmostEqual(s["calmar"], round(s["cagr"] / abs(s["maxdd"]), 2), places=1)
         self.assertAlmostEqual(s["oltre_liq"], s["cagr"] - s["liq_cagr"], places=1)
+
+
+class Simulatore(unittest.TestCase):
+    """v7.0: finestre mobili, leva con costo del prestito, rendita sostenuta (cot_radar/portafogli.py, simulatore)."""
+
+    def curva(self, giorni=3000, r=0.0003):
+        from datetime import date as _d, timedelta as _t
+        out, d, v = [], _d(2006, 1, 2), 100.0
+        while len(out) < giorni:
+            if d.weekday() < 5:
+                out.append((d.isoformat(), v))
+                v *= 1 + r
+            d += _t(days=1)
+        return out
+
+    def test_crescita_regolare(self):
+        s = P.simulatore(self.curva(), {})
+        o = s["leve"]["1.0"]["1"]
+        self.assertGreater(o["p50"], 1.0)
+        self.assertEqual(o["perdita"], 0.0)
+        self.assertLessEqual(o["p5"], o["p50"])
+        self.assertLessEqual(o["p50"], o["p95"])
+        self.assertIn("10", s["leve"]["1.0"])
+        self.assertGreater(s["prelievo"]["1.0"]["p50"], 0)
+
+    def test_leva_costa_e_amplifica(self):
+        c = self.curva(600, 0.0)                         # mercato piatto: con la leva si paga solo il prestito
+        piatto = P.con_leva(c, {c[0][0]: 3.0}, 1.5)
+        self.assertLess(piatto[-1][1], 100.0)
+        su = P.con_leva(self.curva(600, 0.0005), {}, 1.5)
+        self.assertGreater(su[-1][1], self.curva(600, 0.0005)[-1][1])   # mercato in salita: la leva amplifica
+
+    def test_storico_corto(self):
+        self.assertIsNone(P.simulatore(self.curva(100), {}))
