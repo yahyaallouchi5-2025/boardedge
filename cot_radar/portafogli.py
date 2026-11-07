@@ -231,8 +231,10 @@ def prezzi_ue(cartella=CARTELLA, oggi=None, cerca=None, ultimo=None):
     except (OSError, ValueError):
         cache = {}
     simboli, prezzi = cache.get("simboli", {}), cache.get("prezzi", {})
-    if cache.get("giorno") == oggi:
-        return prezzi
+    simboli_e = cache.get("simboli_eodhd", {})                # v6.97: simboli EODHD (formato "SXR8.XETRA")
+    giri = cache.get("giri", 0) if cache.get("giorno") == oggi else 0
+    if cache.get("giorno") == oggi and (all(k in prezzi for k in STRUMENTI_UE) or giri >= 3):
+        return prezzi                            # gia' fatto oggi: completo, oppure gia' 3 tentativi per i mancanti
 
     def _cerca(isin):                            # simbolo in euro per l'ISIN (None se non c'e')
         js = _json(YAHOO_CERCA.format(q=urllib.parse.urlencode({"q": isin, "quotesCount": 15, "newsCount": 0})))
@@ -252,9 +254,23 @@ def prezzi_ue(cartella=CARTELLA, oggi=None, cerca=None, ultimo=None):
                for t, c in zip(res.get("timestamp") or [], res["indicators"]["quote"][0]["close"]) if c]
         return pts[-1] if pts else None
 
+    from . import eodhd
+    usa_eodhd = eodhd.attivo() and cerca is None and ultimo is None   # nei test (cerca/ultimo finti) solo quelli
     cerca, ultimo = cerca or _cerca, ultimo or _ultimo
     for k, (_, isin, _) in STRUMENTI_UE.items():
-        try:
+        if k in prezzi and prezzi[k].get("d") and cache.get("giorno") == oggi:
+            continue                             # questo l'abbiamo gia' oggi: si cercano solo i mancanti
+        if usa_eodhd:                            # 1) EODHD: quotazione in euro su Xetra (poi Francoforte, Parigi...)
+            try:
+                se = simboli_e.get(isin) or eodhd.cerca_eur(isin)
+                x = eodhd.ultimo_eur(se) if se else None
+                if x:
+                    simboli_e[isin] = se
+                    prezzi[k] = {"sym": se, "p": round(float(x[1]), 4), "d": x[0], "fonte": "eodhd"}
+                    continue
+            except Exception as e:
+                log.warning("EODHD: prezzo in euro di %s non disponibile (%s): provo Yahoo", k, type(e).__name__)
+        try:                                     # 2) Yahoo come riserva (es. Treasury 7-10 anni)
             sym = simboli.get(isin) or cerca(isin)
             if not sym:
                 continue
@@ -268,7 +284,8 @@ def prezzi_ue(cartella=CARTELLA, oggi=None, cerca=None, ultimo=None):
     try:
         os.makedirs(os.path.dirname(f), exist_ok=True)
         with open(f, "w", encoding="utf-8") as fh:
-            json.dump({"giorno": oggi, "simboli": simboli, "prezzi": prezzi}, fh, indent=1, sort_keys=True)
+            json.dump({"giorno": oggi, "giri": giri + 1, "simboli": simboli, "simboli_eodhd": simboli_e, "prezzi": prezzi}, fh,
+                      indent=1, sort_keys=True)
     except OSError:
         pass
     return prezzi
@@ -309,7 +326,19 @@ def _scrivi(cartella, ticker, pts):
     os.replace(f + ".tmp", f)
 
 
-def prezzi(scarica=scarica_yahoo, cartella=CARTELLA, oggi=None, pausa=0.8):
+def scarica_auto(ticker):
+    """v6.97 EODHD come fonte principale degli ETF USA (SPY, QQQ, GLD...) e del Bitcoin; Yahoo per i future (=F)
+    e come riserva se EODHD non risponde. Stesso formato di scarica_yahoo: [(data, prezzo rettificato)] o None."""
+    from . import eodhd
+    if eodhd.attivo() and eodhd.simbolo(ticker):
+        pts = _valida(eodhd.scarica_etf(ticker))
+        if pts:
+            return pts
+        log.info("EODHD %s non disponibile: provo Yahoo", ticker)
+    return scarica_yahoo(ticker)
+
+
+def prezzi(scarica=scarica_auto, cartella=CARTELLA, oggi=None, pausa=0.8):
     """{ticker: [(data, prezzo)]} per tutto l'universo + liquidita'. Scarica al massimo una volta al giorno;
     un download nuovo sostituisce la copia solo se e' completo (non piu' corto e non piu' vecchio).
     I prezzi rettificati di Yahoo cambiano all'indietro a ogni dividendo: per questo la copia si sostituisce

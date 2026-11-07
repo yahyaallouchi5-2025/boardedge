@@ -123,6 +123,16 @@ def _valida(pts, min_punti=20):
     return pts
 
 
+def min_punti(intervallo, periodo):
+    """v6.97 CORREZIONE: punti minimi perche' una risposta sia valida. Il download INCREMENTALE ("5d", v6.86) porta
+    al massimo 5 prezzi: prima si chiedevano comunque 20 punti, quindi OGNI aggiornamento incrementale veniva scartato
+    come "risposta incompleta" (3 tentativi a vuoto, titolo alla copia, dopo 5 di fila "Yahoo fermo"). Era una delle
+    cause dei giri con 0 titoli aggiornati."""
+    if intervallo == "1mo":
+        return 12
+    return 1 if periodo == "5d" else 20
+
+
 def scarica(ticker, intervallo="1d", periodo="2y", timeout=20, tentativi=TENTATIVI, attesa=2):
     """({meta}, [(data, prezzo rettificato)]) da Yahoo, oppure None dopo `tentativi` prove fallite.
     meta = nome, valuta, borsa (dal grafico: nessun cookie o crumb richiesto)."""
@@ -150,7 +160,7 @@ def scarica(ticker, intervallo="1d", periodo="2y", timeout=20, tentativi=TENTATI
                 if v is not None and v > 0:
                     d = datetime.fromtimestamp(ts + off, tz=timezone.utc).date().isoformat()
                     out[d[:7] if intervallo == "1mo" else d] = round(float(v), 4)
-            pts = _valida(sorted(out.items()), 12 if intervallo == "1mo" else 20)
+            pts = _valida(sorted(out.items()), min_punti(intervallo, periodo))
             if pts and intervallo == "1mo" and not mensile_ok(pts):
                 log.warning("Yahoo %s: storico mensile non mensile (granularita' %s)", ticker, m.get("dataGranularity"))
                 pts = None
@@ -169,6 +179,25 @@ def scarica(ticker, intervallo="1d", periodo="2y", timeout=20, tentativi=TENTATI
         if n + 1 < tentativi and attesa:
             time.sleep(attesa * (3 ** n))
     return None
+
+
+def scarica_auto(ticker, intervallo="1d", periodo="2y"):
+    """v6.97 FONTE PRINCIPALE EODHD, Yahoo come riserva (stesso formato di scarica()).
+    1) se c'e' la chiave e il titolo e' coperto (USA, Xetra, Parigi, Amsterdam..., indici) -> EODHD;
+    2) altrimenti, o se EODHD non risponde/ha una serie non valida -> Yahoo come prima (Milano, Asia)."""
+    from . import eodhd
+    if eodhd.attivo() and eodhd.simbolo(ticker):
+        r = eodhd.scarica_azione(ticker, intervallo, periodo)
+        if r and _valida(r[1], min_punti(intervallo, periodo)) and (intervallo != "1mo" or mensile_ok(r[1])):
+            return r
+        log.info("EODHD %s (%s %s) non disponibile: provo Yahoo", ticker, intervallo, periodo)
+    return scarica(ticker, intervallo, periodo)
+
+
+def pausa_per(ticker, pausa):
+    """Pausa tra un titolo e l'altro: serve solo con Yahoo (anti-blocco). Con EODHD basta la sua pausa interna."""
+    from . import eodhd
+    return 0 if (eodhd.attivo() and eodhd.simbolo(ticker)) else pausa
 
 
 def _mesi(x):
@@ -283,7 +312,7 @@ def freschezza(cartella, titoli, chiusura, oggi=None, ora_utc=None):
     return None
 
 
-def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, riprese=None, chiusura=CHIUSURA_UTC,
+def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica_auto, pausa=PAUSA, riprese=None, chiusura=CHIUSURA_UTC,
              ora_utc=None):
     """Aggiorna le copie grezze (cartella/grezzi/<T>.json). Restituisce lo stato del giro:
     {quando, ok, copia [titoli rimasti alla copia], falliti [senza nessun dato], fermo (Yahoo giu'), anomalia}."""
@@ -328,7 +357,7 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, rip
             if not completo:
                 # giorno normale: solo gli ultimi 5 giorni, uniti alla copia
                 nuovo = scarica(t, "1d", "5d")
-                _dormi(pausa)
+                _dormi(pausa_per(t, pausa))
                 if nuovo:
                     d = unisci(vecchio.get("d"), nuovo[1], oggi)
                     if d is None:
@@ -336,7 +365,7 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, rip
                         completo = True
             if completo:
                 nuovo = scarica(t)
-                _dormi(pausa)
+                _dormi(pausa_per(t, pausa))
                 d = nuovo[1] if nuovo else None
         if nuovo and d:
             di_fila, ultimi = 0, []
@@ -352,7 +381,7 @@ def aggiorna(cartella, titoli=None, oggi=None, scarica=scarica, pausa=PAUSA, rip
             if (oggi.weekday() == giorno_mensile(t) and vecchio_m < (oggi - timedelta(days=3)).isoformat()) \
                     or vecchio_m < (oggi - timedelta(days=10)).isoformat():
                 mm = scarica(t, "1mo", "max")
-                _dormi(pausa)
+                _dormi(pausa_per(t, pausa))
                 if mm:
                     rec["m"], rec["agg_m"] = mm[1], oggi.isoformat()
                 else:
