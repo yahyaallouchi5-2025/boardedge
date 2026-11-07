@@ -1757,3 +1757,15 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 @media (max-width:600px){.psim-g b{font-size:28px}.psim-bl span:nth-child(2){display:none}}
 /* simulatore su telefono: i due interruttori a tutta larghezza, pulsanti uguali su una riga */
 @media (max-width:600px){.psim-s{display:flex!important;width:100%;flex-wrap:nowrap}.psim-s button{flex:1 1 0;min-width:0;padding-left:4px;padding-right:4px;font-size:12.5px;white-space:nowrap}}
+/* v7.1 PREZZI INTRADAY: pallino che pulsa (prezzi con ritardo di borsa) e riga "oggi" nel mese in corso */
+.plive{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--mute);white-space:nowrap}
+.plive i{width:7px;height:7px;border-radius:50%;background:var(--mute)}
+.plive.on{color:var(--acc)}.plive.on i{background:var(--acc);box-shadow:0 0 8px var(--acc);animation:plive 2s ease-in-out infinite}
+@keyframes plive{50%{opacity:.35}}
+@media (prefers-reduced-motion:reduce){.plive.on i{animation:none}}
+.pacq-t{flex-wrap:wrap}
+.pmc-oggi{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin:2px 0 12px;padding:9px 12px;border-radius:12px;
+ background:color-mix(in srgb,var(--acc) 8%,var(--soft));border:1px solid color-mix(in srgb,var(--acc) 25%,transparent);font-size:13px}
+.pmc-oggi>b{font-size:17px;font-variant-numeric:tabular-nums}.pmc-oggi>span:not(.plive){color:var(--ink2)}
+.pmc-oggi .info{margin-left:auto}.pmc-oggi .info div{left:auto;right:0;font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink2)}
+.pacq-tot em{font-style:normal;color:var(--mute)}

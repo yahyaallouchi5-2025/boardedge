@@ -100,3 +100,27 @@ class TreasuryInEuro(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PrezziLive(unittest.TestCase):
+    """v7.1 cot_radar/live.py: una richiesta real-time per gruppo, chiavi del portafoglio, simboli ricordati."""
+
+    def test_live_json(self):
+        from cot_radar import live as L
+
+        def finto(percorso, parametri=None, **k):
+            if percorso.startswith("search/"):
+                return [{"Code": "SXR8", "Exchange": "XETRA", "Currency": "EUR", "ISIN": percorso[7:]}]
+            if percorso.startswith("real-time/"):
+                sim = [percorso[10:]] + ((parametri or {}).get("s", "").split(",") if parametri else [])
+                return [{"code": s, "close": 100.0, "previousClose": 99.0, "timestamp": 1} for s in sim if s]
+            return None
+        with mock.patch.dict(os.environ, {"EODHD_API_KEY": "finta"}), mock.patch.object(E, "get", finto):
+            d = L.calcola()
+        self.assertIn("SP500", d["ue"])
+        self.assertNotIn("CASH", d["ue"])                     # la liquidita' resta sul conto
+        self.assertEqual(d["ue"]["SP500"]["p"], 100.0)
+        self.assertIn("SPY", d["usa"])
+        self.assertEqual(d["eurusd"]["prev"], 99.0)
+        with mock.patch.dict(os.environ, {"EODHD_API_KEY": "finta"}), mock.patch.object(E, "get", finto) as g:
+            L.calcola(prima=d)                                 # simboli gia' noti: nessuna nuova ricerca
