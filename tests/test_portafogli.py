@@ -362,3 +362,25 @@ class AzioniInSP500(unittest.TestCase):
         self.assertNotIn("AZ", dopo)
         self.assertAlmostEqual(dopo["SP500"], prima["SP500"] + prima["AZ"], places=3)
         self.assertAlmostEqual(sum(dopo.values()), 1.0, places=2)
+
+
+class CrisiStoriche(unittest.TestCase):
+    """v7.4: stress test sulle crisi storiche (finestre fisse dal massimo al minimo dell'S&P 500)."""
+
+    def test_contributi_sommano_al_risultato(self):
+        from cot_radar import portafogli as P
+        px = P.prezzi_demo(inizio="2000-01-03", fine="2026-10-30")
+        px["SAT"] = px["SPY"]
+        g = P.Griglia(px)
+        giorni = P.date_ribilancio(g)
+        prof = P.PROFILI[1]
+        piani = {i: P.scegli(prof, g, i, {})[0] for i in giorni}
+        out = P.crisi_profilo(g, piani, giorni[0])
+        self.assertEqual([x["id"] for x in out], [c[0] for c in P.CRISI])
+        for x in out:
+            self.assertLessEqual(x["dd"], 0)
+            # la somma dei contributi e' il risultato della crisi (a meno dei costi dei ribilanci)
+            self.assertAlmostEqual(sum(x["contrib"].values()), x["r"], delta=0.5)
+        m = P.crisi_mercati(g, giorni[0])
+        self.assertEqual(len(m), len(P.CRISI))
+        self.assertTrue(all(c["sp"]["dd"] <= 0 for c in m))

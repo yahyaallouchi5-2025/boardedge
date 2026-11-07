@@ -566,7 +566,7 @@ def _ribilancia(valore, quote, nuovi):
     return valore, {k: valore * w for k, w in nuovi.items()}
 
 
-def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None, tassi=None):
+def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None, tassi=None, traccia=None):
     """v6.87 - IL NUMERO ONESTO DEL PORTAFOGLIO (in pagina, PDF, confronti):
       - ACQUISTO PRUDENTE: decisione sulla chiusura del giorno prima, acquisto alla CHIUSURA del giorno di rotazione
         (abbiamo solo prezzi di chiusura). Il movimento del giorno di rotazione resta al portafoglio VECCHIO: e' un
@@ -591,13 +591,143 @@ def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None,
             if fx:
                 gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
                 r_cash = (1 + tasso[i] / 100) ** (gg / 365) - 1
-            quote = {k: v * (1 + r_cash) if (fx and k == "CASH") else
+            nuove = {k: v * (1 + r_cash) if (fx and k == "CASH") else
                      v * (1 + g.rend(_ticker(sost.get(k, k)), i)) * f for k, v in quote.items()}
+            # v7.4 traccia = [[i0, i1, {chiave: guadagno}]]: guadagno (in valuta del portafoglio) di ogni componente
+            # nelle finestre delle crisi storiche, per dire CHI ha difeso il portafoglio (vedi crisi())
+            for i0, i1, acc in traccia or ():
+                if i0 < i <= i1:
+                    for k in nuove:
+                        acc[k] = acc.get(k, 0.0) + nuove[k] - quote[k]
+            quote = nuove
             valore = sum(quote.values())
         if i in pianificati:                       # acquisto alla chiusura del giorno di rotazione
             valore, quote = _ribilancia(valore, quote, pianificati[i])
         curva.append((g.date[i], valore))
     return curva
+
+
+# --------------------------------------------------------------------------- v7.4 CRISI STORICHE (stress test)
+# Come si e' comportato ogni profilo nelle grandi crisi da quando esiste il modello (2006). Le finestre sono FISSE e
+# decise prima di guardare i risultati: dal massimo dell'S&P 500 prima della crisi al suo minimo (chiusure). Nessuna
+# previsione: serve a vedere se la diversificazione (Treasury, oro, materie prime, liquidita' del filtro di trend)
+# ha fatto il suo lavoro, e quale ingrediente ha difeso in quale tipo di crisi.
+# (id, nome, motore della crisi, massimo S&P 500, minimo S&P 500)
+CRISI = [
+    ("2008", "Crisi finanziaria", "crescita", "2007-10-09", "2009-03-09"),
+    ("2011", "Debito europeo", "crescita", "2011-04-29", "2011-10-03"),
+    ("2015", "Cina e petrolio", "crescita", "2015-05-21", "2016-02-11"),
+    ("2018", "Fed e dazi", "tassi in rialzo", "2018-09-20", "2018-12-24"),
+    ("2020", "Pandemia", "liquidità", "2020-02-19", "2020-03-23"),
+    ("2022", "Inflazione e guerra", "inflazione", "2022-01-03", "2022-10-12"),
+    ("2025", "Dazi USA", "dazi", "2025-02-19", "2025-04-08"),
+]
+# componenti del portafoglio raggruppati per il "chi ha difeso"
+GRUPPI = {"SP500": "Azioni", "NASDAQ": "Azioni", "DOW": "Azioni", "RUSSELL": "Azioni", "EAFE": "Azioni", "EM": "Azioni",
+          "AZ": "Azioni", "US10Y": "Treasury", "USBOND": "Treasury", "GOLD": "Oro", "SILVER": "Oro",
+          "COPPER": "Materie prime", "WTI": "Materie prime", "NATGAS": "Materie prime", "BTC": "Bitcoin",
+          "ETH": "Bitcoin", "CASH": "Liquidità"}
+# mappa dei mercati in ogni crisi (in euro): settori USA (ETF SPDR) e le difese
+MAPPA_CRISI = [("XLK", "Tecnologia"), ("XLC", "Comunicazione"), ("XLY", "Beni voluttuari"), ("XLP", "Beni di prima necessità"),
+               ("XLV", "Salute"), ("XLF", "Finanza"), ("XLI", "Industria"), ("XLE", "Energia"), ("XLB", "Materiali"),
+               ("XLU", "Servizi pubblici"), ("XLRE", "Immobiliare"), ("IEF", "Treasury 10 anni"), ("GLD", "Oro"),
+               ("USO", "Petrolio WTI")]
+
+
+def _indice_data(g, d):
+    """Indice dell'ultimo giorno di borsa <= d (None se d e' prima dei dati)."""
+    i = None
+    for j, x in enumerate(g.date):
+        if x > d:
+            break
+        i = j
+    return i
+
+
+def _in_eur_i(g, fx, t, i0, i1):
+    """Rendimento % di un mercato tra i giorni i0 e i1, in euro senza copertura (in dollari se manca il cambio)."""
+    c = g.p.get(t) or []
+    if i1 >= len(c) or c[i0] is None or c[i1] is None:
+        return None
+    r = c[i1] / c[i0]
+    if fx:
+        f0 = f1 = None
+        for j in range(i0, -1, -1):
+            f0 = fx.get(g.date[j])
+            if f0:
+                break
+        for j in range(i1, -1, -1):
+            f1 = fx.get(g.date[j])
+            if f1:
+                break
+        if f0 and f1:
+            r *= f0 / f1
+    return round((r - 1) * 100, 1)
+
+
+def _recupero(curva, i0, i_min):
+    """Mesi (di calendario, arrotondati) dal massimo pre-crisi al ritorno sopra quel valore; None = non ancora."""
+    v0 = curva[i0][1]
+    for d, v in curva[i_min:]:
+        if v >= v0:
+            return round((date.fromisoformat(d) - date.fromisoformat(curva[i0][0])).days / 30.44)
+    return None
+
+
+def finestre_crisi(g, dal_i):
+    """[(crisi, i0, i1)] delle crisi che cadono dentro lo storico del modello."""
+    out = []
+    for c in CRISI:
+        i0, i1 = _indice_data(g, c[3]), _indice_data(g, c[4])
+        if i0 is not None and i1 is not None and i0 >= dal_i and i1 > i0:
+            out.append((c, i0, i1))
+    return out
+
+
+def crisi_profilo(g, piani, dal_i, fx=None, tassi=None):
+    """Per ogni crisi: rendimento nella finestra, drawdown massimo dentro la finestra, mesi per tornare al valore
+    pre-crisi e contributo di ogni gruppo (in punti % del valore all'inizio della crisi). Stessa curva onesta della
+    pagina (euro, acquisto prudente, 5 azioni = S&P 500, costi)."""
+    fin = finestre_crisi(g, dal_i)
+    tr = [[i0 - dal_i, i1 - dal_i, {}] for _, i0, i1 in fin]       # la curva parte da dal_i
+    tr_abs = [[i0, i1, acc] for (_, i0, i1), (_, _, acc) in zip(fin, tr)]
+    curva = simula_prudente(g, piani, dal_i, sostituisci={"AZ": "SPY"}, fx=fx, tassi=tassi, traccia=tr_abs)
+    out = []
+    for (c, i0, i1), (a, b, acc) in zip(fin, tr):
+        v0 = curva[a][1]
+        tratto = [v for _, v in curva[a:b + 1]]
+        mx, dd = v0, 0.0
+        for v in tratto:
+            mx = max(mx, v)
+            dd = min(dd, v / mx - 1)
+        gr = {}
+        for k, x in acc.items():
+            gr[GRUPPI.get(k, "Azioni")] = gr.get(GRUPPI.get(k, "Azioni"), 0.0) + x
+        out.append({"id": c[0], "r": round((curva[b][1] / v0 - 1) * 100, 1), "dd": round(dd * 100, 1),
+                    "rec": _recupero(curva, a, b),
+                    "contrib": {k: round(v / v0 * 100, 1) for k, v in sorted(gr.items(), key=lambda x: x[1])}})
+    return out
+
+
+def crisi_mercati(g, dal_i, fx=None):
+    """Elenco delle crisi con l'S&P 500 (in euro, comprato e tenuto: rendimento, drawdown, recupero) e la mappa dei
+    mercati (settori USA e difese) nella stessa finestra."""
+    out = []
+    spy = [(d, v) for d, v in zip(g.date, g.p["SPY"]) if v is not None]
+    eur = dict(in_euro(spy, fx)) if fx else dict(spy)               # S&P 500 in euro (cambio del giorno o l'ultimo)
+    for c, i0, i1 in finestre_crisi(g, dal_i):
+        sp = [(d, eur[d]) for d in g.date[i0:] if d in eur]
+        mx, dd = sp[0][1], 0.0
+        for _, v in sp[:i1 - i0 + 1]:
+            mx = max(mx, v)
+            dd = min(dd, v / mx - 1)
+        mappa = [{"t": t, "n": n, "r": _in_eur_i(g, fx, t, i0, i1)} for t, n in MAPPA_CRISI
+                 if (g.n.get(t) or [0] * len(g.date))[i0] > 0]
+        out.append({"id": c[0], "nome": c[1], "motore": c[2], "dal": g.date[i0], "al": g.date[i1],
+                    "giorni": i1 - i0, "sp": {"r": _in_eur_i(g, fx, "SPY", i0, i1), "dd": round(dd * 100, 1),
+                                              "rec": _recupero(sp, 0, i1 - i0)},
+                    "mappa": sorted([m for m in mappa if m["r"] is not None], key=lambda m: -m["r"])})
+    return out
 
 
 # --------------------------------------------------------------------------- v6.100 SIMULATORE (punto 6)
@@ -1304,6 +1434,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
             "stat_usd": {"totale": statistiche(c_usd), "oos": statistiche(_tagli(c_usd, dal=OOS_DAL))},
             "curva": _settimanale(cp), "live_dal": live[0][0] if live else None,
             "sim": simulatore(cp, tep if eur_ok else {}),       # v6.100: simulatore (finestre mobili, leva, prelievo)
+            "crisi": crisi_profilo(g, piani, giorni[0], fxp, tep),   # v7.4: stress test sulle crisi storiche
             "rotazioni": list(reversed(cambi)),
             "mesi_chiusi": dettaglio_mesi(g, piani, giorni_c, curva, sat),
         })
@@ -1328,6 +1459,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                            "oos": statistiche(_tagli(bench_p, dal=OOS_DAL), liq), "totale": statistiche(bench_p, liq)},
                   "stat_eur": {"totale": statistiche(bench_p, liq)} if eur_ok else None} if bench_p else None,
         "valuta": "EUR" if eur_ok else "USD",
+        "crisi": crisi_mercati(g, giorni[0], fxp),          # v7.4: crisi storiche (S&P 500 e mappa dei mercati)
         "avviso": avviso,
         "azioni": {"live_dal": (sat or {}).get("live_dal"), "nota": (sat or {}).get("nota"),
                    "disponibili": bool(ss)},
