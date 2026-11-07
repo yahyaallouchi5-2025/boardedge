@@ -329,33 +329,23 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  if(P.avviso)ebManutenzione({scheda:"port",codice:P.avviso.codice,quando:P.avviso.quando,dal:P.avviso.dal});
 
  // --- CARD PRINCIPALE del profilo scelto: rischio, descrizione, numeri chiave, composizione per classe, 5 azioni
+ // v7.2 un solo fumetto (i) accanto al nome: descrizione, come si misura, numeri secondari (niente righe tecniche fisse)
+ function infoProfilo(p,t){const usd=p.stat_usd&&p.stat_usd.totale;
+  return `<details class="info phi"><summary title="Il profilo" aria-label="Il profilo">i</summary><div>${esc(p.descr)}<br><br><b>Come si misura.</b> Numeri in euro senza copertura del cambio, liquidit&agrave; al tasso BCE, acquisto alla chiusura del giorno di rotazione, costi 0,10% inclusi.${t.oltre_liq!=null?` Oltre la liquidit&agrave;: <b>${pc(t.oltre_liq)}</b> l'anno.`:""}${t.recupero_mesi!=null?` Recupero dal drawdown peggiore: <b>${t.recupero_mesi} mesi</b>.`:""}${usd?` In dollari: ${pc(usd.cagr)} l'anno.`:""}</div></details>`;}
  function hero(p){const t=p.stat.totale||{},rk=RISK[p.id]||["",""];
   const cl={};p.composizione.forEach(c=>{cl[c.classe]=(cl[c.classe]||0)+c.peso;});
   const te=p.stat_eur&&p.stat_eur.totale,finale=te&&te.totale!=null?10000*(1+te.totale/100):t.totale!=null?10000*(1+t.totale/100):null   /* v6.57: 10.000 EURO -> si usa la curva in euro */,anno=(t.dal||"").slice(0,4);
   const az=p.composizione.find(c=>c.k=="AZ"),pausa=p.esclusi.find(x=>x.k=="AZ");
-  return `<div class="card phero"><div class="phtesta"><h3>${esc(p.nome)}</h3><div class="phazioni"><span class="prisk ${rk[1]}">Rischio ${rk[0].toLowerCase()}</span>${window.ebPdf?ebPdf.bottone():""}</div></div>
-   <p class="phdesc">${esc(p.descr)}</p>
+  return `<div class="card phero"><div class="phtesta"><h3>${esc(p.nome)}${infoProfilo(p,t)}</h3><div class="phazioni"><span class="prisk ${rk[1]}">Rischio ${rk[0].toLowerCase()}</span>${window.ebPdf?ebPdf.bottone():""}</div></div>
    <div class="phnum"><div><em>Rendimento annuo</em><b class="up">${pc(t.cagr)}</b><span>media dal ${anno}</span></div>
     <div><em>Max drawdown</em><b class="down">${pc(t.maxdd)}</b><span>dal picco al minimo</span></div>
     <div><em>10.000 € nel ${anno}</em><b>${eur(finale)}</b><span>valore di oggi${p.stat_eur&&p.stat_eur.totale?" (in euro)":""}</span></div>
     <div><em>Mesi positivi</em><b>${t.mesi_pos??"n/d"}%</b><span>su tutti i mesi</span></div></div>
-   ${(()=>{const sel=p.stat_sel&&p.stat_sel.totale,usd=p.stat_usd&&p.stat_usd.totale;   /* v6.87: numeri onesti, spiegazione nel fumetto */
-    const eu=p.valuta=="EUR";
-    return `<div class="pheur"><span class="pheurl">${eu?"&euro; In euro":"$ In dollari"}</span>${t.oltre_liq!=null?`<span>oltre la liquidit&agrave; <b class="${t.oltre_liq>=0?"up":"down"}">${pc(t.oltre_liq)}</b> l'anno</span>`:""}${t.calmar!=null?`<span>Calmar <b>${fx(t.calmar,2)}</b></span>`:""}<span>recupero dal drawdown peggiore <b>${t.recupero_mesi!=null?t.recupero_mesi+" mesi":"in corso"}</b></span>
-     <details class="info pheuri"><summary title="Come si misura" aria-label="Informazioni">i</summary><div><b>Numeri prudenti${eu?", in euro":""}.</b> ${eu?"Ogni mercato &egrave; convertito in euro senza copertura del cambio; la liquidit&agrave; rende il tasso BCE sui depositi (come l'ETF overnight indicato). ":""}L'acquisto &egrave; contato alla chiusura del giorno di rotazione (un po' peggio dell'acquisto reale alle 09:00), costi 0,10% inclusi. Le 5 azioni scelte sono contate come l'S&amp;P 500: lo storico usa i titoli che oggi sono negli indici e sarebbe ottimista.${sel?` Con la selezione vera dei 5 titoli: <b>${pc(sel.cagr)}</b> l'anno.`:""}${usd?` In dollari: <b>${pc(usd.cagr)}</b> l'anno, max drawdown ${pc(usd.maxdd)}.`:""}${t.liq_cagr!=null?` Liquidit&agrave; in euro nello stesso periodo: ${pc(t.liq_cagr)} l'anno.`:""} Calmar = rendimento annuo diviso il drawdown massimo (pi&ugrave; alto = meglio).</div></details></div>`;})()}
-   <div class="phcomp"><h4>Composizione del mese</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;--cb:${CL[x[0]]}"></s></i></div>`).join("")}</div>
-   ${p.az?"":`<div class="small phaz-v71">Da dicembre 2026 la quota delle 5 azioni &egrave; nell'S&amp;P 500: misurate in modo onesto (anche con le aziende fallite) rendevano come l'indice con il doppio del rischio.</div>`}
+   <div class="phcomp"><h4>Composizione del mese <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div><b>Ogni primo giorno di borsa del mese</b> si controlla il trend: un mercato azionario sotto la media a 200 giorni va in pausa nella liquidit&agrave;. Treasury e oro restano sempre come difesa. Si scambia solo se un mercato entra o esce, e a inizio trimestre per riportare i pesi. Durante il mese non si tocca nulla. Dettagli nella <b>Guida</b>.</div></details></h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;--cb:${CL[x[0]]}"></s></i></div>`).join("")}</div>
    <div class="phaz"${p.az?"":" hidden"}><h4>Le 5 azioni del mese <span class="small">(${p.az}% del portafoglio${az&&az.titoli&&az.titoli.length?`, ${fx(az.peso_titolo,1)}% ciascuna`:""})</span></h4>
     ${pausa?`<div class="small">${esc(pausa.motivo)}.</div>`:az&&az.titoli&&az.titoli.length?`<div class="ptit">${az.titoli.map(x=>`<button class="pchip clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">${esc(x.t)} <small>${esc(x.n)}</small></button>`).join("")}</div>`
      :`<div class="small">I titoli vengono scelti l'ultimo giorno di borsa del mese, dopo la chiusura, e entrano con la rotazione del ${gg(P.prossima)}.</div>`}</div>
-   <details class="phcome"><summary>Come funziona la rotazione di ogni mese</summary><ol>
-    <li><b>Primo giorno di borsa del mese</b>: per gli ETF azionari e Bitcoin si controlla il trend. Se il prezzo &egrave; sotto la media a 200 giorni il suo peso va in pausa nella liquidit&agrave;. <b>Treasury e oro restano sempre</b>: sono la difesa del portafoglio.</li>
-    <li><b>Si compra e si vende solo se serve</b>: se nessun mercato entra o esce il portafoglio resta com'&egrave;; a inizio trimestre (gennaio, aprile, luglio, ottobre) si riportano i pesi al loro valore. Meno scambi = meno costi e meno tasse.</li>
-    <li><b>Azioni scelte (${p.az}%)</b>: i 5 titoli dell'Azionario con il punteggio pi&ugrave; alto che hanno trend positivo (sopra la media a 200 giorni, 3 e 12 mesi in guadagno), non pi&ugrave; del 15% sotto il massimo dell'anno e il mese che entra positivo in almeno il 60% degli anni (minimo 8). Al massimo uno per settore, a pari peso.</li>
-    <li><b>Filtro di mercato</b>: se l'S&amp;P 500 &egrave; sotto la sua media a 200 giorni tutta la quota azioni va in liquidit&agrave; (nel 2008, senza filtro, questa quota perdeva il 55%).</li>
-    <li><b>Durante il mese non si tocca nulla</b>. Al mese dopo chi resta tra i migliori rimane, chi esce si vende, chi entra si compra. Costi inclusi: 0,10% sugli ETF, 0,20% sulle azioni.</li>
-    <li><b>Registro</b>: ogni rotazione e ogni scelta di titoli vengono salvate e non si modificano pi&ugrave;: la linea live non si pu&ograve; aggiustare dopo.</li></ol>
-    <p class="small">${esc((P.azioni||{}).nota||"")} Storico fino al 2015, fuori campione dal 2016. Risultati in euro (cambio EUR/USD senza copertura, liquidit&agrave; al tasso BCE), acquisto alla chiusura del giorno di rotazione, 5 azioni contate come l'S&amp;P 500.</p></details></div>`;}
+</div>`;}
 
  // --- v6.78 PDF DEL PORTAFOGLIO (generatore in 01b_pdf.js): gli stessi dati della pagina su un foglio chiaro, pensato
  //     per la stampa. Pagina 1: rischio, numeri chiave, composizione (ciambella + classi) e righe del portafoglio con
@@ -442,7 +432,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    const X=q=>gx+(+new Date(q)-t0)/(t1-t0||1)*gw,Y=v=>gy+(hi-Math.log(v))/(hi-lo||1)*gh;
    // fasce fuori campione e live, griglia con valori "tondi", anni sull'asse
    const fascia=(q,col,et)=>{if(q&&q>s[0][0]){d.rett(X(q),gy,gx+gw-X(q),gh,{f:col});d.testo(X(q)+6,gy+11,et,{s:6.8,b:true,c:C.mute});}};
-   fascia(P.oos_dal,"#f1f6fb","FUORI CAMPIONE");if(p.live_dal)fascia(p.live_dal,"#e4f5f2","LIVE");
+   fascia(P.oos_dal,"#f1f6fb","VERIFICA");if(p.live_dal)fascia(p.live_dal,"#e4f5f2","LIVE");
    [25,50,75,100,150,200,300,400,600,800,1000,1500,2000,3000,5000].filter(v=>Math.log(v)>lo&&Math.log(v)<hi).forEach(v=>{d.linea(gx,Y(v),gx+gw,Y(v),{c:"#e6ebf2",lw:.5});d.testo(gx-6,Y(v)+2.5,String(v),{s:6.8,c:C.mute,a:"r"});});
    const a0=+s[0][0].slice(0,4)+1,a1=+s[s.length-1][0].slice(0,4),pa=Math.ceil((a1-a0+1)/10)||1;
    for(let an=a0;an<=a1;an++)if((an-a0)%pa==0)d.testo(X(an+"-01-01"),gy+gh+11,String(an),{s:6.8,c:C.mute,a:"c"});
@@ -455,7 +445,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
 
   // risultati per periodo (come la tabella della pagina)
   const st=p.stat,bs=(P.bench||{}).stat||{};
-  const col=[["Storico",st.storico,"fino al 2015"],["Fuori campione",st.oos,"dal 2016"]].concat(st.live?[["Live",st.live,p.live_dal?"dal "+gg(p.live_dal):"dall'avvio"]]:[]).concat([["60/40",bs.oos,"dal 2016"]]);
+  const col=[["Storico",st.storico,"fino al 2015"],["Verifica",st.oos,"dal 2016"]].concat(st.live?[["Live",st.live,p.live_dal?"dal "+gg(p.live_dal):"dall'avvio"]]:[]).concat([["60/40",bs.oos,"dal 2016"]]);
   const RIG=[["Rendimento annuo",x=>x.cagr==null?pc(x.totale)+" tot.":pc(x.cagr)],["Volatilità",x=>fx(x.vol,1)+"%"],["Max drawdown",x=>pc(x.maxdd),C.down],["Peggior mese",x=>x.peggior_mese?pc(x.peggior_mese[1]):"n/d"],["Win rate mensile",x=>(x.mesi_pos??"n/d")+"%"]];
   y=d.serve(y,150,T);y=E.sezione(d,y+26,"Risultati per periodo");
   const c0=150,cw=(LW-c0)/col.length;d.rett(M,y,LW,28,{f:C.navy,r:4});
@@ -522,7 +512,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Ogni profilo ha una base fissa di mercati e pesi; un mercato azionario resta in portafoglio finch&eacute; il prezzo &egrave; sopra la media a 200 giorni, altrimenti il suo peso va in pausa nella liquidit&agrave; fino a quando torna sopra; Treasury e oro restano sempre come difesa. Nei test sullo storico questo filtro di trend ha ridotto molto i drawdown, mentre il posizionamento COT non migliorava i risultati: per questo il COT &egrave; mostrato accanto a ogni mercato solo come informazione. Regole di base decise sullo storico fino al 2015 e verificate dal 2016; la revisione di ottobre 2026 (meno azioni singole, difesa sempre presente, meno scambi) ha guardato tutto lo storico, quindi la prova davvero pulita &egrave; la linea live, che riparte dalla rotazione del 2 novembre 2026. Il rischio si legge mese per mese: a ogni rotazione la scheda mostra come si &egrave; comportata la composizione del mese nello stesso mese di tutti gli anni dello storico. Prezzi in dollari di ETF ed ETC equivalenti (il cambio euro/dollaro non &egrave; incluso), costi 0,10% a ogni rotazione.</p>
    <div class="pdate">${P.attesa?`<div class="pdinfo pnew"><i></i><div><span class="pdl">Nuova rotazione</span><b>${gg(P.rotazione)}</b><span class="pdsub">decisa sulla chiusura del ${gg(P.decisa_al)}</span></div></div>`:`<div class="pdinfo"><i></i><div><span class="pdl">Rotazione in vigore</span><b>${gg(P.rotazione)}</b></div></div>`}<span class="pcount" data-t="${P.prossima||""}" title="${P.attesa?"Si esegue":"Prossimo ribilanciamento"}: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"} <b class="pcd">${gg(P.prossima)}</b></span></div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
-   <label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${capitale.toLocaleString("it-IT")}" aria-label="Capitale da investire in euro"> &euro;<span class="small">importi e quote intere si ricalcolano mentre scrivi</span></label>
+   <label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${capitale.toLocaleString("it-IT")}" aria-label="Capitale da investire in euro"> &euro;</label>
    ${hero(p)}
    ${corso(p)}
    <div class="card pacq" id="pacq">${acquistoHTML(p)}</div>
