@@ -1,21 +1,71 @@
 {
  "giorno": "2026-11-07",
- "giri": 1,
+ "giri": 2,
  "prezzi": {
+  "BTC": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 6.783,
+   "sym": "IB1T.XETRA"
+  },
   "CASH": {
    "d": "2026-11-05",
    "p": 150.705,
    "sym": "XEON.DE"
   },
+  "COPPER": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 48.082,
+   "sym": "OD7C.XETRA"
+  },
+  "EAFE": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 40.135,
+   "sym": "EXUS.XETRA"
+  },
+  "EM": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 43.85,
+   "sym": "IS3N.XETRA"
+  },
+  "GOLD": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 70.635,
+   "sym": "PPFB.XETRA"
+  },
+  "NASDAQ": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 1401.2,
+   "sym": "SXRV.XETRA"
+  },
   "SP500": {
    "d": "2026-11-05",
    "p": 718.53,
    "sym": "CSSPX.MI"
+  },
+  "WTI": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 15.56,
+   "sym": "OD7F.XETRA"
   }
  },
  "simboli": {
   "IE00B5BMR087": "CSSPX.MI",
   "LU0290358497": "XEON.DE"
  },
- "simboli_eodhd": {}
+ "simboli_eodhd": {
+  "GB00B15KXQ89": "OD7C.XETRA",
+  "GB00B15KXV33": "OD7F.XETRA",
+  "IE0006WW1TQ4": "EXUS.XETRA",
+  "IE00B4ND3602": "PPFB.XETRA",
+  "IE00B53SZB19": "SXRV.XETRA",
+  "IE00BKM4GZ66": "IS3N.XETRA",
+  "XS2940466316": "IB1T.XETRA"
+ }
 }
