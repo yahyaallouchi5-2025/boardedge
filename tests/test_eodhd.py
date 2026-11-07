@@ -82,5 +82,21 @@ class FontePrincipale(unittest.TestCase):
             self.assertEqual(E.cerca_eur("IE00B5BMR087"), "SXR8.XETRA")
 
 
+class TreasuryInEuro(unittest.TestCase):
+    def test_simbolo_di_riserva_solo_con_lo_stesso_isin(self):
+        def finto(percorso, parametri=None, **k):
+            if percorso == "search/IE00B3VWN518":
+                return [{"Code": "CBU0", "Exchange": "LSE", "Currency": "USD", "ISIN": "IE00B3VWN518"}]
+            if percorso == "search/SXRM":
+                return [{"Code": "SXRM", "Exchange": "XETRA", "Currency": "EUR", "ISIN": "IE00B3VWN518"}]
+            if percorso == "search/CBU0":
+                return [{"Code": "XXXX", "Exchange": "XETRA", "Currency": "EUR", "ISIN": "IE0000000000"}]
+            return []
+        with mock.patch.dict(os.environ, {"EODHD_API_KEY": "finta"}), mock.patch.object(E, "get", finto):
+            self.assertEqual(E.cerca_eur("IE00B3VWN518"), "SXRM.XETRA")
+            with mock.patch.dict(E.SIMBOLI_EUR, {"IE00B3VWN518": ("CBU0",)}):
+                self.assertIsNone(E.cerca_eur("IE00B3VWN518"))        # ISIN diverso: scartato
+
+
 if __name__ == "__main__":
     unittest.main()

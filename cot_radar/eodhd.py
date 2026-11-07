@@ -133,13 +133,26 @@ def scarica_etf(t):
     return serie(sym, "1990-01-01") if sym else None
 
 
+# ISIN che la ricerca di EODHD non collega alla quotazione in euro: simboli Xetra da provare. Si accettano SOLO se la
+# ricerca per simbolo restituisce lo stesso ISIN (nessun rischio di prezzo di uno strumento sbagliato).
+SIMBOLI_EUR = {"IE00B3VWN518": ("SXRM", "CBU0", "IBTM")}   # iShares $ Treasury Bond 7-10yr UCITS ETF (Acc)
+
+
 def cerca_eur(isin):
     """ISIN -> simbolo EODHD quotato in EURO (Xetra per primo, poi Francoforte, Parigi, Amsterdam), None se non c'e'."""
-    js = get("search/" + isin)
     ordine = ("XETRA", "F", "PA", "AS", "BR", "MC")
-    cand = [x for x in js or [] if x.get("Currency") == "EUR" and x.get("Exchange") in ordine]
-    cand.sort(key=lambda x: ordine.index(x["Exchange"]))
-    return f"{cand[0]['Code']}.{cand[0]['Exchange']}" if cand else None
+
+    def migliore(js, solo_isin=False):
+        cand = [x for x in js or [] if x.get("Currency") == "EUR" and x.get("Exchange") in ordine
+                and (not solo_isin or (x.get("ISIN") or "").upper() == isin.upper())]
+        cand.sort(key=lambda x: ordine.index(x["Exchange"]))
+        return f"{cand[0]['Code']}.{cand[0]['Exchange']}" if cand else None
+    trovato = migliore(get("search/" + isin))
+    for codice in SIMBOLI_EUR.get(isin, ()) if not trovato else ():
+        trovato = migliore(get("search/" + codice), solo_isin=True)   # stesso ISIN obbligatorio
+        if trovato:
+            break
+    return trovato
 
 
 def ultimo_eur(sym):
