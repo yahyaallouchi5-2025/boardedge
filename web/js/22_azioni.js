@@ -233,7 +233,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   c.innerHTML=`<div class="vfswitch azper">${PER.map(p=>`<button data-p="${p[0]}" class="${ST.per==p[0]?"on":""}">${p[1]}</button>`).join("")}</div>
    <div class="azgraf">${grafico(serie(),ST.per=="max",t.val)}</div>
    <div class="azmini"><div><span>1 mese</span>${pc(t.v1m)}</div><div><span>3 mesi</span>${pc(t.v3m)}</div><div><span>Da inizio anno</span>${pc(t.vytd)}</div>
-    <div><span>1 anno</span>${pc(t.v1a)}</div><div><span>Dal massimo 52 sett.</span>${pc(t.dmax)}</div><div><span>Rispetto media 200g</span>${pc(t.t200)}</div></div>
+    <div><span>1 anno</span>${pc(t.v1a)}</div><div><span>Dal massimo 1 anno</span>${pc(t.dmax)}</div><div><span>Trend (media 200g)</span>${pc(t.t200)}</div></div>
    ${sdBlocco(t)}
    <div class="azbil">${sk("40%",16)}${sk("100%",140,"border-radius:14px;margin-top:10px")}</div>
    <div class="azprof">${sk("30%",16)}${sk("100%",14,"margin-top:12px")}${sk("90%",14,"margin-top:8px")}<div class="azmini">${Array(4).fill(`<div>${sk("60%",11)}${sk("70%",16)}</div>`).join("")}</div></div>
@@ -248,10 +248,11 @@ try{(function(){const el=$("azioni");if(!el)return;
  function sdCella(t){if(t.sd==null)return '<span class="flat">n/d</span>';const g=SDG(t.sd);
   return `<span class="sdp sd${g[0]}" title="${g[1]} &middot; sconto dal massimo 12 mesi ${fx(t.sdo,1)}%">${t.sd}<small>${g[1]}</small></span>`;}
  function sdBlocco(t){if(t.sd==null)return "";const g=SDG(t.sd);
-  const frase=t.sdo>-10?`Il prezzo &egrave; vicino al massimo degli ultimi 12 mesi: nessuno sconto da sfruttare.`
-   :`Oggi &egrave; ${fx(Math.abs(t.sdo),1)}% sotto il massimo dei 12 mesi: uno sconto pi&ugrave; profondo del ${t.sdr}% dei mesi della sua storia. In passato, comprando a questo livello, 12 mesi dopo il risultato era positivo nel <b>${t.sdv}%</b> dei casi, contro il ${t.sdb}% normale${t.sdn?` (${t.sdn} casi${t.sdx?" del suo settore":" di questo titolo"})`:""}.`;
+  const frase=t.sdo>-10?`Vicino al massimo dell'anno: nessuno sconto.`
+   :`&minus;${fx(Math.abs(t.sdo),1)}% dal massimo dell'anno. Comprando a questo sconto, dopo 12 mesi era positivo <b>${t.sdv}%</b> delle volte (di solito ${t.sdb}%).`;
+  const caso=t.sdo>-10?"":` Casi storici: ${t.sdn||"n/d"}${t.sdx?" del suo settore":" di questo titolo"}; lo sconto di oggi &egrave; pi&ugrave; profondo del ${t.sdr}% dei mesi della sua storia.`;
   return `<div class="sdbox sd${g[0]}"><div class="sdtesta"><span class="sdlab">SMART DISCOUNT</span>
-    <details class="info"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Punteggio 0-100: 60% <b>rarit&agrave;</b> (quanti mesi della storia del titolo avevano uno sconto meno profondo di oggi, dal massimo delle ultime 12 chiusure mensili) + 40% <b>qualit&agrave;</b> (quanto comprare a questo livello di sconto &egrave; andato meglio di comprare a caso; 50 = uguale). Backtest su ~1.000 mercati e 40.000 occasioni di sconto dal 1962. Attenzione: i titoli falliti non sono nei dati, quindi la qualit&agrave; &egrave; un po' ottimista. Statistica del passato, non un consiglio di investimento.</div></details></div>
+    <details class="info"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Punteggio 0-100: 60% <b>rarit&agrave;</b> (quanti mesi della storia del titolo avevano uno sconto meno profondo di oggi, dal massimo delle ultime 12 chiusure mensili) + 40% <b>qualit&agrave;</b> (quanto comprare a questo livello di sconto &egrave; andato meglio di comprare a caso; 50 = uguale). Backtest su ~1.000 mercati e 40.000 occasioni di sconto dal 1962. Attenzione: i titoli falliti non sono nei dati, quindi la qualit&agrave; &egrave; un po' ottimista. ${caso} Statistica del passato, non un consiglio di investimento.</div></details></div>
    <div class="sdcorpo"><div class="sdnum"><b>${t.sd}</b><span>${g[1]}</span></div>
     <div class="sdbarre"><div><span>Rarit&agrave; dello sconto</span><i><em style="width:${t.sdr}%"></em></i><b>${t.sdr}</b></div>
      <div><span>Qualit&agrave; storica</span><i><em style="width:${t.sdq}%"></em></i><b>${t.sdq}</b></div></div></div>
@@ -265,7 +266,7 @@ try{(function(){const el=$("azioni");if(!el)return;
  function bilancio(box,t){if(!box)return;
   fetch(BASE+"bilanci/"+encodeURIComponent(t.t.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(b=>{
    if(!box.isConnected)return;
-   if(!b||!b.anni||!b.anni.length){box.innerHTML=`<h4 class="aztit">Bilancio e trimestrali</h4><p class="small">Bilanci annuali e risultati trimestrali sono disponibili per le aziende USA (S&amp;P 500 e Nasdaq-100), fonte SEC. Gratuiti, ma la SEC copre solo le societ&agrave; americane.</p>`;return;}
+   if(!b||!b.anni||!b.anni.length){box.innerHTML=`<h4 class="aztit">Bilancio e trimestrali</h4><p class="small">Disponibile solo per le aziende USA (fonte SEC).</p>`;return;}
    const A=b.anni,u=A[A.length-1],g=GIU[b.giudizio]||["med",b.giudizio];
    const mx=Math.max(1,...A.map(y=>Math.abs(y.ricavi||0))),W=440,H=150,T=10,B=22,bw=(W/A.length);
    const Y0=T+(H-T-B)*0.78,Ys=v=>Math.min(Y0-T,(Math.abs(v)/mx)*(Y0-T)),Yn=v=>Math.min(H-B-Y0-4,(Math.abs(v)/mx)*(Y0-T));   // zero al 78%: le perdite scendono sotto
@@ -273,7 +274,7 @@ try{(function(){const el=$("azioni");if(!el)return;
     return `<rect x="${(x+bw*.16).toFixed(1)}" y="${(Y0-r).toFixed(1)}" width="${(bw*.32).toFixed(1)}" height="${r.toFixed(1)}" rx="3" class="bric"><title>${y.a}: ricavi ${dollari(y.ricavi).replace("&minus;","-")}</title></rect>
      <rect x="${(x+bw*.52).toFixed(1)}" y="${(y.utile>=0?Y0-uu:Y0).toFixed(1)}" width="${(bw*.32).toFixed(1)}" height="${Math.max(1,uu).toFixed(1)}" rx="3" class="${y.utile>=0?"butu":"bper"}"><title>${y.a}: utile ${dollari(y.utile).replace("&minus;","-")}</title></rect>
      <text x="${(x+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle" class="pax">${y.a}</text>`;}).join("");
-   box.innerHTML=`<h4 class="aztit">Bilancio <span class="small">(ultimi ${A.length} anni fiscali, fonte SEC)</span>
+   box.innerHTML=`<h4 class="aztit">Bilancio <span class="small">${A.length} anni &middot; SEC</span>
      <details class="info"><summary title="Da dove arrivano i dati" aria-label="Informazioni">i</summary><div>Bilanci annuali (10-K) depositati alla SEC: arrivano 2-3 mesi dopo la chiusura dell'anno fiscale e qui si aggiornano ogni settimana. Giudizio automatico e semplificato, non una valutazione di investimento.</div></details></h4>
     <div class="bgiu ${g[0]}"><b>${g[1]}</b><span>${esc(b.motivo||"")}</span></div>
     <div class="azmini bmini"><div><span>Ricavi ${u.a}</span><b>${dollari(u.ricavi)}</b>${b.crescita!=null?`<em class="${b.crescita>=0?"up":"down"}">${b.crescita>0?"+":""}${fx(b.crescita,1)}% l'anno</em>`:""}</div>
@@ -310,11 +311,10 @@ try{(function(){const el=$("azioni");if(!el)return;
     <td class="tut"><b class="${q.utile>=0?"up":"down"}">${dollari(q.utile)}</b>${var_(q.utile,o.utile)}</td><td><b>${eps(q.eps)}</b>${var_(q.eps,o.eps)}</td></tr>`;}).join("");
   const c=b.conti,oggi=new Date().toISOString().slice(0,10);
   const pross=c?(c.prossimo<=oggi?`<b>attesi a breve</b>`:`<b>~ ${dataIt(c.prossimo)}</b>`):"";
-  return `<h4 class="aztit tritit">Risultati trimestrali <span class="small">(ultimi 4 trimestri, fonte SEC)</span>
+  return `<h4 class="aztit tritit">Risultati trimestrali
     <details class="info"><summary title="Come leggere la tabella" aria-label="Informazioni">i</summary><div>Ricavi, utile netto e utile per azione (EPS diluito) dai bilanci trimestrali depositati alla SEC (10-Q), con la variazione rispetto allo stesso trimestre dell'anno prima. Il 4&deg; trimestre non viene depositato da solo: &egrave; calcolato come anno intero meno i primi tre (*). La data dei prossimi conti &egrave; una stima basata sul calendario dell'anno precedente. Dati gratuiti con qualche giorno di ritardo; le stime degli analisti non sono incluse.</div></details></h4>
    ${c?`<div class="tconti"><span>Ultimi conti <b>${dataIt(c.ultimo)}</b></span><span class="prox">Prossimi conti (stima) ${pross}</span></div>`:""}
-   <div class="ttab"><table><thead><tr><th>Trimestre</th><th>Ricavi</th><th class="tut">Utile netto</th><th>EPS</th></tr></thead><tbody>${righe}</tbody></table></div>
-   ${T.slice(-4).some(q=>q.r4)?`<p class="small">* 4&deg; trimestre calcolato: anno intero meno i primi tre trimestri.</p>`:""}`;}
+   <div class="ttab"><table><thead><tr><th>Trimestre</th><th>Ricavi</th><th class="tut">Utile netto</th><th>EPS</th></tr></thead><tbody>${righe}</tbody></table></div>`;}
 
  // --- PROFILO DELL'AZIENDA (v6.52, cot_radar/profili.py): cosa fa, fondazione, sede, CEO, dipendenti, borse,
  //     eventuale acquisizione negli ultimi 10 anni. Fonti: Wikidata e Wikipedia. File pubblico/profili/<T>.json.
