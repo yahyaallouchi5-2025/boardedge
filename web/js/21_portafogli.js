@@ -275,6 +275,35 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const ci=c.querySelector("input");ci.oninput=()=>{simCap=+ci.value.replace(/\D/g,"")||0;corpo();};
   ci.onblur=()=>{ci.value=simCap.toLocaleString("it-IT");salva("ebSimCap",simCap);};}
 
+
+ // --- v7.4 CRISI STORICHE (cot_radar/portafogli.py: crisi_profilo + crisi_mercati): per ogni grande crisi dal 2006
+ //     il drawdown del profilo contro l'S&P 500 (in euro), chi ha difeso il portafoglio e quali mercati sono saliti.
+ //     Una riga per crisi (la piu' recente in alto); il tocco apre il dettaglio sotto la riga (una alla volta).
+ let crSel=null;
+ function crDett(p,c){const x=(p.crisi||[]).find(y=>y.id==c.id);if(!x)return "";
+  const ct=Object.entries(x.contrib||{}).filter(e=>Math.abs(e[1])>=0.1).sort((a,b)=>b[1]-a[1]),mx=Math.max(1,...ct.map(e=>Math.abs(e[1])));
+  const mesi=n=>n==null?"non ancora":n+(n==1?" mese":" mesi");
+  const m=c.mappa||[],su=m.slice(0,3),giu=m.slice(-3).reverse();
+  const chip=y=>`<span class="pcr-ch ${y.r>=0?"up":"down"}">${esc(y.n)} <b>${pc(y.r,0)}</b></span>`;
+  return `<div class="pcr-d">
+   <div class="pcr-sz"><span class="pcr-lab">Contributo al risultato</span>${ct.map(e=>`<div class="pcr-c"><span>${esc(e[0])}</span>
+     <i><em class="${e[1]>=0?"su":"giu"}" style="width:${(Math.abs(e[1])/mx*100).toFixed(0)}%"></em></i><b class="${e[1]>=0?"up":"down"}">${e[1]>0?"+":""}${fx(e[1],1)}</b></div>`).join("")}</div>
+   <div class="pcr-sz"><span class="pcr-lab">Ritorno al valore di prima</span><div class="pcr-rec"><b>${mesi(x.rec)}</b><span>S&amp;P 500: ${mesi(c.sp.rec)}</span></div></div>
+   <div class="pcr-sz"><span class="pcr-lab">Mercati in quella crisi</span><div class="pcr-chs">${su.map(chip).join("")}</div><div class="pcr-chs">${giu.map(chip).join("")}</div></div></div>`;}
+ function crisiHTML(p){const C=(P.crisi||[]).slice().reverse();if(!C.length||!p.crisi)return "";
+  if(!crSel||!C.some(c=>c.id==crSel))crSel=C[0].id;
+  const mx=Math.max(1,...C.map(c=>Math.abs(c.sp.dd)));
+  return `<div class="card pcr" id="pcr"><div class="psim-t"><h3>Crisi storiche <span class="pbprof">${esc(p.nome)}</span></h3>
+    <details class="info"><summary title="Come leggerlo" aria-label="Come leggerlo">i</summary><div><b>Cosa mostra.</b> Le grandi crisi da quando esiste il modello: dal massimo dell'S&amp;P 500 al suo minimo (date fisse, scelte prima di guardare i risultati). Numero grande = drawdown massimo del portafoglio in quei giorni, accanto quello dell'S&amp;P 500. Tutto in euro, come la curva della pagina.<br><br><b>Contributo al risultato.</b> Guadagno o perdita di ogni parte del portafoglio, in punti percentuali del capitale a inizio crisi: la somma &egrave; il risultato della crisi.<br><br><b>Ogni crisi ha un motore diverso</b>: nelle crisi di crescita difendono Treasury e oro, in quelle di inflazione materie prime e oro, nei crolli improvvisi la liquidit&agrave; del filtro di trend. Nessuno le prevede: la diversificazione serve ad avere gi&agrave; in portafoglio l'ingrediente giusto. Statistica del passato, non un consiglio.</div></details></div>
+   <div class="pcr-l">${C.map(c=>{const x=(p.crisi||[]).find(y=>y.id==c.id)||{};
+    return `<button type="button" class="pcr-r${c.id==crSel?" on":""}" data-cr="${c.id}" aria-expanded="${c.id==crSel}"><span class="pcr-n"><b>${esc(c.nome)}</b><small>${esc(c.id)} &middot; ${esc(c.motore)}</small></span>
+     <span class="pcr-v"><small>Portafoglio</small><b class="${(x.dd||0)<0?"down":"up"}">${pc(x.dd)}</b><i><em style="width:${(Math.abs(x.dd||0)/mx*100).toFixed(1)}%"></em></i></span>
+     <span class="pcr-v pcr-sp"><small>S&amp;P 500</small><b class="down">${pc(c.sp.dd)}</b><i><em style="width:${(Math.abs(c.sp.dd)/mx*100).toFixed(1)}%"></em></i></span></button>
+     ${c.id==crSel?crDett(p,c):""}`;}).join("")}</div></div>`;}
+ function crEventi(p){const c=el.querySelector("#pcr");if(!c)return;
+  c.querySelectorAll("[data-cr]").forEach(b=>b.onclick=()=>{crSel=b.dataset.cr;const n=document.createElement("div");n.innerHTML=crisiHTML(p);
+   c.querySelector(".pcr-l").replaceWith(n.querySelector(".pcr-l"));crEventi(p);});}
+
  function rotazioni(p){const ch=k=>`<span class="pchip" title="${esc(nomeK(k))}">${esc(nomeK(k))}</span>`;
   const perMese={};(p.mesi_chiusi||[]).forEach(m=>perMese[m.mese]=m);
   return `<div class="prot${tutteRot?" aperta":""}">${p.rotazioni.map((r,i)=>`<div class="protr${i>=3?" pextra":""}"><b>${gg(r.data)}</b><div>
@@ -509,7 +538,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   else window.scrollTo({top:sy,behavior:"instant"});
   requestAnimationFrame(()=>{el.style.minHeight="";});}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
-  el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Ogni profilo ha una base fissa di mercati e pesi; un mercato azionario resta in portafoglio finch&eacute; il prezzo &egrave; sopra la media a 200 giorni, altrimenti il suo peso va in pausa nella liquidit&agrave; fino a quando torna sopra; Treasury e oro restano sempre come difesa. Nei test sullo storico questo filtro di trend ha ridotto molto i drawdown, mentre il posizionamento COT non migliorava i risultati: per questo il COT &egrave; mostrato accanto a ogni mercato solo come informazione. Regole di base decise sullo storico fino al 2015 e verificate dal 2016; la revisione di ottobre 2026 (meno azioni singole, difesa sempre presente, meno scambi) ha guardato tutto lo storico, quindi la prova davvero pulita &egrave; la linea live, che riparte dalla rotazione del 2 novembre 2026. Il rischio si legge mese per mese: a ogni rotazione la scheda mostra come si &egrave; comportata la composizione del mese nello stesso mese di tutti gli anni dello storico. Prezzi in dollari di ETF ed ETC equivalenti (il cambio euro/dollaro non &egrave; incluso), costi 0,10% a ogni rotazione.</p>
+  el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
    <div class="pdate">${P.attesa?`<div class="pdinfo pnew"><i></i><div><span class="pdl">Nuova rotazione</span><b>${gg(P.rotazione)}</b><span class="pdsub">decisa sulla chiusura del ${gg(P.decisa_al)}</span></div></div>`:`<div class="pdinfo"><i></i><div><span class="pdl">Rotazione in vigore</span><b>${gg(P.rotazione)}</b></div></div>`}<span class="pcount" data-t="${P.prossima||""}" title="${P.attesa?"Si esegue":"Prossimo ribilanciamento"}: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"} <b class="pcd">${gg(P.prossima)}</b></span></div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
    <label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${capitale.toLocaleString("it-IT")}" aria-label="Capitale da investire in euro"> &euro;</label>
@@ -522,6 +551,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="card pgraf">${curva(p)}</div>
    ${tabella(p)}
    ${simulatoreHTML(p)}
+   ${crisiHTML(p)}
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>
    <div class="pbasso"><h3 class="vft">Ultime rotazioni <details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div>+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato.</div></details></h3>${rotazioni(p)}</div>`;
   el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
@@ -540,6 +570,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const ci=el.querySelector(".pcap input");if(ci){ci.oninput=()=>{const v=+ci.value.replace(/\D/g,"");capitale=v||0;
    aggiornaEuro(p);};ci.onblur=()=>{ci.value=capitale.toLocaleString("it-IT");try{localStorage.setItem("ebCapitale",capitale);}catch(e){}};}
   simEventi(p);
+  crEventi(p);
   liveOggi(p);
   tipMesi(el.querySelector(".pcontro"),p);
   conto();
