@@ -1,7 +1,7 @@
-# prova-eodhd.yml - PROVA del fornitore EODHD con la chiave GRATUITA (20 chiamate al giorno): cosa offre in piu' di Yahoo.
+# prova-eodhd.yml - v2 (piano a pagamento): COSA INCLUDE DAVVERO l'abbonamento EODHD, endpoint per endpoint.
 # La chiave sta SOLO nei Secrets di GitHub (EODHD_API_KEY): non viene mai scritta nei log ne' nei file.
-# Risultato: ramo "prova-eodhd", file eodhd.json (conteggi per borsa e per tipo di strumento, prova prezzi, ricerca ISIN).
-# Si lancia a mano (Actions -> Prova EODHD -> Run workflow). Usa 17 chiamate su 20.
+# Risultato: ramo "prova-eodhd", file eodhd2.json = per ogni prova {http, ok, riassunto}. Nessun cambio al sito.
+# Si lancia a mano (Actions -> Prova EODHD -> Run workflow).
 name: Prova EODHD
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ permissions:
 jobs:
   prova:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - name: Interroga EODHD
         env:
@@ -18,48 +18,94 @@ jobs:
         run: |
           mkdir out && cd out
           python3 -u - <<'PY'
-          import collections, json, os, time, urllib.error, urllib.request
+          import json, os, time, urllib.error, urllib.request
           KEY = os.environ.get("EODHD_API_KEY", "")
           if not KEY:
               raise SystemExit("manca il secret EODHD_API_KEY")
           BASE = "https://eodhd.com/api/"
           def get(path, extra=""):
-              """una chiamata = un'unita' del limite giornaliero; ritorna (codice http, json o None). Nessun URL nei log."""
-              url = f"{BASE}{path}?api_token={KEY}&fmt=json{extra}"
+              """(codice http, json o None, byte). Nessun URL nei log: contiene la chiave."""
+              url = f"{BASE}{path}{'&' if '?' in path else '?'}api_token={KEY}&fmt=json{extra}"
               try:
                   req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/prova-eodhd"})
-                  with urllib.request.urlopen(req, timeout=60) as r:
-                      return r.status, json.load(r)
+                  with urllib.request.urlopen(req, timeout=120) as r:
+                      raw = r.read()
+                      try:
+                          return r.status, json.loads(raw), len(raw)
+                      except ValueError:
+                          return r.status, None, len(raw)
               except urllib.error.HTTPError as e:
-                  return e.code, None
+                  return e.code, None, 0
               except Exception as e:
-                  return type(e).__name__, None
-          out = {"quando": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime())}
-          # 1) quante borse
-          c, js = get("exchanges-list/")
-          out["borse"] = {"http": c, "totale": len(js) if js else None,
-                          "elenco": [[x.get("Code"), x.get("Name"), x.get("Country"), x.get("Currency")] for x in js or []]}
-          print("borse:", c, out["borse"]["totale"])
-          # 2) quanti strumenti per borsa e per tipo (azioni, ETF, fondi...)
-          out["simboli"] = {}
-          for ex, extra in (("US", ""), ("US", "&delisted=1"), ("XETRA", ""), ("MI", ""), ("PA", ""), ("LSE", ""),
-                            ("AS", ""), ("SW", ""), ("TO", ""), ("FOREX", ""), ("CC", ""), ("INDX", "")):
-              c, js = get(f"exchange-symbol-list/{ex}", extra)
-              nome = ex + (" (delistati)" if extra else "")
-              tipi = collections.Counter(x.get("Type") for x in js or [])
-              out["simboli"][nome] = {"http": c, "totale": len(js) if js else None, "per_tipo": dict(tipi.most_common(8))}
-              print(nome, c, len(js) if js else None)
-          # 3) prova prezzi: ETF su Xetra, azione USA, cambio (ultimi 10 giorni)
-          out["prezzi"] = {}
-          for s in ("SXR8.XETRA", "EXPD.US", "EURUSD.FOREX"):
-              c, js = get(f"eod/{s}", "&from=" + time.strftime("%Y-%m-%d", time.gmtime(time.time() - 14 * 86400)))
-              out["prezzi"][s] = {"http": c, "ultimi": [[x.get("date"), x.get("close"), x.get("adjusted_close")] for x in (js or [])[-5:]]}
-              print(s, c)
-          # 4) ricerca per ISIN (oggi la facciamo su Yahoo per i prezzi in euro degli ETF)
-          c, js = get("search/IE00B5BMR087")
-          out["ricerca_isin"] = {"http": c, "risultati": [[x.get("Code"), x.get("Exchange"), x.get("Currency"), x.get("Type")] for x in js or []]}
-          print("ricerca isin:", c)
-          json.dump(out, open("eodhd.json", "w"), indent=1, ensure_ascii=False)
+                  return type(e).__name__, None, 0
+          out = {"quando": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "prove": {}}
+          def prova(nome, path, extra="", riassunto=lambda js: None):
+              c, js, n = get(path, extra)
+              try:
+                  r = riassunto(js) if js is not None else None
+              except Exception as e:
+                  r = "riassunto non riuscito: " + type(e).__name__
+              out["prove"][nome] = {"http": c, "ok": c == 200 and js not in (None, [], {}), "byte": n, "riassunto": r}
+              print(f"{nome:28s} {c} {n}")
+              return js
+          # 0) il piano: tipo di abbonamento e chiamate usate/al giorno (campi sensibili esclusi)
+          prova("piano", "user", riassunto=lambda j: {k: j.get(k) for k in
+                ("subscriptionType", "paymentMethod", "apiRequests", "dailyRateLimit", "apiRequestsDate", "extraLimit")})
+          # 1) prezzi di fine giornata di TUTTA una borsa in una richiesta (la cura dei blocchi di Yahoo)
+          for ex in ("US", "XETRA", "PA", "AS"):
+              prova(f"bulk_{ex}", f"eod-bulk-last-day/{ex}",
+                    riassunto=lambda j: {"titoli": len(j), "date": sorted({x.get("date") for x in j})[-3:],
+                                         "esempio": {k: j[0].get(k) for k in ("code", "date", "close", "adjusted_close", "volume")}})
+          # 2) storico lungo e azione delistata
+          prova("storico_EXPD", "eod/EXPD.US", "&from=1980-01-01",
+                riassunto=lambda j: {"righe": len(j), "dal": j[0]["date"], "al": j[-1]["date"]})
+          dl = prova("delistati_US", "exchange-symbol-list/US", "&delisted=1",
+                     riassunto=lambda j: {"totale": len(j), "azioni": sum(1 for x in j if x.get("Type") == "Common Stock")})
+          if dl:
+              s = next((x["Code"] for x in dl if x.get("Type") == "Common Stock" and x.get("Exchange") in ("NYSE", "NASDAQ")), None)
+              if s:
+                  prova("eod_delistata", f"eod/{s}.US", "&from=2000-01-01",
+                        riassunto=lambda j, s=s: {"ticker": s, "righe": len(j), "dal": j[0]["date"], "al": j[-1]["date"]})
+          # 3) intraday e prezzo in tempo (quasi) reale
+          prova("intraday_1h", "intraday/EXPD.US", "&interval=1h",
+                riassunto=lambda j: {"barre": len(j), "ultima": j[-1].get("datetime") if j else None})
+          prova("real_time", "real-time/EXPD.US",
+                riassunto=lambda j: {k: j.get(k) for k in ("code", "timestamp", "close", "change_p")})
+          prova("real_time_xetra", "real-time/SXR8.XETRA",
+                riassunto=lambda j: {k: j.get(k) for k in ("code", "timestamp", "close")})
+          # 4) dividendi, split, indicatori tecnici, calendari, notizie, fondamentali
+          prova("dividendi", "div/EXPD.US", "&from=2020-01-01", riassunto=lambda j: {"n": len(j)})
+          prova("split", "splits/AAPL.US", "&from=2000-01-01", riassunto=lambda j: {"n": len(j)})
+          prova("tecnico_sma", "technical/EXPD.US", "&function=sma&period=50",
+                riassunto=lambda j: {"n": len(j), "ultimo": j[-1] if j else None})
+          prova("calendario_utili", "calendar/earnings", "&symbols=EXPD.US",
+                riassunto=lambda j: {"n": len(j.get("earnings") or [])})
+          prova("calendario_eco", "economic-events", "&country=US&limit=5", riassunto=lambda j: {"n": len(j)})
+          prova("notizie", "news", "&s=EXPD.US&limit=3", riassunto=lambda j: {"n": len(j)})
+          prova("fondamentali", "fundamentals/EXPD.US", "&filter=General::Sector", riassunto=lambda j: j)
+          # 5) borse in euro e Milano
+          prova("borse", "exchanges-list/", riassunto=lambda j: {"totale": len(j),
+                "euro": [x.get("Code") for x in j if x.get("Currency") == "EUR"]})
+          prova("milano", "exchange-symbol-list/MI", riassunto=lambda j: {"totale": len(j)})
+          # 6) gli ETF/ETC del portafoglio: ISIN -> simbolo in EUR -> ultimo prezzo
+          ISIN = {"SP500": "IE00B5BMR087", "NASDAQ": "IE00B53SZB19", "EAFE": "IE0006WW1TQ4", "EM": "IE00BKM4GZ66",
+                  "US10Y": "IE00B3VWN518", "GOLD": "IE00B4ND3602", "BTC": "XS2940466316", "COPPER": "GB00B15KXQ89",
+                  "WTI": "GB00B15KXV33", "CASH": "LU0290358497"}
+          etf = {}
+          for k, isin in ISIN.items():
+              c, js, _ = get(f"search/{isin}")
+              cand = [x for x in js or [] if x.get("Currency") == "EUR"]
+              cand.sort(key=lambda x: ("XETRA", "F", "PA", "AS", "MI").index(x["Exchange"]) if x.get("Exchange") in ("XETRA", "F", "PA", "AS", "MI") else 9)
+              sym = f"{cand[0]['Code']}.{cand[0]['Exchange']}" if cand else None
+              px = None
+              if sym:
+                  c2, js2, _ = get(f"eod/{sym}", "&from=" + time.strftime("%Y-%m-%d", time.gmtime(time.time() - 10 * 86400)))
+                  px = js2[-1] if js2 else None
+              etf[k] = {"isin": isin, "simbolo_eur": sym, "ultimo": [px.get("date"), px.get("close")] if px else None}
+              print(f"etf {k:7s} {sym} {etf[k]['ultimo']}")
+          out["etf_eur"] = etf
+          prova("piano_dopo", "user", riassunto=lambda j: {k: j.get(k) for k in ("apiRequests", "dailyRateLimit")})
+          json.dump(out, open("eodhd2.json", "w"), indent=1, ensure_ascii=False)
           PY
       - name: Salva nel ramo "prova-eodhd"
         run: |
@@ -67,5 +113,5 @@ jobs:
           git init -q -b prova-eodhd
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A && git commit -qm "prova EODHD: $(date -u +%F)"
+          git add -A && git commit -qm "prova EODHD v2: $(date -u +%F)"
           git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" prova-eodhd:prova-eodhd
