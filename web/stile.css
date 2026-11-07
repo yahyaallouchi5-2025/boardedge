@@ -1769,3 +1769,11 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 .pmc-oggi>b{font-size:17px;font-variant-numeric:tabular-nums}.pmc-oggi>span:not(.plive){color:var(--ink2)}
 .pmc-oggi .info{margin-left:auto}.pmc-oggi .info div{left:auto;right:0;font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink2)}
 .pacq-tot em{font-style:normal;color:var(--mute)}
+/* v7.2 SEMPLICITA': spiegazioni solo nei fumetti (i) accanto ai titoli, mai testo fisso in pagina */
+#port h3 .info,#port h4 .info,#port .ptab0 .info{display:inline-block;vertical-align:middle;margin-left:8px}
+#port h3 .info summary,#port h4 .info summary,#port .ptab0 .info summary{width:20px;height:20px;font-size:12px}
+#port h3 .info div,#port h4 .info div,#port .ptab0 .info div,#port .pci div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+ font-style:normal;color:var(--ink2);text-transform:none;letter-spacing:0;white-space:normal;text-align:left}
+#port .pctesta .info{display:inline-block;margin-left:auto}#port .pctesta .info div{left:auto;right:0}
+@media (max-width:600px){#port h3 .info div,#port h4 .info div,#port .ptab0 .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
+@media (max-width:600px){#port .psub .info div,#port .psim-t .info div,#port .pfx .info div,#port .pmc-oggi .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
