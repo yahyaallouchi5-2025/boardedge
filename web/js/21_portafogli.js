@@ -115,8 +115,18 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  //     quota, al suo posto la prima RISERVA (stessa regola, punteggio successivo) che ci sta, max 1 titolo per settore.
  //     Quello che avanza resta sul conto. Il modello e il registro live non cambiano: e' solo come lo realizzi tu.
  const MARG=1.005;
+ // --- v7.6 VERSIONE COMPATTA (capitali sotto P.compatto.sotto): Nasdaq unito all'S&P 500 (pesi calcolati dal backend,
+ //     cot_radar/portafogli.py profilo_compatto) e S&P 500 comprato con l'ETF Vanguard (quota piu' piccola, stesso indice)
+ const compatto=cap=>!!(P.compatto&&cap>0&&cap<P.compatto.sotto);
+ function compAcq(p,cap){if(!compatto(cap)||!p.compatto)return p.composizione;const w=p.compatto.pesi;
+  return p.composizione.filter(c=>w[c.k]!=null).map(c=>Object.assign({},c,{peso:w[c.k]}));}
+ // strumento da comprare per un mercato: {lk (chiave dei prezzi live), nome, isin, prezzo}
+ function strumentoAcq(c,cap){
+  if(c.k=="SP500"&&compatto(cap)&&P.compatto.sp500)return Object.assign({lk:"SP500C"},P.compatto.sp500);
+  return c.ue?Object.assign({lk:c.k},c.ue):null;}
+ const prezzoLive=(lk,base)=>{const lv=window.ebLive&&ebLive.ue&&ebLive.ue[lk];return (lv&&lv.p)||base||null;};
  function piano(p){const righe=[];let spesa=0;
-  const ordine=[];MACRO.forEach(g=>p.composizione.filter(c=>g[1].includes(c.classe)).forEach(c=>ordine.push(c)));
+  const ordine=[];MACRO.forEach(g=>compAcq(p,capitale).filter(c=>g[1].includes(c.classe)).forEach(c=>ordine.push(c)));
   ordine.forEach(c=>{const obi=capitale*c.peso/100;
    if(c.k=="AZ"){const lista=c.titoli||[];if(!lista.length)return;const per=obi/lista.length,ris=(c.riserve||[]).slice(),settori=new Set(lista.map(x=>x.s));
     lista.forEach(x=>{let t=x,nota=null;
@@ -132,12 +142,15 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    if(c.k=="CASH"){const t=P.tasso_bce,neg=t!=null&&t<=0;
     righe.push({cash:true,neg,nome:"Liquidità sul conto",obi,real:obi,q:null,prezzo:null,
      nota:t==null?null:neg?`tasso BCE ${fx(t,2)}%: niente XEON`:`oppure XEON (LU0290358497) &middot; tasso BCE ${fx(t,2)}%`});return;}
-   const lv=window.ebLive&&ebLive.ue&&ebLive.ue[c.k],pr=(lv&&lv.p)||(c.ue&&c.ue.prezzo);   // v7.1: intraday se c'e'
-   if(!pr){righe.push({nome:c.ue?c.ue.nome:c.nome,isin:c.ue&&c.ue.isin,q:null,prezzo:null,obi});return;}
+   const u=strumentoAcq(c,capitale),pr=u&&prezzoLive(u.lk,u.prezzo);   // v7.1: intraday se c'e'
+   if(!pr){righe.push({nome:u?u.nome:c.nome,isin:u&&u.isin,q:null,prezzo:null,obi});return;}
    const q=Math.floor(obi/(pr*MARG));spesa+=q*pr;
-   righe.push({nome:c.ue.nome,isin:c.ue.isin,q,prezzo:pr,obi,nota:q?null:`1 quota costa di pi&ugrave;: resta sul conto`});});
+   righe.push({nome:u.nome,isin:u.isin,q,prezzo:pr,obi,nota:q?null:`1 quota costa di pi&ugrave;: resta sul conto`});});
   const scost=righe.reduce((a,r)=>a+Math.abs((r.real??(r.q||0)*(r.prezzo||0))-r.obi),0)/2/(capitale||1)*100;
   return {righe,spesa,resto:capitale-spesa,scost};}
+ function compattoHTML(p){const c=p.compatto,s=c&&c.stat.totale,t=p.stat.totale||{};
+  return `<div class="pacq-cmp"><span class="pacq-cb">Versione compatta</span><span class="small">sotto ${eur(P.compatto.sotto)}</span>
+   <details class="info"><summary title="Cos'&egrave;" aria-label="Cos'&egrave;">i</summary><div>Con meno di ${eur(P.compatto.sotto)} alcune quote intere costano troppo (S&amp;P 500 circa 700 &euro;, Nasdaq-100 circa 1.300 &euro;) e il conto si allontana dal modello. Qui l'<b>S&amp;P 500</b> si compra con l'ETF Vanguard: stesso indice, quota pi&ugrave; piccola.${c?` Il <b>Nasdaq-100</b> &egrave; unito all'S&amp;P 500, che lo contiene gi&agrave; in buona parte.<br><br><b>Nello storico</b>: ${fx(s.cagr,1)}% l'anno contro ${fx(t.cagr,1)}% del modello completo, drawdown massimo ${pc(s.maxdd)} contro ${pc(t.maxdd)}. Stessa misura del sito: euro, costi inclusi.`:" Il resto del portafoglio non cambia."}</div></details></div>`;}
  function acquistoHTML(p){const pi=piano(p);if(!pi.righe.length)return "";
   // orario dei PREZZI (non della corsa): a borse chiuse e' l'ultima seduta, quindi si mostra anche la data
   const L=window.ebLive,tt=L&&L.ue?Math.max(0,...Object.values(L.ue).map(v=>v.t||0)):0,dt=tt?new Date(tt*1000):null,
@@ -146,6 +159,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
     <span class="plive${ora&&oggi?" on":""}" title="${ora?"Prezzi intraday con il ritardo di borsa (circa 15-20 minuti)":"Prezzi di chiusura dell'ultima seduta"}"><i></i>${ora?(oggi?`prezzi delle ${ora} &middot; ritardo ~15 min`:`ultimi prezzi: ${ora}`):"prezzi di chiusura"}</span>
     <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>5 azioni</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta (massimo 1 per settore). Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.</div></details></div>
+   ${compatto(capitale)?compattoHTML(p):""}
    <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash&&!r.nota?"nessun acquisto":r.cash?"":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?(r.cash&&!r.neg?r.nota:`${r.cash?"":" &middot; "}<em>${r.nota}</em>`):""}</span></div>
     <div class="pacq-q">${r.cash?`<b>${eur(r.obi)}</b><span>resta sul conto</span>`:r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
    <div class="pacq-tot"><span>Investito <b>${eur(pi.spesa)}</b></span><span>Resta sul conto <b>${eur(pi.resto)}</b></span></div>
