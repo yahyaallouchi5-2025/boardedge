@@ -145,7 +145,7 @@ try{(function(){const el=$("azioni");if(!el)return;
       <em>1 mese ${m==null?"n/d":(m>0?"+":"")+fx(m,1)+"%"}</em><span class="azbr" title="${sopra}% dei titoli sopra la media a 200 giorni"><i style="width:${sopra}%"></i></span><small class="azbrt">${sopra}% in trend rialzista</small></button>`;}).join("")}</div>
    <div class="azclt"><h3 class="vft azcl">${ST.set=="tutti"?"Classifica":esc(nomeSet(ST.set))} <span class="small">${righe.length} titoli${ST.cerca?" per &laquo;"+esc(ST.cerca)+"&raquo;":""}</span></h3>${window.ebPdf?ebPdf.bottone():""}</div>
    <div class="tablewrap"><table class="aztab"><tr>${COL.map(c=>`<th class="${c[2]?"num":""} ${c[3]||""}${c[0]!="sp"?" azo":""}${ST.ord==c[0]?" on":""}" ${c[0]!="sp"?`data-o="${c[0]}"`:""}${c[0]=="sd"?` title="SMART DISCOUNT 0-100: quanto il titolo e' scontato oggi rispetto alla sua storia e se in passato comprare a quello sconto e' andato meglio che comprare a caso"`:""}${c[0]=="st_pos"?` title="Stagionalit&agrave; di ${mese}: quota di anni positivi e rendimento medio del mese"`:""}${c[0]=="t200"?` title="Distanza dalla media a 200 giorni: positivo = trend rialzista"`:""}${c[0]=="pt"?` title="Punteggio 0-100: forza 12 e 3 mesi, trend e stagionalit&agrave; del mese"`:""}>${c[1]}${ST.ord==c[0]?(ST.dir>0?" &uarr;":" &darr;"):""}</th>`).join("")}</tr>
-    ${vis.map(t=>`<tr class="clic" data-t="${esc(t.t)}" tabindex="0"><td class="num azrk">${t.rk}</td><td class="aznome"><b>${esc(t.n)}</b><span>${esc(t.t)} &middot; ${t.l.map(nomeList).join(", ")}</span></td>
+    ${vis.map(t=>`<tr class="clic" data-t="${esc(t.t)}" tabindex="0"><td class="num azrk">${t.rk}</td><td class="aznome"><b>${esc(t.n)}${trIcon(t.tr)}</b><span>${esc(t.t)} &middot; ${t.l.map(nomeList).join(", ")}</span></td>
      <td>${forza(t.pt)}</td><td class="num">${sdCella(t)}</td><td class="num">${prezzo(t.p,t.val)}</td><td class="num">${pc(t.v1g,2)}</td><td class="num">${pc(t.v1m)}</td><td class="num azh">${pc(t.v3m)}</td><td class="num azh">${pc(t.vytd)}</td>
      <td class="num">${pc(t.v1a)}</td><td class="num azh azst">${t.st_pos==null?'<span class="flat">n/d</span>':`<b>${t.st_pos}%</b> ${pc(t.st_media)}`}</td><td class="num azh azh3">${pc(t.t200)}</td><td class="azh2">${spark(t.sp,(t.v1a||0)>=0?"su":"giu")}</td></tr>`).join("")}
     ${!righe.length?`<tr><td colspan="12" class="small" style="text-align:center;padding:28px">Nessun titolo con questi filtri.</td></tr>`:""}</table></div>
@@ -234,6 +234,7 @@ try{(function(){const el=$("azioni");if(!el)return;
    <div class="azgraf">${grafico(serie(),ST.per=="max",t.val)}</div>
    <div class="azmini"><div><span>1 mese</span>${pc(t.v1m)}</div><div><span>3 mesi</span>${pc(t.v3m)}</div><div><span>Da inizio anno</span>${pc(t.vytd)}</div>
     <div><span>1 anno</span>${pc(t.v1a)}</div><div><span>Dal massimo 1 anno</span>${pc(t.dmax)}</div><div><span>Trend (media 200g)</span>${pc(t.t200)}</div></div>
+   ${tecBlocco(x,t)}
    ${sdBlocco(t)}
    <div class="azbil">${sk("40%",16)}${sk("100%",140,"border-radius:14px;margin-top:10px")}</div>
    <div class="azprof">${sk("30%",16)}${sk("100%",14,"margin-top:12px")}${sk("90%",14,"margin-top:8px")}<div class="azmini">${Array(4).fill(`<div>${sk("60%",11)}${sk("70%",16)}</div>`).join("")}</div></div>
@@ -241,6 +242,21 @@ try{(function(){const el=$("azioni");if(!el)return;
   c.querySelectorAll(".azper button").forEach(b=>b.onclick=()=>{ST.per=b.dataset.p;corpo(ov,t,x);});
   bilancio(c.querySelector(".azbil"),t);profilo(c.querySelector(".azprof"),t);
   tooltip(c.querySelector(".azgraf"),serie(),t.val,ST.per=="max");}
+
+ // --- v7.7 ANALISI TECNICA (cot_radar/azioni.py tecnica(): SMA 50/200, RSI 14, ATR 14, range 52 settimane) e icona
+ //     del trend accanto al nome in tabella (indice.json "tr": 1 rialzista, 0 laterale, -1 ribassista)
+ const TRN={"1":["su","Rialzista"],"0":["lat","Laterale"],"-1":["giu","Ribassista"]};
+ function trIcon(tr){if(tr==null)return "";const m=TRN[tr];
+  return `<span class="aztr ${m[0]}" title="Trend ${m[1].toLowerCase()} (prezzo e SMA 50 rispetto alla SMA 200)" aria-label="Trend ${m[1].toLowerCase()}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="${tr==1?"M6 17L17 6M10 6h7v7":tr==-1?"M6 7l11 11M17 11v7h-7":"M4 12h15M15 8l4 4-4 4"}"/></svg></span>`;}
+ function tecBlocco(x,t){const k=x.tec;if(!k)return "";const m=TRN[k.tr]||["lat","n/d"],val=t.val;
+  const rl=k.rsi==null?"":k.rsi>=70?"Ipercomprato":k.rsi<=30?"Ipervenduto":"Neutro";
+  return `<div class="aztec"><h4 class="aztit">Analisi tecnica <details class="info"><summary title="Come leggerla" aria-label="Informazioni">i</summary><div><b>Trend</b>: rialzista se prezzo e SMA 50 sono sopra la SMA 200 (media semplice di 200 giorni), ribassista se sono entrambi sotto, altrimenti laterale. <b>RSI 14</b> (Wilder): sopra 70 ipercomprato, sotto 30 ipervenduto. <b>ATR 14</b>: movimento medio di un giorno, calcolato sulle chiusure; utile per la distanza di uno stop. <b>Range 52 settimane</b>: 0% = minimo dell'anno, 100% = massimo.<br><br><b>Cosa dice lo storico</b> (circa 1.000 azioni e ETF USA dal 1993, mese successivo): con il trend rialzista il prezzo &egrave; salito pi&ugrave; spesso che con il trend ribassista (60% contro 54% dei casi sugli ETF). Ipercomprato <b>non</b> ha anticipato discese e ipervenduto non ha dato rimbalzi affidabili: sono descrizioni, non segnali. Statistica del passato, non un consiglio.</div></details></h4>
+   <div class="aztec-g">
+    <div class="aztec-c"><span>Trend &middot; SMA 50/200</span><b class="aztec-${m[0]}">${trIcon(k.tr)}${m[1]}</b><small>${k.tr_gg!=null?`da ${k.tr_gg} ${k.tr_gg==1?"giorno":"giorni"} &middot; `:""}SMA 50 ${prezzo(k.sma50,val)} &middot; SMA 200 ${prezzo(k.sma200,val)}</small></div>
+    <div class="aztec-c"><span>RSI 14</span><b>${k.rsi==null?"n/d":fx(k.rsi,0)} <em>${rl}</em></b><i class="aztec-bar aztec-rsi"><em style="left:${Math.max(0,Math.min(100,k.rsi||0))}%"></em></i><small class="aztec-sc"><span>0</span><span>30</span><span>70</span><span>100</span></small></div>
+    <div class="aztec-c"><span>ATR 14</span><b>${k.atr==null?"n/d":fx(k.atr,1)+"%"} <em>al giorno</em></b><small>${k.atr!=null&&t.p?`&asymp; ${prezzo(t.p*k.atr/100,val)} per azione`:""}</small></div>
+    <div class="aztec-c"><span>Range 52 settimane</span><b>${k.pos52}%</b><i class="aztec-bar"><em style="left:${k.pos52}%"></em></i><small class="aztec-sc2"><span>${prezzo(k.min52,val)}</span><span>${prezzo(k.max52,val)}</span></small></div>
+   </div></div>`;}
 
  // --- SMART DISCOUNT (v6.55, cot_radar/sconto.py): 0-100 = 60% rarita' dello sconto di oggi nella storia del titolo
  //     + 40% qualita' (comprare a quello sconto, in passato, e' andato meglio o peggio che comprare a caso?)
@@ -318,17 +334,18 @@ try{(function(){const el=$("azioni");if(!el)return;
 
  // --- PROFILO DELL'AZIENDA (v6.52, cot_radar/profili.py): cosa fa, fondazione, sede, CEO, dipendenti, borse,
  //     eventuale acquisizione negli ultimi 10 anni. Fonti: Wikidata e Wikipedia. File pubblico/profili/<T>.json.
+ // v7.7 quando manca la descrizione: una riga con quello che sappiamo (settore e borsa) e la ricerca su Wikipedia
+ const cercaWiki=t=>`https://it.wikipedia.org/w/index.php?search=${encodeURIComponent(String(t.n||"").replace(/[,.]?\s+(inc|corp|corporation|co|company|ltd|limited|plc|s\.?p\.?a|ag|sa|se|n\.?v)\.?$/i,""))}`;
+ const descBase=t=>`<p class="azdesc">${esc(t.n)}: azienda del settore ${esc(nomeSet(t.s).toLowerCase())}, quotata alla ${esc(borsa(t.t))}. <a href="${cercaWiki(t)}" target="_blank" rel="noopener">Cerca su Wikipedia</a></p>`;
  function profilo(box,t){if(!box)return;
   fetch(BASE+"profili/"+encodeURIComponent(t.t.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(p=>{
    if(!box.isConnected)return;
-   if(!p){box.innerHTML=`<h4 class="aztit">L'azienda</h4><p class="small">Scheda dell'azienda in preparazione: arriva con i prossimi aggiornamenti.</p>`;return;}
-   if(p.vuoto){box.innerHTML=`<h4 class="aztit">L'azienda</h4><div class="azmini azfatti"><div><span>Settore</span><b>${esc(nomeSet(t.s))}</b></div><div><span>Quotata su</span><b>${esc(t.l.map(nomeList).join(", "))}</b></div></div>
-    <p class="small azfonte">Descrizione non disponibile: il titolo non ha una voce su Wikidata.</p>`;return;}   // v6.54: titolo senza voce
+   if(!p||p.vuoto){box.innerHTML=`<h4 class="aztit">L'azienda</h4>${descBase(t)}<div class="azmini azfatti"><div><span>Settore</span><b>${esc(nomeSet(t.s))}</b></div><div><span>Quotata su</span><b>${esc(t.l.map(nomeList).join(", "))}</b></div></div>`;return;}   // v7.7: mai vuota
    const f=(et,v)=>v?`<div><span>${et}</span><b>${v}</b></div>`:"";
    const dip=p.dipendenti?Number(p.dipendenti.n).toLocaleString("it-IT")+(p.dipendenti.anno?` <em>(${p.dipendenti.anno})</em>`:""):"";
    const acq=(p.acquisita_da||[])[0];
    box.innerHTML=`<h4 class="aztit">L'azienda</h4>
-    ${p.desc?`<p class="azdesc"><span class="dtesto">${esc(p.desc.testo)}</span>${p.desc.lingua!="it"?` <button type="button" class="trad" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h9M8.5 3v2M6 5c.6 3.4 2.6 6 6 7.5M11 5c-.8 3.6-3.3 6.6-7 8M13 21l4.5-10L22 21M14.5 18h6"/></svg>Traduci</button>`:""}</p>`:""}
+    ${!p.desc?descBase(t):""}${p.desc?`<p class="azdesc"><span class="dtesto">${esc(p.desc.testo)}</span>${p.desc.lingua!="it"?` <button type="button" class="trad" aria-pressed="false"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h9M8.5 3v2M6 5c.6 3.4 2.6 6 6 7.5M11 5c-.8 3.6-3.3 6.6-7 8M13 21l4.5-10L22 21M14.5 18h6"/></svg>Traduci</button>`:""}</p>`:""}
     <div class="azmini azfatti">${f("Settore",esc(nomeSet(t.s)))}${f("Fondata",esc(p.fondata||""))}${f("Sede",esc([p.sede,p.paese].filter(Boolean).join(", ")))}
      ${f((p.ceo||[]).length>1?"Amministratori delegati":"Amministratore delegato",esc((p.ceo||[]).join(", ")))}${f("Dipendenti",dip)}
      ${f("Quotata su",esc((p.borse||[]).join(", ")||t.l.map(nomeList).join(", ")))}${acq?f("Acquisita da",esc(acq.nome)+` <em>(${acq.anno})</em>`):""}
