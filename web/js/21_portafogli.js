@@ -71,11 +71,11 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const fascia=(d,cls,et)=>d&&d>s[0][0]?`<rect x="${X(d)}" y="${T}" width="${W-Rm-X(d)}" height="${H-T-B}" class="${cls}"/><text x="${X(d)+8}" y="${T+14}" class="pfet">${et}</text>`:"";
   const live=p.live_dal?s.filter(x=>x[0]>=p.live_dal):[];
   return `<svg viewBox="0 0 ${W} ${H}" class="pcurva" data-t0="${t0}" data-t1="${t1}" preserveAspectRatio="none">
-   ${righe}${fascia(P.oos_dal,"pfoos","FUORI CAMPIONE")}${p.live_dal?fascia(p.live_dal,"pflive","LIVE"):""}${etA}
+   ${righe}${fascia(P.oos_dal,"pfoos","VERIFICA")}${p.live_dal?fascia(p.live_dal,"pflive","LIVE"):""}${etA}
    ${sb.length?`<path d="${path(sb)}" class="pbench"/>`:""}<path d="${path(s)}" class="plinea"/>${live.length>1?`<path d="${path(live)}" class="plive"/>`:""}
    <line class="pcur" x1="0" x2="0" y1="${T}" y2="${H-B}" style="display:none"/><circle class="pcurp" r="4.5" style="display:none"/></svg>
    <div class="ptip" hidden></div>
-   <div class="pleg"><span><i class="lp"></i>Portafoglio ${esc(p.nome.toLowerCase())}</span><span><i class="lb"></i>${esc((P.bench||{}).nome||"60/40")}</span>${p.live_dal?'<span><i class="ll"></i>Live</span>':'<span class="small">La linea live parte con la prima rotazione pubblicata</span>'}</div>`;}
+   <div class="pleg"><span><i class="lp"></i>Portafoglio ${esc(p.nome.toLowerCase())}</span><span><i class="lb"></i>${esc((P.bench||{}).nome||"60/40")}</span>${p.live_dal?'<span><i class="ll"></i>Live</span>':""}</div>`;}
 
  // --- una riga del portafoglio: nome, strumento UCITS da comprare (ISIN copiabile), motivo, peso, importo in euro.
  //     Per "Azioni scelte": elenco dei 5 titoli (registrati, oppure ANTEPRIMA provvisoria del mese prossimo).
@@ -83,7 +83,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const mot=c.k=="CASH"?"Liquidit&agrave; fissa del profilo + pesi dei mercati in pausa."
    :c.k=="AZ"?`filtro di mercato: S&amp;P 500 ${pc(c.trend)} sopra la media a 200 giorni`
    :`trend ${pc(c.trend)} sopra la media a 200 giorni · volatilit&agrave; ${fx(c.vol,0)}% · COT ${c.score!=null?sg(c.score,0):"n/d"} (informativo)`;
-  const ue=c.ue?`<div class="pue"><span class="pue-n">${esc(c.ue.nome)}</span><button class="pisin" data-isin="${esc(c.ue.isin)}" title="Copia l'ISIN da cercare nell'app del broker"><code>${esc(c.ue.isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>${c.ue.nota?`<em class="pue-nota">${esc(c.ue.nota)}</em>`:""}`
+  const ue=c.ue?`<div class="pue"><span class="pue-n">${esc(c.ue.nome)}</span><button class="pisin" data-isin="${esc(c.ue.isin)}" title="Copia l'ISIN da cercare nell'app del broker"><code>${esc(c.ue.isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>`
    :`<span>${esc(c.strumento)}</span>`;
   let tit="";
   if(c.k=="AZ"){const reg=c.titoli&&c.titoli.length,an=c.anteprima,lista=reg?c.titoli:(an&&an.titoli)||[];
@@ -93,7 +93,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      <span class="paz-id"><b>${esc(x.t)}</b><span class="paz-n">${esc(x.n)}</span>${x.sost?`<span class="paz-sost" title="${esc(x.sost_n||x.sost)} (${esc(x.sost)}) non si compra su Scalable: sostituito dal candidato acquistabile successivo, stessi filtri">al posto di ${esc(x.sost_n||x.sost)}</span>`:""}<span class="paz-isin" data-isinaz="${esc(x.t)}" hidden></span></span><span class="paz-s">${esc(sett)}</span><span class="paz-b${b[1]?"":" no"}" title="${b[1]?"Borsa di quotazione":"Di solito non acquistabile dai broker europei per privati"}">${b[0]}</span><span class="paz-p"><b>${fx(quota,1)}%</b><em data-peso="${quota}">${eur(capitale*quota/100)}</em></span></button>`;}).join("")}</div>`;
    else tit=`<div class="small paz-vuoto">I 5 titoli si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.</div>`;}
   // l'elenco dei titoli sta su una riga a parte della griglia, a tutta larghezza (leggibile anche su telefono)
-  return `<div class="prow${c.k=="AZ"?" prow-az":""}"><i style="background:${col}"></i><div class="pnome"><b>${esc(c.nome)}<details class="info pmot"><summary title="Perch&eacute; &egrave; in portafoglio" aria-label="Perch&eacute; &egrave; in portafoglio">i</summary><div>${mot}</div></details></b>${ue}</div>
+  return `<div class="prow${c.k=="AZ"?" prow-az":""}"><i style="background:${col}"></i><div class="pnome"><b>${esc(c.nome)}<details class="info pmot"><summary title="Perch&eacute; &egrave; in portafoglio" aria-label="Perch&eacute; &egrave; in portafoglio">i</summary><div>${mot}${c.ue&&c.ue.nota?`<br>${esc(c.ue.nota)}`:""}</div></details></b>${ue}</div>
    <div class="ppeso"><b>${fx(c.peso,1)}%</b><span class="peur">${eur(capitale*c.peso/100)}</span><span class="pbar"><i style="width:${Math.min(100,c.peso*2.5)}%;background:${col}"></i></span></div>${tit}</div>`;}
 
  // --- composizione del mese raggruppata per macro-classe (Azionario, Obbligazionario, Materie prime, Cripto, Liquidita')
@@ -104,7 +104,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   let usd=p.composizione.filter(c=>USD.includes(c.k)).reduce((a,c)=>a+c.peso,0);
   const az=p.composizione.find(c=>c.k=="AZ");if(az){const l=(az.titoli&&az.titoli.length?az.titoli:(az.anteprima||{}).titoli)||[];if(l.length)usd+=az.peso*l.filter(x=>borsa(x.t)[0]=="USA").length/l.length;}
   return `<div class="card pcomp"><div class="ptesta"><div><h3>Portafoglio di ${mesi} <span class="pbprof">${esc(p.nome)}</span></h3>
-    <span class="small">${p.composizione.filter(c=>c.k!="CASH").length} mercati &middot; ribilanciamento ${gg(P.rotazione)} &rarr; prossimo ${gg(P.prossima)}</span>
+    <span class="small">${p.composizione.filter(c=>c.k!="CASH").length} mercati &middot; prossimo controllo ${gg(P.prossima)}</span>
     </div>${ciambella(p.composizione)}</div>
    ${gruppi.map(g=>`<div class="pgrp"><div class="pgrp-t"><span>${g.n}</span><b>${fx(g.r.reduce((a,c)=>a+c.peso,0),1)}%</b></div>${g.r.map(c=>riga(c,p)).join("")}</div>`).join("")}
    <div class="pfx"><span>Esposizione al dollaro stimata <b>${fx(usd,0)}%</b></span><details class="info"><summary title="Valute e strumenti" aria-label="Valute e strumenti">i</summary><div><b>Valute.</b> Nessuna posizione diretta in valuta, ma gli strumenti in euro che seguono mercati USA (S&amp;P 500, Treasury, oro, Bitcoin) si muovono anche con il cambio EUR/USD.<br><br><b>Strumenti.</b> UCITS / ETC / ETP acquistabili da un conto europeo: cerca l'ISIN nell'app del tuo broker. Gli ETF USA usati nei calcoli (SPY, QQQ&hellip;) non sono acquistabili dai privati in Europa.</div></details></div></div>`;}
@@ -132,7 +132,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    const lv=window.ebLive&&ebLive.ue&&ebLive.ue[c.k],pr=(lv&&lv.p)||(c.ue&&c.ue.prezzo);   // v7.1: intraday se c'e'
    if(!pr){righe.push({nome:c.ue?c.ue.nome:c.nome,isin:c.ue&&c.ue.isin,q:null,prezzo:null,obi});return;}
    const q=Math.floor(obi/(pr*MARG));spesa+=q*pr;
-   righe.push({nome:c.ue.nome,isin:c.ue.isin,q,prezzo:pr,obi,nota:q?null:`1 quota costa pi&ugrave; di ${eur(obi)}: resta sul conto`});});
+   righe.push({nome:c.ue.nome,isin:c.ue.isin,q,prezzo:pr,obi,nota:q?null:`1 quota costa di pi&ugrave;: resta sul conto`});});
   const scost=righe.reduce((a,r)=>a+Math.abs((r.real??(r.q||0)*(r.prezzo||0))-r.obi),0)/2/(capitale||1)*100;
   return {righe,spesa,resto:capitale-spesa,scost};}
  function acquistoHTML(p){const pi=piano(p);if(!pi.righe.length)return "";
@@ -143,9 +143,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
     <span class="plive${ora&&oggi?" on":""}" title="${ora?"Prezzi intraday con il ritardo di borsa (circa 15-20 minuti)":"Prezzi di chiusura dell'ultima seduta"}"><i></i>${ora?(oggi?`prezzi delle ${ora} &middot; ritardo ~15 min`:`ultimi prezzi: ${ora}`):"prezzi di chiusura"}</span>
     <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>5 azioni</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta (massimo 1 per settore). Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.</div></details></div>
-   <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash?"nessun acquisto: il broker la remunera (verifica il tasso netto)":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?` &middot; <em>${r.nota}</em>`:""}</span></div>
+   <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash?"nessun acquisto":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?` &middot; <em>${r.nota}</em>`:""}</span></div>
     <div class="pacq-q">${r.cash?`<b>${eur(r.obi)}</b><span>resta sul conto</span>`:r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
-   <div class="pacq-tot"><span>Investito <b>${eur(pi.spesa)}</b></span><span>Resta sul conto <b>${eur(pi.resto)}</b>${(()=>{const l=pi.righe.filter(r=>r.cash).reduce((a,r)=>a+r.obi,0);return l?` <em class="small">(liquidit&agrave; del modello ${eur(l)} + avanzo ${eur(Math.max(0,pi.resto-l))})</em>`:"";})()}</span><span>Scostamento dal modello <b>${fx(pi.scost,1)}%</b></span></div>
+   <div class="pacq-tot"><span>Investito <b>${eur(pi.spesa)}</b></span><span>Resta sul conto <b>${eur(pi.resto)}</b></span></div>
    <details class="pacq-come"><summary>Come comprare su Scalable</summary><ol>
     <li>Copia l'<b>ISIN</b> (o il ticker per le azioni) e cercalo nella barra di ricerca.</li>
     <li>Premi <b>Acquista</b>: la borsa proposta (es. European Investor Exchange) va bene.</li>
@@ -179,20 +179,18 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   // termometro: 0% a sinistra, fondo scala poco oltre il peggiore tra drawdown e limite
   const fondo=Math.min(m.dd_max,lim)*1.18,pos=v=>(v/fondo*100).toFixed(1);
   const k=(t,v,sub,cls="")=>`<div><span>${t}</span><b class="${cls}">${v}</b><em>${sub}</em></div>`;
-  return `<div class="card pcontro"><div class="pctesta"><h3>Rischio di ${m.mese}</h3><span class="pbprof">${esc(p.nome)}</span></div>
-   <div class="small">Questo portafoglio tenuto in ogni ${m.mese} dal ${m.anni[0].a} (${m.n} anni), dal primo giorno di borsa al primo del mese dopo.</div>
+  return `<div class="card pcontro"><div class="pctesta"><h3>Rischio di ${m.mese}</h3><span class="pbprof">${esc(p.nome)}</span><details class="info pci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div>Questo portafoglio tenuto in ogni ${m.mese} dal ${m.anni[0].a} (${m.n} anni). Peggior caso: ${m.mese} ${peg.a}, con 10.000 &euro; il conto sarebbe sceso fino a ${eur(10000*(1+m.dd_max/100))} durante il mese. Negli altri anni il drawdown non ha superato il ${pc(altri)}.</div></details></div>
    <div class="ptermo-t"><span>Drawdown peggiore di ${m.mese}</span><em class="${oltre?"pko":"pok"}">${oltre?`Oltre il limite di ${fx(Math.abs(m.dd_max-lim),1)} punti`:"Dentro il limite del profilo"}</em></div>
    <div class="ptermo"><div class="ptermo-r" style="width:${pos(m.dd_max)}%"></div><span class="ptermo-l" style="left:${pos(lim)}%"></span>
     <span class="ptermo-e su" style="left:${pos(lim)}%">limite ${pc(lim,0)}</span><span class="ptermo-e giu" style="left:0;transform:none">0%</span>
     <span class="ptermo-e giu" style="left:${pos(m.dd_max)}%">${pc(m.dd_max)}</span></div>
-   <div class="small pdd-quando">Peggior caso: ${m.mese} ${peg.a}. Con <b>10.000 €</b> il conto sarebbe sceso fino a <b>${eur(10000*(1+m.dd_max/100))}</b> durante il mese. Negli altri ${m.n-1} anni il drawdown non ha mai superato il ${pc(altri)}.</div>
    <div class="phmtesta"><span>${m.mese[0].toUpperCase()+m.mese.slice(1)} anno per anno</span>
     <div class="phmsw" role="tablist"><button type="button" data-m="r" class="${hmModo=="r"?"on":""}" role="tab" aria-selected="${hmModo=="r"}">Risultato del mese</button><button type="button" data-m="dd" class="${hmModo=="dd"?"on":""}" role="tab" aria-selected="${hmModo=="dd"}">Scenario peggiore</button></div></div>
    <div class="phmbox"><div class="phm">${hmCelle(m,hmModo)}</div><div class="phmtip" hidden></div></div>
    <div class="phmleg">${hmLeg(hmModo)}</div>
    <div class="pmini">${k("Peggior "+m.mese,pc(m.peggiore[1]),String(m.peggiore[0]),"down")}${k(m.mese[0].toUpperCase()+m.mese.slice(1)+" medio",pc(m.media),`su ${m.n} anni`,m.media>=0?"up":"down")}
-    ${k("Anni positivi",`${m.positivi} su ${m.n}`,`win rate ${wr}%`)}${k("Max drawdown storico",pc(ddTot),"intero backtest del profilo","down")}</div>
-   ${m.mercati.length?`<div class="pstag"><div class="pstag-t">Stagionalit&agrave; di ${m.mese} per mercato <span class="small">(informativa)</span></div>${m.mercati.map(x=>`<div class="pstag-r"><span>${esc(nomeK(x.k))}</span><i><s class="${x.media>=0?"su":"giu"}" style="width:${Math.min(100,Math.abs(x.media)*8)}%"></s></i><b class="${x.media>=0?"up":"down"}">${pc(x.media)}</b><em><span>${x.pos}% positivi</span><span>${x.n} anni</span></em></div>`).join("")}</div>`:""}</div>`;}
+    ${k("Anni positivi",`${m.positivi} su ${m.n}`,`${wr}% degli anni`)}${k("Max drawdown",pc(ddTot),"di sempre","down")}</div>
+   ${m.mercati.length?`<div class="pstag"><div class="pstag-t">${m.mese[0].toUpperCase()+m.mese.slice(1)} per mercato</div>${m.mercati.map(x=>`<div class="pstag-r"><span>${esc(nomeK(x.k))}</span><i><s class="${x.media>=0?"su":"giu"}" style="width:${Math.min(100,Math.abs(x.media)*8)}%"></s></i><b class="${x.media>=0?"up":"down"}">${pc(x.media)}</b><em><span>${x.pos}% positivi</span><span>${x.n} anni</span></em></div>`).join("")}</div>`:""}</div>`;}
 
 
  // --- MESE IN CORSO (v6.43): come sta andando adesso il portafoglio del profilo scelto, dalla rotazione a oggi.
@@ -209,32 +207,31 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   let termo="";
   if(m&&m.anni&&m.anni.length){const rs=m.anni.map(x=>x.r),lo=Math.min(...rs,c.r),hi=Math.max(...rs,c.r),sp=(hi-lo)||1,pos=v=>Math.max(3,Math.min(97,(v-lo)/sp*100)).toFixed(1);
    termo=`<div class="pmc-f"><span class="pmc-pt" style="left:${pos(c.r)}%"></span><span class="pmc-e" style="left:3%;transform:none">${pc(lo)}</span><span class="pmc-e" style="left:${pos(m.media)}%">media ${pc(m.media)}</span><span class="pmc-e" style="left:97%;transform:translateX(-100%)">${pc(hi)}</span></div>
-    <p class="pmc-fr">Rispetto ai <b>${m.n}</b> ${m.mese} passati con questa composizione, il mese va <b>${c.r>=m.media?"sopra":"sotto"}</b> la media storica.</p>`;}
+`;}
   const wr=m&&m.n?Math.round(100*m.positivi/m.n):null;
   const k=(t,v,cls="")=>`<div><small>${t}</small><b class="${cls}">${v}</b></div>`;
   if(c.attesa)return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in partenza <span class="pbprof">${esc(p.nome)}</span></h3>
     <span class="pmc-b">Composizione decisa &middot; si entra il ${gg(c.dal)}</span></div>
-   <p class="pmc-fr">La nuova composizione &egrave; qui sotto: decisa con i prezzi di chiusura del ${gg(P.decisa_al)}, si compra all'apertura del ${gg(c.dal)}. Il risultato del mese si misura dalla chiusura di quel giorno.</p>
    <div class="pmc-k">${k("Giorni di borsa nel mese",c.tot)}${k("Mesi storici in positivo",wr==null?"n/d":wr+"%")}${k("Media storica del mese",m&&m.media!=null?pc(m.media):"n/d",m&&m.media>=0?"up":"down")}</div>
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}</div>`;
-  return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in corso <span class="pbprof">${esc(p.nome)}</span></h3>
+  return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in corso <span class="pbprof">${esc(p.nome)}</span><details class="info pmci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div>Risultato del mese dalla chiusura del giorno di rotazione all'ultima chiusura. La barra sotto confronta il mese con gli stessi mesi degli anni passati (minimo, media, massimo). Il risultato &egrave; provvisorio fino a fine mese.</div></details></h3>
     <span class="pmc-b${c.live?"":" sim"}">${c.live?"Provvisorio &middot; si chiude a fine mese":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
    <div class="pmc-g"><b class="${cl}">${pc(r)}</b><span>da inizio mese &middot; ingresso alla chiusura del ${gg(c.dal)} &middot; <em class="pmc-al${fermi(c.al)?" fermo":""}" title="${fermi(c.al)?"Prezzi non aggiornati: il risultato non include le ultime sedute":"Ultima chiusura usata"}">prezzi al ${gg(c.al)}${fermi(c.al)?" (in aggiornamento)":""}</em></span></div>
    <div class="pmc-oggi" hidden></div>
    <div><div class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></div><div class="pmc-bl"><span>Giorno ${c.gg} di ${c.tot} di borsa</span><span>fine mese</span></div></div>
-   <div class="pmc-k">${k("Drawdown peggiore",pc(c.dd),"down")}${k("Rendimento / rischio",rr==null?"n/d":fx(rr,1))}${k("Mesi storici in positivo",wr==null?"n/d":wr+"%")}</div>
+   <div class="pmc-k">${k("Drawdown peggiore",pc(c.dd),"down")}${k("Mesi storici in positivo",wr==null?"n/d":wr+"%")}</div>
    ${termo}
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}
-   <p class="pmc-n">Prezzi a fine giornata (EOD), ingresso alla chiusura del giorno di rotazione.</p></div>`;}
+</div>`;}
 
  function tabella(p){const st=p.stat,b=(P.bench||{}).stat||{};
   // v6.52: la colonna Live compare solo quando ci sono dati live (prima era una colonna di "in arrivo")
-  const col=[["Storico",st.storico,`fino al 2015`],["Fuori campione",st.oos,`dal 2016`]].concat(st.live?[["Live",st.live,p.live_dal?`dal ${gg(p.live_dal)}`:"dall'avvio"]]:[]).concat([["60/40",b.oos,"dal 2016"]]);
+  const col=[["Storico",st.storico,`fino al 2015`],["Verifica",st.oos,`dal 2016`]].concat(st.live?[["Live",st.live,p.live_dal?`dal ${gg(p.live_dal)}`:"dall'avvio"]]:[]).concat([["60/40",b.oos,"dal 2016"]]);
   const r=(t,f)=>`<tr><th>${t}</th>${col.map(c=>`<td>${c[1]?f(c[1]):'<span class="small">n/d</span>'}</td>`).join("")}</tr>`;
-  return `<div class="tablewrap ptab"><table><tr><th class="ptab0">Risultati<span>per periodo</span></th>${col.map(c=>`<th>${c[0]}<span>${c[2]}</span></th>`).join("")}</tr>
-   ${r("Rendimento annuo",x=>x.cagr==null?pc(x.totale)+" tot.":pc(x.cagr))}${r("Volatilit&agrave;",x=>fx(x.vol,1)+"%")}
-   ${r("Max drawdown",x=>`<b class="down">${pc(x.maxdd)}</b>`)}${r("Peggior mese",x=>x.peggior_mese?pc(x.peggior_mese[1]):"n/d")}${r("Win rate mensile",x=>(x.mesi_pos??"n/d")+"%")}</table></div>
-   ${st.live?"":`<p class="small">La colonna <b>Live</b> compare dopo la prima rotazione con le regole attuali (${gg(P.prossima)}).</p>`}`;}
+  return `<div class="tablewrap ptab"><table><tr><th class="ptab0">Risultati<span>per periodo <details class="info pti"><summary title="Periodi" aria-label="Periodi">i</summary><div>Regole decise sui dati fino al 2015 e verificate dal 2016 in poi. 60/40 = 60% azioni USA e 40% Treasury, per confronto.${st.live?"":` La colonna Live compare dopo la prima rotazione con le regole attuali.`}</div></details></span></th>${col.map(c=>`<th>${c[0]}<span>${c[2]}</span></th>`).join("")}</tr>
+   ${r("Rendimento annuo",x=>x.cagr==null?pc(x.totale)+" tot.":pc(x.cagr))}
+   ${r("Max drawdown",x=>`<b class="down">${pc(x.maxdd)}</b>`)}${r("Peggior mese",x=>x.peggior_mese?pc(x.peggior_mese[1]):"n/d")}${r("Mesi positivi",x=>(x.mesi_pos??"n/d")+"%")}</table></div>
+`;}
 
  /* v6.52: ogni rotazione mostra com'e' andato il mese (netto e drawdown) e, aprendo "Dettaglio", ogni mercato con
     peso, rendimento, contributo al totale (punti %) e drawdown; per le Azioni scelte anche i singoli titoli. */
@@ -262,8 +259,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="psim-bl"><span>${v(lo)}</span><span>9 casi su 10 tra questi valori</span><span>${v(hi)}</span></div>
    <div class="pmc-k psim-k"><div><small>Partenze in perdita</small><b class="${o.perdita>0?"down":"up"}">${fx(o.perdita,0)}%</b></div>
     <div><small>Drawdown tipico</small><b class="down">${pc(o.dd)}</b></div><div><small>Drawdown peggiore</small><b class="down">${pc(o.dd_peggiore)}</b></div></div>
-   ${pr?`<div class="psim-r"><span>Rendita sostenuta in 10 anni (capitale finale intatto)</span><b>${fx(pr.p50,1)}% l'anno &middot; ${eur(simCap*pr.p50/100)}</b><em>nel 90% dei casi almeno ${fx(pr.p10,1)}% (${eur(simCap*pr.p10/100)})</em></div>`:""}
-   <div class="small psim-n">${o.n} partenze mensili dal ${gg(S.dal)}. Risultati passati, non una promessa.</div>`;}
+   ${pr?`<div class="psim-r"><span>Rendita annua sostenibile</span><b>${fx(pr.p50,1)}% l'anno &middot; ${eur(simCap*pr.p50/100)}</b><em>minimo ${fx(pr.p10,1)}% in 9 casi su 10</em></div>`:""}
+`;}
  function simulatoreHTML(p){if(!p.sim)return "";
   const b=(arr,cur,attr,lab)=>`<div class="vfswitch psim-s">${arr.map(x=>`<button data-${attr}="${x}" class="${x==cur?"on":""}">${lab(x)}</button>`).join("")}</div>`;
   return `<div class="card psim" id="psim"><div class="psim-t"><h3>Simulatore <span class="pbprof">${esc(p.nome)}</span></h3>
