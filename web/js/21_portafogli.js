@@ -321,6 +321,85 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   c.querySelectorAll("[data-cr]").forEach(b=>b.onclick=()=>{crSel=b.dataset.cr;const n=document.createElement("div");n.innerHTML=crisiHTML(p);
    c.querySelector(".pcr-l").replaceWith(n.querySelector(".pcr-l"));crEventi(p);});}
 
+ // --- v7.6 IL MIO CONTO: le quote che l'utente ha davvero sul conto (salvate SOLO in questo browser, localStorage
+ //     "ebConto"), confrontate con il profilo scelto: valore, risultato (se c'e' il prezzo di carico), distanza dal
+ //     modello e ordini a quote intere per riallinearsi alla rotazione. Strumenti equivalenti (Vanguard S&P 500 = S&P 500)
+ //     contano come lo stesso mercato: non si vende uno per comprare l'altro (costi e tasse inutili).
+ let mioConto={righe:[],altri:[],liq:0},contoEdit=false;
+ try{const c=JSON.parse(localStorage.getItem("ebConto")||"null");if(c&&Array.isArray(c.righe))mioConto=Object.assign({righe:[],altri:[],liq:0},c);}catch(e){}
+ const salvaConto=()=>{try{localStorage.setItem("ebConto",JSON.stringify(mioConto));}catch(e){}};
+ const EQUIV={SP500C:"SP500"};                       // strumento -> mercato del modello
+ const strum=k=>(P.strumenti||{})[k]||null;
+ const num=v=>{const x=parseFloat(String(v||"").replace(/\./g,"").replace(",","."));return isFinite(x)&&x>0?x:0;};
+ const SOGLIA_ORD=0.02;                               // ordini sotto il 2% del conto: scarto tollerato (niente micro-scambi)
+ function contoCalc(p){
+  const pos=mioConto.righe.filter(r=>r.k&&r.q>0).map(r=>{const s=strum(r.k)||{},pr=prezzoLive(r.k,s.prezzo);
+   return Object.assign({},r,{nome:s.nome||r.k,pr,v:pr?r.q*pr:0,mk:EQUIV[r.k]||r.k});});
+  const altri=mioConto.altri.filter(a=>a.v>0),vAltri=altri.reduce((a,x)=>a+x.v,0),liq=+mioConto.liq||0;
+  const T=pos.reduce((a,x)=>a+x.v,0)+vAltri+liq;
+  let cst=0,gain=0;
+  pos.forEach(r=>{if(r.pm>0&&r.pr){cst+=r.q*r.pm;gain+=r.q*(r.pr-r.pm);}});
+  altri.forEach(a=>{if(a.c>0){cst+=a.c;gain+=a.v-a.c;}});
+  const comp=compAcq(p,T),haAZ=comp.some(c=>c.k=="AZ"),peso=k=>((comp.find(c=>c.k==k)||{}).peso||0)/100;
+  const tieni={};pos.forEach(r=>{tieni[r.mk]=(tieni[r.mk]||0)+r.v;});
+  if(haAZ&&vAltri)tieni.AZ=(tieni.AZ||0)+vAltri;     // con le 5 azioni nel modello, i titoli singoli contano li'
+  const investito=Object.values(tieni).reduce((a,b)=>a+b,0);
+  let dist=Math.abs((T-investito)/(T||1)-peso("CASH"));
+  new Set([...comp.map(c=>c.k),...Object.keys(tieni)]).forEach(k=>{if(k!="CASH")dist+=Math.abs((tieni[k]||0)/(T||1)-peso(k));});
+  const ord=[],min=T*SOGLIA_ORD;
+  comp.forEach(c=>{if(c.k=="CASH"||c.k=="AZ")return;const diff=T*c.peso/100-(tieni[c.k]||0);if(diff<min)return;
+   const u=strumentoAcq(c,T),pr=u&&prezzoLive(u.lk,u.prezzo);if(!pr)return;
+   const q=Math.floor(diff/(pr*MARG));if(q>0)ord.push({t:"c",q,nome:u.nome,isin:u.isin,v:q*pr});});
+  const gruppi={};pos.forEach(r=>(gruppi[r.mk]=gruppi[r.mk]||[]).push(r));
+  Object.entries(gruppi).forEach(([mk,rr])=>{let ecc=(tieni[mk]||0)-T*peso(mk);const fuori=!peso(mk);
+   if(!fuori&&ecc<min)return;rr.sort((a,b)=>b.v-a.v).forEach(r=>{if(ecc<=0||!r.pr)return;
+    const q=fuori?r.q:Math.min(r.q,Math.floor(ecc/r.pr));if(q>0){ord.push({t:"v",q,tutto:q==r.q,nome:r.nome,v:q*r.pr,fuori});ecc-=q*r.pr;}});});
+  if(!haAZ)altri.forEach(a=>ord.push({t:"v",tutto:true,nome:a.n||"Titolo",v:a.v,fuori:true}));
+  return {T,cst,gain,dist:dist/2*100,ord,haAZ,vAltri,comp};}
+ function contoForm(){const S=Object.entries(P.strumenti||{});
+  const opz=k=>S.map(([kk,x])=>`<option value="${kk}"${kk==k?" selected":""}>${esc(x.nome)}</option>`).join("");
+  const val=v=>v?String(v).replace(".",","):"";
+  const riga=r=>`<div class="pconto-fr" data-r><select aria-label="Strumento">${opz(r.k)}</select>
+    <input inputmode="decimal" placeholder="quote" value="${val(r.q)}" aria-label="Quote"><input inputmode="decimal" placeholder="prezzo di carico €" value="${val(r.pm)}" aria-label="Prezzo medio di carico"><button type="button" class="pconto-x" aria-label="Togli la riga">&times;</button></div>`;
+  const altro=a=>`<div class="pconto-fr" data-a><input placeholder="nome (es. eBay)" value="${esc(a.n||"")}" aria-label="Nome del titolo">
+    <input inputmode="decimal" placeholder="valore oggi €" value="${val(a.v)}" aria-label="Valore oggi in euro"><input inputmode="decimal" placeholder="costo €" value="${val(a.c)}" aria-label="Costo in euro"><button type="button" class="pconto-x" aria-label="Togli la riga">&times;</button></div>`;
+  return `<div class="pconto-f"><span class="pconto-lab">ETF ed ETC del modello</span><div class="pconto-fr pconto-h"><span>Strumento</span><span>Quote</span><span>Prezzo di carico &euro;</span></div><div class="pconto-g" data-g="r">${(mioConto.righe.length?mioConto.righe:[{}]).map(riga).join("")}</div>
+   <button type="button" class="pconto-add" data-add="r">+ Aggiungi strumento</button>
+   <span class="pconto-lab">Altri titoli</span><div class="pconto-fr pconto-h"><span>Nome</span><span>Valore oggi &euro;</span><span>Costo &euro;</span></div><div class="pconto-g" data-g="a">${mioConto.altri.map(altro).join("")}</div>
+   <button type="button" class="pconto-add" data-add="a">+ Aggiungi titolo</button>
+   <label class="pcap pconto-liq">Liquidit&agrave; sul conto <input inputmode="decimal" value="${val(mioConto.liq)}" aria-label="Liquidità sul conto in euro"> &euro;</label>
+   <div class="pconto-b"><button type="button" class="pconto-ok">Salva</button><button type="button" class="pconto-no">Annulla</button></div>
+   <template data-t="r">${riga({})}</template><template data-t="a">${altro({})}</template></div>`;}
+ function contoHTML(p){const vuoto=!mioConto.righe.length&&!mioConto.altri.length&&!(+mioConto.liq);
+  const testa=`<div class="pconto-t"><h3>Il mio conto <span class="pbprof">${esc(p.nome)}</span></h3>
+   <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div>Inserisci le quote che hai sul conto: restano <b>solo in questo browser</b>, non vengono inviate a nessuno. Il conto si confronta con il profilo scelto (con meno di ${eur((P.compatto||{}).sotto||10000)} la versione compatta).<br><br><b>Risultato</b>: guadagno o perdita sulle righe con il prezzo di carico. <b>Distanza dal modello</b>: quanta parte del conto &egrave; in posti diversi dal modello (0% = identico).<br><br><b>Ordini</b>: quote intere per riallinearsi alla composizione in vigore; scarti sotto il 2% del conto si lasciano (niente micro-scambi). Vanguard S&amp;P 500 e iShares S&amp;P 500 contano come lo stesso mercato. Ogni vendita in guadagno paga le tasse: se lo scarto &egrave; piccolo puoi aspettare la rotazione. Prezzi indicativi: controllali sul broker.</div></details>
+   ${!vuoto&&!contoEdit?`<button type="button" class="pconto-mod">Modifica</button>`:""}</div>`;
+  if(contoEdit)return testa+contoForm();
+  if(vuoto)return testa+`<p class="small pconto-v">Inserisci le quote che hai sul conto: vedi quanto sei lontano dal modello e cosa comprare o vendere.</p><button type="button" class="pconto-ins">Inserisci le quote</button>`;
+  const c=contoCalc(p),perc=c.cst?c.gain/c.cst*100:null;
+  return testa+`<div class="pmc-k pconto-k"><div><small>Valore del conto</small><b>${eur(c.T)}</b></div>
+    <div><small>Risultato</small><b class="${c.gain>=0?"up":"down"}">${c.cst?(c.gain>=0?"+":"&minus;")+eur(Math.abs(c.gain))+` <em>${pc(perc)}</em>`:"n/d"}</b></div>
+    <div><small>Distanza dal modello</small><b class="${c.dist<=5?"up":c.dist<=15?"":"down"}">${fx(c.dist,0)}%</b></div></div>
+   <span class="pconto-lab">${c.ord.length?"Per allinearti al modello":"Il conto &egrave; allineato al modello"}</span>
+   ${c.ord.length?`<div class="pconto-o">${c.ord.sort((a,b)=>(a.t=="v"?0:1)-(b.t=="v"?0:1)).map(o=>`<div class="pconto-or ${o.t=="v"?"ven":"com"}"><span class="pconto-ot">${o.t=="v"?"Vendi":"Compra"}</span>
+     <span class="pconto-on"><b>${esc(o.nome)}</b><small>${o.t=="v"?(o.fuori?"fuori dal modello":"oltre il peso del modello"):(o.isin?"ISIN "+esc(o.isin):"")}</small></span>
+     <span class="pconto-oq"><b>${o.tutto?"tutto":o.q+(o.q==1?" quota":" quote")}</b><small>&asymp; ${eur(o.v)}</small></span></div>`).join("")}</div>`:""}
+   ${c.haAZ&&c.vAltri?`<p class="small pconto-n">I titoli singoli contano nella quota delle 5 azioni scelte: vedi l'acquisto diretto.</p>`:""}`;}
+ function contoEventi(p){const box=el.querySelector("#pconto");if(!box)return;
+  const ridis=()=>{box.innerHTML=contoHTML(p);contoEventi(p);};
+  const b=sel=>box.querySelector(sel);
+  if(b(".pconto-ins"))b(".pconto-ins").onclick=()=>{contoEdit=true;ridis();};
+  if(b(".pconto-mod"))b(".pconto-mod").onclick=()=>{contoEdit=true;ridis();};
+  if(!contoEdit)return;
+  box.querySelectorAll("[data-add]").forEach(x=>x.onclick=()=>{const t=b(`template[data-t="${x.dataset.add}"]`),g=b(`[data-g="${x.dataset.add}"]`);
+   g.appendChild(t.content.firstElementChild.cloneNode(true));lega();});
+  const lega=()=>box.querySelectorAll(".pconto-x").forEach(x=>x.onclick=()=>x.parentElement.remove());lega();
+  b(".pconto-no").onclick=()=>{contoEdit=false;ridis();};
+  b(".pconto-ok").onclick=()=>{
+   mioConto.righe=[...box.querySelectorAll('[data-g="r"] [data-r]')].map(r=>{const i=r.querySelectorAll("input");return {k:r.querySelector("select").value,q:num(i[0].value),pm:num(i[1].value)};}).filter(r=>r.q>0);
+   mioConto.altri=[...box.querySelectorAll('[data-g="a"] [data-a]')].map(r=>{const i=r.querySelectorAll("input");return {n:i[0].value.trim().slice(0,40),v:num(i[1].value),c:num(i[2].value)};}).filter(a=>a.v>0);
+   mioConto.liq=num(b(".pconto-liq input").value);salvaConto();contoEdit=false;ridis();};}
+
  function rotazioni(p){const ch=k=>`<span class="pchip" title="${esc(nomeK(k))}">${esc(nomeK(k))}</span>`;
   const perMese={};(p.mesi_chiusi||[]).forEach(m=>perMese[m.mese]=m);
   return `<div class="prot${tutteRot?" aperta":""}">${p.rotazioni.map((r,i)=>`<div class="protr${i>=3?" pextra":""}"><b>${gg(r.data)}</b><div>
@@ -562,6 +641,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${hero(p)}
    ${corso(p)}
    <div class="card pacq" id="pacq">${acquistoHTML(p)}</div>
+   <div class="card pconto" id="pconto">${contoHTML(p)}</div>
    <div class="pgrid">${composizione(p)}${contro(p)}</div>
    <h3 class="vft">Andamento del capitale <details class="info"><summary title="Come leggerlo" aria-label="Come leggerlo">i</summary><div>Base 100, scala logaritmica: la stessa percentuale ha la stessa altezza in ogni periodo. Linea turchese = portafoglio, tratteggio = 60/40 di confronto, linea luminosa = live dalla prima rotazione pubblicata.</div></details></h3>
    <div class="vfswitch pper">${[["tutto","Tutto"],["oos","Dal 2016"]].map(x=>`<button data-per="${x[0]}" class="${per==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
@@ -588,6 +668,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    aggiornaEuro(p);};ci.onblur=()=>{ci.value=capitale.toLocaleString("it-IT");try{localStorage.setItem("ebCapitale",capitale);}catch(e){}};}
   simEventi(p);
   crEventi(p);
+  contoEventi(p);
   liveOggi(p);
   tipMesi(el.querySelector(".pcontro"),p);
   conto();
@@ -634,7 +715,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const ora=new Date(t*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),mese=((1+c.r/100)*(1+r/100)-1)*100;
   box.hidden=false;box.innerHTML=`<span class="plive on"><i></i>Oggi alle ${ora}</span><b class="${r>=0?"up":"down"}">${pc(r,2)}</b><span>mese stimato <b class="${mese>=0?"up":"down"}">${pc(mese)}</b></span>
    <details class="info"><summary title="Come si calcola" aria-label="Come si calcola">i</summary><div>Variazione di oggi degli ETF in euro su Xetra (ritardo di borsa di circa 15-20 minuti), pesata con la composizione del mese. &Egrave; una stima: il risultato ufficiale del mese usa le chiusure di fine giornata.</div></details>`;}
- window.addEventListener("eb-live",()=>{const p=P.profili.find(x=>x.id==sel);if(!p)return;aggiornaEuro(p);liveOggi(p);});
+ window.addEventListener("eb-live",()=>{const p=P.profili.find(x=>x.id==sel);if(!p)return;aggiornaEuro(p);liveOggi(p);
+  const b=el.querySelector("#pconto");if(b&&!contoEdit){b.innerHTML=contoHTML(p);contoEventi(p);}});
  function aggiornaEuro(p){const pesi=[];MACRO.forEach(g=>p.composizione.filter(c=>g[1].includes(c.classe)).forEach(c=>pesi.push(c.peso)));
   el.querySelectorAll(".pcomp .peur").forEach((e,i)=>{e.textContent=eur(capitale*(pesi[i]||0)/100);});
   el.querySelectorAll(".paz-p em").forEach(e=>{e.textContent=eur(capitale*(+e.dataset.peso||0)/100);});
