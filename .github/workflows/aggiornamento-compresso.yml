@@ -13,7 +13,7 @@ jobs:
   applica:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Applica le patch compresse
         run: |
           set -e
