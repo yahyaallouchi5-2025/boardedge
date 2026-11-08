@@ -44,3 +44,12 @@ class TrimestriConcettoRecente(unittest.TestCase):
             "RevenueFromContractWithCustomerExcludingAssessedTax": {"units": {"USD": [r("2019-01-01", "2019-03-31", 1)]}},
             "Revenues": {"units": {"USD": [r("2026-04-01", "2026-06-30", 9)]}}}}}
         self.assertEqual(F._periodi(fatti, F.RICAVI), {("2026-04-01", "2026-06-30"): 9})
+
+
+class Pertinenza(unittest.TestCase):
+    def test_solo_notizie_sull_azienda(self):
+        js = [{"date": "2026-11-08", "title": "Coca-Cola (KO) Makes the Dow&#8217;s Low-Upside List", "link": "https://a.com/1"},
+              {"date": "2026-11-08", "title": "Apple unveils new iPhone &amp; Mac", "link": "https://a.com/2"},
+              {"date": "2026-11-07", "title": "Why AAPL stock fell today", "link": "https://a.com/3"}]
+        out = N.pulisci(js, date(2026, 11, 8), "Apple Inc.", "AAPL")
+        self.assertEqual([n["titolo"] for n in out], ["Apple unveils new iPhone & Mac", "Why AAPL stock fell today"])

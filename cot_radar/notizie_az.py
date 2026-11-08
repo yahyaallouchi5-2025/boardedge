@@ -11,8 +11,10 @@ FLUSSO (giro USA della sera, dopo i profili; mai bloccante per la scheda):
   Solo notizie degli ultimi GIORNI_MAX giorni. Tempo massimo TEMPO_MAX: il resto al giro dopo.
 Milano e Asia non sono coperti da EODHD: la scheda non mostra il riquadro.
 """
+import html
 import logging
 import os
+import re
 import time
 import urllib.parse
 from datetime import date, datetime, timedelta, timezone
@@ -23,6 +25,7 @@ from . import eodhd
 log = logging.getLogger(__name__)
 LIMITE = 5                     # notizie per titolo
 GIORNI_MAX = 30                # piu' vecchie di cosi' non interessano
+VERSIONE = 2                   # v7.16: filtro di pertinenza (i file della v1 si rifanno subito)
 RIFAI_ORE = 20                 # un file piu' recente di cosi' non si richiede di nuovo
 TEMPO_MAX = 600                # secondi massimi per giro
 
@@ -36,12 +39,32 @@ def _fonte(link):
         return ""
 
 
-def pulisci(js, oggi):
-    """Risposta EODHD -> lista compatta delle notizie (piu' recenti prima), senza testi degli articoli."""
+VUOTE = {"the", "group", "holdings", "holding", "company", "corporation", "international", "global", "american",
+         "united", "first", "general", "national", "industries", "technologies", "systems", "financial"}
+
+
+def parole_chiave(nome, ticker):
+    """Parole che devono comparire nel titolo della notizia perche' parli davvero dell'azienda: il ticker (es. AAPL)
+    e la prima parola significativa del nome (es. "Apple", "Nvidia"). EODHD collega a un titolo anche articoli
+    generici che lo citano in una lista (es. "i titoli del Dow"): senza questo filtro comparivano notizie di altre aziende."""
+    base = ticker.split(".")[0].upper()
+    parole = [w for w in re.findall(r"[A-Za-z][A-Za-z&'-]+", nome or "") if len(w) >= 3 and w.lower() not in VUOTE]
+    out = {base.lower()} if len(base) >= 2 and base.isalpha() else set()
+    if parole:
+        out.add(parole[0].lower())
+    return out
+
+
+def pulisci(js, oggi, nome="", ticker=""):
+    """Risposta EODHD -> lista compatta delle notizie (piu' recenti prima), senza testi degli articoli. Con nome e
+    ticker si tengono solo i titoli che li citano (parole intere)."""
     limite = (oggi - timedelta(days=GIORNI_MAX)).isoformat()
+    chiavi = parole_chiave(nome, ticker) if (nome or ticker) else set()
     out, visti = [], set()
     for x in js if isinstance(js, list) else []:
-        titolo = (x.get("title") or "").strip()
+        titolo = html.unescape((x.get("title") or "").strip())
+        if chiavi and not chiavi & set(re.findall(r"[a-z][a-z&'-]+", titolo.lower())):
+            continue
         d = (x.get("date") or "")[:10]
         link = x.get("link") or ""
         if not titolo or not d or d < limite or not link.startswith("http") or titolo.lower() in visti:
@@ -58,7 +81,9 @@ def aggiorna(cartella, el=None, oggi=None):
     if not eodhd.attivo():
         return {"aggiornati": 0, "saltati": 0}
     oggi = oggi or date.today()
-    titoli = [x["t"] for x in (el if el is not None else A.elenco())]
+    elenco = el if el is not None else A.elenco()
+    nomi = {x["t"]: x.get("nome") or x.get("n") or "" for x in elenco}
+    titoli = [x["t"] for x in elenco]
     adesso, inizio, fatti, saltati = datetime.now(timezone.utc), time.time(), 0, 0
     for t in titoli:
         sym = eodhd.simbolo(t)
@@ -70,16 +95,16 @@ def aggiorna(cartella, el=None, oggi=None):
             fresco = adesso - datetime.fromisoformat(vecchio.get("agg", "")) < timedelta(hours=RIFAI_ORE)
         except ValueError:
             fresco = False
-        if fresco:
+        if fresco and vecchio.get("v") == VERSIONE:
             saltati += 1
             continue
         if time.time() - inizio > TEMPO_MAX:
             log.warning("notizie: tempo massimo raggiunto, gli altri titoli al prossimo giro")
             break
-        js = eodhd.get("news", {"s": sym, "limit": 10, "offset": 0}, timeout=30, tentativi=2)
+        js = eodhd.get("news", {"s": sym, "limit": 20, "offset": 0}, timeout=30, tentativi=2)
         if js is None:                         # EODHD non risponde: resta il file di ieri
             continue
-        A._scrivi(f, {"t": t, "agg": adesso.isoformat(timespec="minutes"), "n": pulisci(js, oggi)})
+        A._scrivi(f, {"t": t, "v": VERSIONE, "agg": adesso.isoformat(timespec="minutes"), "n": pulisci(js, oggi, nomi.get(t, ""), t)})
         fatti += 1
     log.warning("notizie dei titoli: %d aggiornate, %d gia' fresche", fatti, saltati)
     return {"aggiornati": fatti, "saltati": saltati}
