@@ -11,8 +11,8 @@
 try{(function(){const el=$("azioni");if(!el)return;
  const BASE="../azioni/",PAG=50;                       // titoli per pagina della tabella
  const ST={dati:null,list:"tutti",set:"tutti",ord:"pt",dir:-1,cerca:"",pag:1,per:"1a",tit:null};
- try{const s=JSON.parse(localStorage.getItem("ebAzioni2")||"{}");if(s.list)ST.list=s.list;if(s.ord){ST.ord=s.ord;ST.dir=s.dir||-1;}}catch(e){}
- const salva=()=>{try{localStorage.setItem("ebAzioni2",JSON.stringify({list:ST.list,ord:ST.ord,dir:ST.dir}));}catch(e){}};
+ try{const s=JSON.parse(localStorage.getItem("ebAzioni2")||"{}");if(s.list)ST.list=s.list;if(s.ord){ST.ord=s.ord;ST.dir=s.dir||-1;}ST.soloSu=!!s.soloSu;}catch(e){}
+ const salva=()=>{try{localStorage.setItem("ebAzioni2",JSON.stringify({list:ST.list,ord:ST.ord,dir:ST.dir,soloSu:ST.soloSu}));}catch(e){}};
  const gg=d=>d?d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(0,4):"";
  const pc=(v,d=1)=>v==null?'<span class="flat">n/d</span>':`<span class="${v>0?"up":v<0?"down":"flat"}">${v>0?"+":""}${fx(v,d)}%</span>`;
  const SIMB={USD:"$",EUR:"€",GBP:"£",CHF:"CHF ",JPY:"¥",HKD:"HK$",CNY:"CN¥",INR:"₹"};
@@ -49,7 +49,8 @@ try{(function(){const el=$("azioni");if(!el)return;
  // --- titoli dopo i filtri (listino + ricerca); il settore si applica alla tabella, non alle card
  function filtrati(conSettore){const q=ST.cerca.trim().toLowerCase();
   return ST.dati.titoli.filter(t=>(ST.list=="tutti"||t.l.includes(ST.list))&&(!conSettore||ST.set=="tutti"||t.s==ST.set)
-   &&(!q||t.t.toLowerCase().includes(q)||(t.n||"").toLowerCase().includes(q)));}
+   &&(!q||t.t.toLowerCase().includes(q)||(t.n||"").toLowerCase().includes(q))
+   &&(!conSettore||!ST.soloSu||t.tr==1));}          // v7.10 filtro "solo trend rialzista" (solo tabella, non i settori)
  const media=a=>{const x=a.filter(v=>v!=null);return x.length?x.reduce((s,v)=>s+v,0)/x.length:null;};
 
  function spark(sp,cls){if(!sp||sp.length<2)return "";const W=96,H=28;
@@ -143,7 +144,8 @@ try{(function(){const el=$("azioni");if(!el)return;
      sopra=Math.round(100*t.filter(x=>x.t200!=null&&x.t200>0).length/Math.max(1,t.filter(x=>x.t200!=null).length));
      return `<button class="azsc${ST.set==s.id?" on":""}" data-s="${s.id}"><span>${esc(s.nome)} <small>${t.length}</small></span><b class="${y>=0?"up":"down"}">${y==null?"n/d":(y>0?"+":"")+fx(y,1)+"%"}</b>
       <em>1 mese ${m==null?"n/d":(m>0?"+":"")+fx(m,1)+"%"}</em><span class="azbr" title="${sopra}% dei titoli sopra la media a 200 giorni"><i style="width:${sopra}%"></i></span><small class="azbrt">${sopra}% in trend rialzista</small></button>`;}).join("")}</div>
-   <div class="azclt"><h3 class="vft azcl">${ST.set=="tutti"?"Classifica":esc(nomeSet(ST.set))} <span class="small">${righe.length} titoli${ST.cerca?" per &laquo;"+esc(ST.cerca)+"&raquo;":""}</span></h3>${window.ebPdf?ebPdf.bottone():""}</div>
+   <div class="azclt"><h3 class="vft azcl">${ST.set=="tutti"?"Classifica":esc(nomeSet(ST.set))} <span class="small">${righe.length} titoli${ST.cerca?" per &laquo;"+esc(ST.cerca)+"&raquo;":""}</span></h3>
+    <button type="button" class="aztrf${ST.soloSu?" on":""}" aria-pressed="${!!ST.soloSu}" title="Mostra solo i titoli in trend rialzista">${trIcon(1)}Solo trend rialzista</button>${window.ebPdf?ebPdf.bottone():""}</div>
    <div class="tablewrap"><table class="aztab"><tr>${COL.map(c=>`<th class="${c[2]?"num":""} ${c[3]||""}${c[0]!="sp"?" azo":""}${ST.ord==c[0]?" on":""}" ${c[0]!="sp"?`data-o="${c[0]}"`:""}${c[0]=="sd"?` title="SMART DISCOUNT 0-100: quanto il titolo e' scontato oggi rispetto alla sua storia e se in passato comprare a quello sconto e' andato meglio che comprare a caso"`:""}${c[0]=="st_pos"?` title="Stagionalit&agrave; di ${mese}: quota di anni positivi e rendimento medio del mese"`:""}${c[0]=="t200"?` title="Distanza dalla media a 200 giorni: positivo = trend rialzista"`:""}${c[0]=="pt"?` title="Punteggio 0-100: forza 12 e 3 mesi, trend e stagionalit&agrave; del mese"`:""}>${c[1]}${ST.ord==c[0]?(ST.dir>0?" &uarr;":" &darr;"):""}</th>`).join("")}</tr>
     ${vis.map(t=>`<tr class="clic" data-t="${esc(t.t)}" tabindex="0"><td class="num azrk">${t.rk}</td><td class="aznome"><b>${esc(t.n)}${trIcon(t.tr)}</b><span>${esc(t.t)} &middot; ${t.l.map(nomeList).join(", ")}</span></td>
      <td>${forza(t.pt)}</td><td class="num">${sdCella(t)}</td><td class="num">${prezzo(t.p,t.val)}</td><td class="num">${pc(t.v1g,2)}</td><td class="num">${pc(t.v1m)}</td><td class="num azh">${pc(t.v3m)}</td><td class="num azh">${pc(t.vytd)}</td>
@@ -183,6 +185,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   sg.addEventListener("mousedown",e=>{const r=e.target.closest(".azsr");if(r){e.preventDefault();scegli(r.dataset.i=="tutti"?"tutti":+r.dataset.i);}});   // mousedown: scatta prima che il campo perda il fuoco
   document.addEventListener("click",e=>{if(!e.target.closest(".azcw"))chiudiSg();});
   el.querySelectorAll(".azlist button,.azi").forEach(b=>{const f=()=>{ST.list=ST.list==b.dataset.l&&b.classList.contains("azi")?"tutti":b.dataset.l;ST.pag=1;salva();disegna();};b.onclick=f;b.onkeydown=e=>{if(e.key=="Enter")f();};});
+  const tf=el.querySelector(".aztrf");if(tf)tf.onclick=()=>{ST.soloSu=!ST.soloSu;ST.pag=1;salva();disegna();el.querySelector(".azcl").scrollIntoView({behavior:"smooth",block:"start"});};
   el.querySelectorAll(".azsc").forEach(b=>b.onclick=()=>{ST.set=b.dataset.s;ST.pag=1;disegna();el.querySelector(".azcl").scrollIntoView({behavior:"smooth",block:"start"});});
   el.querySelectorAll("th.azo").forEach(h=>h.onclick=()=>{const k=h.dataset.o;if(ST.ord==k)ST.dir=-ST.dir;else{ST.ord=k;ST.dir=(k=="n"||k=="rk")?1:-1;}ST.pag=1;salva();disegna();});
   el.querySelectorAll(".aztab tr[data-t]").forEach(r=>{r.onclick=()=>apri(r.dataset.t);r.onkeydown=e=>{if(e.key=="Enter")apri(r.dataset.t);};});

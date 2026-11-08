@@ -41,6 +41,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  const gg=d=>d?d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(0,4):"";
  const nomeK=k=>{for(const p of P.profili){const c=p.composizione.find(x=>x.k==k);if(c)return c.nome;const a=p.ammessi.find(x=>x.k==k);if(a)return a.nome;}return k;};
  let sel=P.profili[1].id,per="tutto",tutteRot=false;
+ // v7.9 la scheda in 3 sezioni (meno scorrimento, soprattutto da telefono): Oggi / Storico / Rotazioni (ricordata)
+ const VISTE=[["oggi","Oggi"],["storico","Storico"],["rotazioni","Rotazioni"]];
+ let vista="oggi";try{const v=localStorage.getItem("ebPortVista");if(VISTE.some(x=>x[0]==v))vista=v;}catch(e){}
  try{const s=localStorage.getItem("ebProfilo");if(s&&P.profili.some(p=>p.id==s))sel=s;}catch(e){}
 
  // --- ciambella dei pesi (SVG): un arco per mercato, colore = classe
@@ -245,10 +248,16 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   // v6.52: la colonna Live compare solo quando ci sono dati live (prima era una colonna di "in arrivo")
   const col=[["Storico",st.storico,`fino al 2015`],["Verifica",st.oos,`dal 2016`]].concat(st.live?[["Live",st.live,p.live_dal?`dal ${gg(p.live_dal)}`:"dall'avvio"]]:[]).concat([["60/40",b.oos,"dal 2016"]]);
   const r=(t,f)=>`<tr><th>${t}</th>${col.map(c=>`<td>${c[1]?f(c[1]):'<span class="small">n/d</span>'}</td>`).join("")}</tr>`;
-  return `<div class="tablewrap ptab"><table><tr><th class="ptab0">Risultati<span>per periodo <details class="info pti"><summary title="Periodi" aria-label="Periodi">i</summary><div>Regole decise sui dati fino al 2015 e verificate dal 2016 in poi. 60/40 = 60% azioni USA e 40% Treasury, per confronto.${st.live?"":` La colonna Live compare dopo la prima rotazione con le regole attuali.`}</div></details></span></th>${col.map(c=>`<th>${c[0]}<span>${c[2]}</span></th>`).join("")}</tr>
+  return `<div class="tablewrap ptab"><table><tr><th class="ptab0">Risultati<span>per periodo <details class="info pti"><summary title="Periodi" aria-label="Periodi">i</summary><div>Regole decise sui dati fino al 2015 e verificate dal 2016 in poi. 60/40 = 60% azioni USA e 40% Treasury, per confronto.${p.robusto&&p.robusto[150]&&p.robusto[250]?`<br><br><b>Test di robustezza</b> (tutto lo storico): con la media a 150 giorni ${pc(p.robusto[150].cagr)} l'anno e drawdown ${pc(p.robusto[150].maxdd)}; a 250 giorni ${pc(p.robusto[250].cagr)} e ${pc(p.robusto[250].maxdd)}; con 200 giorni (il modello) ${pc((st.totale||{}).cagr)} e ${pc((st.totale||{}).maxdd)}. Il rendimento cambia poco: il modello non dipende da un numero scelto ad arte. Il drawdown varia di pi&ugrave;: considera il peggiore come quello realistico.`:""}${st.live?"":` La colonna Live compare dopo la prima rotazione con le regole attuali.`}</div></details></span></th>${col.map(c=>`<th>${c[0]}<span>${c[2]}</span></th>`).join("")}</tr>
    ${r("Rendimento annuo",x=>x.cagr==null?pc(x.totale)+" tot.":pc(x.cagr))}
    ${r("Max drawdown",x=>`<b class="down">${pc(x.maxdd)}</b>`)}${r("Peggior mese",x=>x.peggior_mese?pc(x.peggior_mese[1]):"n/d")}${r("Mesi positivi",x=>(x.mesi_pos??"n/d")+"%")}</table></div>
-`;}
+   ${tasseHTML(p)}`;}
+ // --- v7.8 DOPO LE TASSE (cot_radar/portafogli.py simula_tasse): regime amministrato italiano, dal primo ribilancio
+ function tasseHTML(p){const t=p.tasse;if(!t)return "";
+  return `<div class="ptax"><span class="ptax-l">Dopo le tasse <small>dal ${t.dal.slice(0,4)}</small></span><details class="info"><summary title="Come si calcola" aria-label="Come si calcola">i</summary><div><b>Regime amministrato</b> (il broker trattiene le tasse a ogni vendita, come Scalable): ETF azionari 26% sul guadagno, Treasury 12,5%, ETC, Bitcoin e azioni 26% con compensazione delle perdite dei 4 anni prima; le perdite sugli ETF non si compensano con guadagni di altri ETF. Interessi della liquidit&agrave; al 26%, bollo 0,2% l'anno. Il numero suppone di vendere tutto l'ultimo giorno.<br><br><b>Perch&eacute; il portafoglio perde di pi&ugrave; dell'S&amp;P 500</b>: il filtro di trend vende quando un mercato scende sotto la media a 200 giorni e paga le tasse sui guadagni accumulati; chi compra e tiene le paga solo alla fine. &Egrave; il prezzo della protezione: drawdown molto pi&ugrave; piccoli (nel 2008 l'S&amp;P 500 in euro ha perso il 50%).<br><br><b>Regime dichiarato</b> (broker esteri che non fanno da sostituto d'imposta): stesse aliquote, ma le tasse le calcoli e versi tu con la dichiarazione dei redditi e al posto del bollo c'&egrave; l'IVAFE (0,2%). Regole semplificate: per la tua situazione chiedi a un commercialista.</div></details>
+   <span class="ptax-v"><b class="${t.cagr_netto>=0?"up":"down"}">${pc(t.cagr_netto)}</b> l'anno <em>prima ${pc(t.cagr_lordo)}</em></span>
+   <span class="ptax-v ptax-b">S&amp;P 500 comprato e tenuto <b>${pc(t.sp500_netto)}</b> <em>prima ${pc(t.sp500_lordo)}</em></span>
+</div>`;}
 
  /* v6.52: ogni rotazione mostra com'e' andato il mese (netto e drawdown) e, aprendo "Dettaglio", ogni mercato con
     peso, rendimento, contributo al totale (punti %) e drawdown; per le Azioni scelte anche i singoli titoli. */
@@ -637,20 +646,22 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
    <div class="pdate">${P.attesa?`<div class="pdinfo pnew"><i></i><div><span class="pdl">Nuova rotazione</span><b>${gg(P.rotazione)}</b><span class="pdsub">decisa sulla chiusura del ${gg(P.decisa_al)}</span></div></div>`:`<div class="pdinfo"><i></i><div><span class="pdl">Rotazione in vigore</span><b>${gg(P.rotazione)}</b></div></div>`}<span class="pcount" data-t="${P.prossima||""}" title="${P.attesa?"Si esegue":"Prossimo ribilanciamento"}: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"} <b class="pcd">${gg(P.prossima)}</b></span></div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
-   <label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${capitale.toLocaleString("it-IT")}" aria-label="Capitale da investire in euro"> &euro;</label>
+   <div class="pvista" role="tablist" aria-label="Sezione della scheda">${VISTE.map(v=>`<button role="tab" aria-selected="${vista==v[0]}" class="${vista==v[0]?"on":""}" data-v="${v[0]}">${v[1]}</button>`).join("")}</div>
+   ${vista=="oggi"?`<label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${capitale.toLocaleString("it-IT")}" aria-label="Capitale da investire in euro"> &euro;</label>
    ${hero(p)}
    ${corso(p)}
    <div class="card pacq" id="pacq">${acquistoHTML(p)}</div>
    <div class="card pconto" id="pconto">${contoHTML(p)}</div>
-   <div class="pgrid">${composizione(p)}${contro(p)}</div>
-   <h3 class="vft">Andamento del capitale <details class="info"><summary title="Come leggerlo" aria-label="Come leggerlo">i</summary><div>Base 100, scala logaritmica: la stessa percentuale ha la stessa altezza in ogni periodo. Linea turchese = portafoglio, tratteggio = 60/40 di confronto, linea luminosa = live dalla prima rotazione pubblicata.</div></details></h3>
+   <div class="pgrid">${composizione(p)}${contro(p)}</div>`:""}
+   ${vista=="storico"?`<h3 class="vft">Andamento del capitale <details class="info"><summary title="Come leggerlo" aria-label="Come leggerlo">i</summary><div>Base 100, scala logaritmica: la stessa percentuale ha la stessa altezza in ogni periodo. Linea turchese = portafoglio, tratteggio = 60/40 di confronto, linea luminosa = live dalla prima rotazione pubblicata.</div></details></h3>
    <div class="vfswitch pper">${[["tutto","Tutto"],["oos","Dal 2016"]].map(x=>`<button data-per="${x[0]}" class="${per==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
    <div class="card pgraf">${curva(p)}</div>
    ${tabella(p)}
    ${simulatoreHTML(p)}
    ${crisiHTML(p)}
-   <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>
-   <div class="pbasso"><h3 class="vft">Ultime rotazioni <details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div>+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato.</div></details></h3>${rotazioni(p)}</div>`;
+   <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
+   ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div>+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato.</div></details></h3>${rotazioni(p)}</div>`:""}`;
+  el.querySelectorAll(".pvista button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{localStorage.setItem("ebPortVista",vista);}catch(e){}ridisegna(".pvista");});
   el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
   // clic su un titolo delle azioni scelte: apre la sua scheda nell'Azionario (azioni.js)
   el.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>{if(window.ebApriTitolo)window.ebApriTitolo(b.dataset.az);});
