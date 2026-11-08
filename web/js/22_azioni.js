@@ -240,10 +240,11 @@ try{(function(){const el=$("azioni");if(!el)return;
    ${tecBlocco(x,t)}
    ${sdBlocco(t)}
    <div class="azbil">${sk("40%",16)}${sk("100%",140,"border-radius:14px;margin-top:10px")}</div>
+   <div class="aznews" hidden></div>
    <div class="azprof">${sk("30%",16)}${sk("100%",14,"margin-top:12px")}${sk("90%",14,"margin-top:8px")}<div class="azmini">${Array(4).fill(`<div>${sk("60%",11)}${sk("70%",16)}</div>`).join("")}</div></div>
    ${stag}<p class="small azfonte">${esc(x.borsa||"")}${x.val?" &middot; prezzi in "+esc(x.val):""}</p>`;
   c.querySelectorAll(".azper button").forEach(b=>b.onclick=()=>{ST.per=b.dataset.p;corpo(ov,t,x);});
-  bilancio(c.querySelector(".azbil"),t);profilo(c.querySelector(".azprof"),t);
+  bilancio(c.querySelector(".azbil"),t);profilo(c.querySelector(".azprof"),t);notizie(c.querySelector(".aznews"),t);
   tooltip(c.querySelector(".azgraf"),serie(),t.val,ST.per=="max");}
 
  // --- v7.7 ANALISI TECNICA (cot_radar/azioni.py tecnica(): SMA 50/200, RSI 14, ATR 14, range 52 settimane) e icona
@@ -337,6 +338,16 @@ try{(function(){const el=$("azioni");if(!el)return;
 
  // --- PROFILO DELL'AZIENDA (v6.52, cot_radar/profili.py): cosa fa, fondazione, sede, CEO, dipendenti, borse,
  //     eventuale acquisizione negli ultimi 10 anni. Fonti: Wikidata e Wikipedia. File pubblico/profili/<T>.json.
+ // --- v7.15 ULTIME NOTIZIE del titolo (cot_radar/notizie_az.py, EODHD): titolo, fonte, data e tono stimato.
+ //     Solo titoli coperti da EODHD; senza file (Milano, Asia) il riquadro resta nascosto.
+ function notizie(box,t){if(!box)return;
+  fetch(BASE+"notizie/"+encodeURIComponent(t.t.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(x=>{
+   if(!box.isConnected||!x||!(x.n||[]).length)return;
+   const tono=v=>v==null?["neu","tono non stimato"]:v>=0.25?["pos","tono positivo"]:v<=-0.25?["neg","tono negativo"]:["neu","tono neutro"];
+   const data=d=>{const g=new Date(d+"T12:00:00");return g.toLocaleDateString("it-IT",{day:"numeric",month:"short"});};
+   box.innerHTML=`<h4 class="aztit">Ultime notizie <details class="info"><summary title="Da dove arrivano" aria-label="Informazioni">i</summary><div>Titoli delle notizie finanziarie degli ultimi 30 giorni (EODHD), in inglese: il tocco apre l'articolo sulla fonte. Il pallino &egrave; il <b>tono</b> della notizia stimato automaticamente (verde positivo, rosso negativo, grigio neutro): una lettura veloce, non un segnale di acquisto o vendita.</div></details></h4>
+    <div class="aznl">${x.n.map(n=>{const s=tono(n.tono);return `<a class="azn" href="${esc(n.link)}" target="_blank" rel="noopener noreferrer"><i class="aznt ${s[0]}" title="${s[1]}"></i><span class="azn-t">${esc(n.titolo)}</span><small>${esc(n.fonte||"")} &middot; ${data(n.d)}</small></a>`;}).join("")}</div>`;
+   box.hidden=false;});}
  // v7.7 quando manca la descrizione: una riga con quello che sappiamo (settore e borsa) e la ricerca su Wikipedia
  const cercaWiki=t=>`https://it.wikipedia.org/w/index.php?search=${encodeURIComponent(String(t.n||"").replace(/[,.]?\s+(inc|corp|corporation|co|company|ltd|limited|plc|s\.?p\.?a|ag|sa|se|n\.?v)\.?$/i,""))}`;
  const descBase=t=>`<p class="azdesc">${esc(t.n)}: azienda del settore ${esc(nomeSet(t.s).toLowerCase())}, quotata alla ${esc(borsa(t.t))}. <a href="${cercaWiki(t)}" target="_blank" rel="noopener">Cerca su Wikipedia</a></p>`;
