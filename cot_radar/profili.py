@@ -32,7 +32,7 @@ RIASSUNTO = "https://{lingua}.wikipedia.org/api/rest_v1/page/summary/{titolo}"
 GIORNI_VALIDITA = 30            # un profilo si riscarica dopo 30 giorni
 VERSIONE = 2                    # v6.73: profili con ISIN e abbinamento migliorato (i vecchi si rifanno una volta)
 RIPROVA_VUOTI = 7               # titolo non trovato su Wikidata: si riprova dopo 7 giorni
-RICERCA = 2                     # v7.7: ricerca anche su Wikipedia; i titoli senza descrizione si riprovano subito
+RICERCA = 3                     # v7.13: anche la descrizione cercata su Wikipedia quando l'elemento non ha la voce; v7.7: ricerca anche su Wikipedia; i titoli senza descrizione si riprovano subito
 RIPROVA_DESC = 3                # trovato ma riassunto Wikipedia non scaricato: si riprova dopo 3 giorni
 MAX_PER_GIRO = 2000             # titoli aggiornati al massimo in un giro (v6.54: prima 300, troppo lento)
 TEMPO_MAX = 600                 # secondi massimi per giro: oltre si riprende al giro dopo
@@ -156,6 +156,26 @@ def candidati_wikipedia(nome):
     per_titolo = {x.get("title"): (x.get("pageprops") or {}).get("wikibase_item") for x in (pp.get("pages") or {}).values()}
     norm = {x.get("to"): x.get("from") for x in pp.get("normalized") or []}
     return [q for q in (per_titolo.get(t) or per_titolo.get(norm.get(t)) for t in titoli) if q]
+
+
+def desc_da_wikipedia(t, nome, qid=None):
+    """v7.13 Descrizione quando l'elemento Wikidata trovato non ha la voce italiana/inglese collegata (es. la
+    "holding" invece dell'azienda): si cerca il nome su Wikipedia inglese e si prende la prima voce il cui elemento
+    Wikidata e' lo stesso trovato prima oppure supera il controllo di _accetta (azienda quotata, paese giusto)."""
+    q = pulisci_nome(nome)
+    if len(q) < 3:
+        return None
+    r = _get(CERCA_WP + urllib.parse.quote(q), timeout=20) or {}
+    titoli = [x["title"] for x in (r.get("query") or {}).get("search", [])]
+    if not titoli:
+        return None
+    pp = (_get(PROPS_WP + urllib.parse.quote("|".join(titoli)), timeout=20) or {}).get("query") or {}
+    per_titolo = {x.get("title"): (x.get("pageprops") or {}).get("wikibase_item") for x in (pp.get("pages") or {}).values()}
+    for ti in titoli:
+        c = per_titolo.get(ti)
+        if c and (c == qid or _accetta(t, [c])):
+            return riassunto("https://en.wikipedia.org/wiki/" + urllib.parse.quote(ti.replace(" ", "_")))
+    return None
 
 
 def _accetta(t, cand):
@@ -349,7 +369,13 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
                 A._scrivi(file_di(t), {"t": t, "agg": oggi.isoformat(), "vuoto": 1, "rv": RICERCA})   # il sito mostra i dati base
                 continue
             f = dati.get(qid[t], {})
-            desc = traduci(riassunto(f.get("it")) or riassunto(f.get("en")))
+            desc = riassunto(f.get("it")) or riassunto(f.get("en"))
+            if not desc and nomi.get(t):                # v7.13: voce non collegata all'elemento -> ricerca per nome
+                try:
+                    desc = desc_da_wikipedia(t, nomi[t], qid[t])
+                except Exception as e:
+                    log.warning("profili: descrizione da Wikipedia non trovata per %s (%s)", t, type(e).__name__)
+            desc = traduci(desc)
             if pausa:
                 time.sleep(pausa)
             A._scrivi(file_di(t), componi(t, f, desc, oggi))

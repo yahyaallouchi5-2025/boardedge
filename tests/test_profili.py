@@ -52,3 +52,24 @@ class RicercaWikipedia(unittest.TestCase):
             self.assertEqual(PR.per_nome([("9618.HK", "JD.com, Inc.")]), {"9618.HK": "Q123"})
             # paese sbagliato (Cina per un titolo USA) -> scartato
             self.assertEqual(PR.per_nome([("JD", "JD.com, Inc.")]), {})
+
+
+class DescrizioneWikipedia(unittest.TestCase):
+    """v7.13: elemento trovato ma senza voce collegata -> descrizione dalla voce inglese con lo stesso elemento."""
+
+    def test_stesso_elemento(self):
+        from unittest import mock
+        from cot_radar import profili as PR
+
+        def finto_get(url, timeout=40):
+            if "list=search" in url:
+                return {"query": {"search": [{"title": "PayPal"}]}}
+            if "prop=pageprops" in url:
+                return {"query": {"pages": {"1": {"title": "PayPal", "pageprops": {"wikibase_item": "Q483959"}}}}}
+            if "page/summary" in url:
+                return {"extract": "PayPal Holdings, Inc. is an American multinational financial technology company."}
+            return {}
+        with mock.patch.object(PR, "_get", finto_get), mock.patch.object(PR, "_sparql", lambda q: []):
+            d = PR.desc_da_wikipedia("PYPL", "PayPal Holdings, Inc.", "Q483959")
+        self.assertEqual(d["lingua"], "en")
+        self.assertIn("PayPal", d["testo"])
