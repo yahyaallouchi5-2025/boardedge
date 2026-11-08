@@ -769,6 +769,13 @@ def main(argv):
     except Exception:
         import traceback
         log.error("profili aziende non aggiornati:\n%s", traceback.format_exc())
+    # v7.15 ultime notizie di ogni titolo (EODHD, solo titoli e link): mai bloccante
+    try:
+        from . import notizie_az
+        notizie_az.aggiorna(cartella, el=titoli)
+    except Exception:
+        import traceback
+        log.error("notizie dei titoli non aggiornate:\n%s", traceback.format_exc())
     print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in stato.items()}, ensure_ascii=False))
     return 1 if errore_giro else 0
 

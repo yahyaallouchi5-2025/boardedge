@@ -178,11 +178,18 @@ def titoli_usa(el=None):
 
 
 # --------------------------------------------------------------------------- trimestrali (v6.54)
+VERSIONE_TRIM = 2               # v7.15: concetto SEC piu' recente per i trimestri (vedi _periodi)
+
+
 def _periodi(fatti, concetti, unita="USD"):
     """Tutti i periodi con durata dal primo concetto utile: {(inizio, fine): valore}. Vince il deposito piu' recente
     (correzioni). Prende sia i 10-Q (trimestri 1-3) sia i 10-K (anno intero, serve per ricavare il 4o trimestre)."""
     usgaap = (fatti or {}).get("facts", {}).get("us-gaap", {})
-    for c in concetti:                                     # primo concetto con dati: niente mescolanze tra concetti
+    # v7.15: si sceglie il concetto con i dati PIU' RECENTI (a parita', il primo della lista). Prima vinceva il primo
+    # concetto con dati qualsiasi: chi ha cambiato concetto nel tempo (es. NVIDIA, Broadcom) restava fermo al 2019-2020.
+    # Niente mescolanze tra concetti (le definizioni cambiano).
+    migliore, fine_migliore = {}, ""
+    for c in concetti:
         righe = (usgaap.get(c) or {}).get("units", {}).get(unita) or []
         out = {}
         for f in righe:
@@ -195,8 +202,10 @@ def _periodi(fatti, concetti, unita="USD"):
             if k not in out or f.get("filed", "") >= out[k][1]:
                 out[k] = (f["val"], f.get("filed", ""))
         if out:
-            return {k: v[0] for k, v in out.items()}
-    return {}
+            ultima = max(f for _, f in out)
+            if ultima > fine_migliore:
+                migliore, fine_migliore = {k: v[0] for k, v in out.items()}, ultima
+    return migliore
 
 
 def _giorni(a, b):
@@ -265,7 +274,8 @@ def aggiorna(cartella, oggi=None, el=None, scarica=None, pausa=PAUSA):
         f = os.path.join(cartella, "pubblico", "bilanci", A._nome_file(t) + ".json")
         vecchio = A._leggi(f) or {}
         giorno = zlib.crc32(("sec" + t).encode()) % 5                     # ogni titolo il suo giorno della settimana
-        scaduto = vecchio.get("agg", "") < (oggi - timedelta(days=8)).isoformat()
+        # v7.15: i file fatti prima della correzione dei trimestri (campo "v" assente) si rifanno subito
+        scaduto = vecchio.get("agg", "") < (oggi - timedelta(days=8)).isoformat() or vecchio.get("v") != VERSIONE_TRIM
         pc = (vecchio.get("conti") or {}).get("prossimo")
         # stagione dei conti: dalla data stimata e per FINESTRA_CONTI giorni si riscarica ogni giorno (trimestrale fresca)
         stagione = bool(pc) and 0 <= _giorni(pc, oggi.isoformat()) <= FINESTRA_CONTI and vecchio.get("agg") != oggi.isoformat()
@@ -287,7 +297,7 @@ def aggiorna(cartella, oggi=None, el=None, scarica=None, pausa=PAUSA):
                     sintesi["conti"] = conti(dep, oggi)
                 except Exception as e:
                     log.warning("trimestrali SEC: %s non elaborato (%s: %s)", t, type(e).__name__, e)
-                vecchio = dict(sintesi, t=t, agg=oggi.isoformat(), fonte="SEC EDGAR (10-K, 10-Q, 8-K)")
+                vecchio = dict(sintesi, t=t, agg=oggi.isoformat(), fonte="SEC EDGAR (10-K, 10-Q, 8-K)", v=VERSIONE_TRIM)
                 A._scrivi(f, vecchio)
                 aggiornati += 1
             else:
