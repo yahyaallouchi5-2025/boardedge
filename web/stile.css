@@ -1881,3 +1881,40 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 .aztec-sc2{display:flex;justify-content:space-between;gap:6px}
 @media (max-width:900px){.aztec-g{grid-template-columns:1fr 1fr}}
 @media (max-width:420px){.aztec-c{padding:10px 12px}.aztec-c>b{font-size:18px}}
+
+/* v7.8 dopo le tasse */
+.ptax{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:10px;padding:12px 16px;border-radius:12px;border:1px solid var(--line);
+ background:color-mix(in srgb,var(--card) 70%,transparent);font-size:13px;color:var(--ink2);transition:border-color .2s}
+.ptax:hover{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.ptax-l{font-size:11.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mute)}.ptax-l small{font-weight:600;letter-spacing:0;text-transform:none;margin-left:4px}
+.ptax-v b{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}.ptax-v em{font-style:normal;font-size:12px;color:var(--mute);margin-left:4px}
+.ptax-b b{font-size:14px;color:var(--ink)}
+.ptax .info{margin-left:-10px}.ptax .info div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink2)}
+@media (max-width:600px){.ptax .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
+
+/* v7.9 Portafogli in 3 sezioni */
+.pvista{display:flex;gap:4px;margin:14px 0 4px;padding:4px;border-radius:14px;border:1px solid var(--line);background:color-mix(in srgb,var(--card) 70%,transparent);width:max-content;max-width:100%}
+.pvista button{font:inherit;font-size:13.5px;font-weight:700;padding:8px 18px;border-radius:10px;border:0;background:transparent;color:var(--ink2);cursor:pointer;transition:background .2s,color .2s,box-shadow .2s}
+.pvista button:hover{color:var(--ink);background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.pvista button.on{background:var(--acc);color:#04131a;box-shadow:0 0 16px color-mix(in srgb,var(--acc) 35%,transparent)}
+@media (max-width:600px){.pvista{width:100%}.pvista button{flex:1 1 0;padding:9px 6px}}
+
+/* v7.9 Ampiezza del mercato (Dashboard) */
+.tzamp{padding:16px 20px;margin-bottom:14px}
+.tzamp-t{display:flex;align-items:center;gap:8px}.tzamp-t h3{margin:0;font-size:15px}
+.tzamp-t .info div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink2)}
+.tzamp-big{display:flex;align-items:baseline;gap:10px;margin:8px 0 8px}.tzamp-big>b{font-size:30px;font-weight:800;font-variant-numeric:tabular-nums}
+.tzamp-big span{font-size:13px;color:var(--ink2)}.tzamp-m{color:var(--warn)}
+.tzamp-bar{display:flex;height:8px;border-radius:99px;overflow:hidden;background:color-mix(in srgb,var(--line) 60%,transparent)}
+.tzamp-bar i.su{background:var(--b)}.tzamp-bar i.lat{background:var(--n)}.tzamp-bar i.giu{background:var(--s)}
+.tzamp-aree{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px 18px;margin-top:12px}
+.tzamp-aree div{display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:8px;font-size:12.5px;color:var(--ink2)}
+.tzamp-aree b{font-variant-numeric:tabular-nums;color:var(--ink)}.tzamp-aree .tzamp-bar{height:6px}
+@media (max-width:700px){.tzamp-aree{grid-template-columns:1fr}.tzamp-aree div{grid-template-columns:64px 1fr 40px}
+ .tzamp-t .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
+
+/* v7.10 filtro "solo trend rialzista" */
+.aztrf{display:inline-flex;align-items:center;gap:6px;margin-left:auto;margin-right:10px;font:inherit;font-size:12.5px;font-weight:700;padding:7px 12px;border-radius:99px;
+ border:1px solid var(--line);background:transparent;color:var(--ink2);cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s,color .2s}
+.aztrf .aztr{margin-left:0}.aztrf:hover{border-color:var(--b);box-shadow:0 0 14px color-mix(in srgb,var(--b) 25%,transparent)}
+.aztrf.on{background:color-mix(in srgb,var(--b) 16%,transparent);border-color:var(--b);color:var(--ink)}
