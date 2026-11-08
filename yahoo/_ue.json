@@ -1,6 +1,6 @@
 {
- "giorno": "2026-11-07",
- "giri": 3,
+ "giorno": "2026-11-08",
+ "giri": 1,
  "prezzi": {
   "BTC": {
    "d": "2026-11-06",
@@ -9,9 +9,10 @@
    "sym": "IB1T.XETRA"
   },
   "CASH": {
-   "d": "2026-11-05",
-   "p": 150.705,
-   "sym": "XEON.DE"
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 150.694,
+   "sym": "XEON.XETRA"
   },
   "COPPER": {
    "d": "2026-11-06",
@@ -44,9 +45,16 @@
    "sym": "SXRV.XETRA"
   },
   "SP500": {
-   "d": "2026-11-05",
-   "p": 718.53,
-   "sym": "CSSPX.MI"
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 719.16,
+   "sym": "SXR8.XETRA"
+  },
+  "SP500C": {
+   "d": "2026-11-06",
+   "fonte": "eodhd",
+   "p": 128.97,
+   "sym": "VUAA.XETRA"
   },
   "WTI": {
    "d": "2026-11-06",
@@ -65,7 +73,10 @@
   "IE0006WW1TQ4": "EXUS.XETRA",
   "IE00B4ND3602": "PPFB.XETRA",
   "IE00B53SZB19": "SXRV.XETRA",
+  "IE00B5BMR087": "SXR8.XETRA",
+  "IE00BFMXXD54": "VUAA.XETRA",
   "IE00BKM4GZ66": "IS3N.XETRA",
+  "LU0290358497": "XEON.XETRA",
   "XS2940466316": "IB1T.XETRA"
  }
 }
