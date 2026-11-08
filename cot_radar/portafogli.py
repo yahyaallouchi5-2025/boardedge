@@ -752,6 +752,145 @@ def crisi_mercati(g, dal_i, fx=None):
     return out
 
 
+# --------------------------------------------------------------------------- v7.8 TASSE ITALIANE (regime amministrato)
+# Il broker trattiene le tasse a ogni vendita (Scalable in Italia). Regole usate (persona fisica residente):
+#   - ETF azionari: guadagno = reddito di CAPITALE, 26% subito; la PERDITA va nello "zainetto" (redditi diversi) e
+#     NON si compensa con guadagni di altri ETF;
+#   - ETF di titoli di Stato (Treasury, white list): 12,5% sul guadagno; la perdita entra nello zainetto al 48,08%;
+#   - ETC/ETP (oro, rame, petrolio, Bitcoin) e azioni singole: REDDITI DIVERSI al 26%: il guadagno usa prima lo
+#     zainetto (perdite dei 4 anni precedenti), la perdita va nello zainetto;
+#   - liquidita': interessi tassati al 26%; imposta di bollo 0,2% l'anno sul valore del conto (31 dicembre).
+# Costo medio ponderato per ogni strumento (come il regime amministrato). Le tasse escono dal conto il giorno della
+# vendita. "Netto finale" = come se si vendesse tutto l'ultimo giorno (per confrontare con chi compra e tiene).
+# Le tasse si pagano con la vendita stessa: si vende un po' di piu' per pagarle (calcolo ripetuto fino a stabilita').
+CLASSE_FISCALE = {"US10Y": "stato", "USBOND": "stato",
+                  "GOLD": "diversi", "SILVER": "diversi", "PLATINUM": "diversi", "COPPER": "diversi", "WTI": "diversi",
+                  "NATGAS": "diversi", "CORN": "diversi", "WHEAT": "diversi", "SOY": "diversi", "BTC": "diversi",
+                  "ETH": "diversi", "AZ": "diversi"}             # il resto: ETF azionari ("etf"); CASH a parte
+ALIQUOTA, ALIQ_STATO, QUOTA_STATO, BOLLO, ANNI_ZAINETTO = 0.26, 0.125, 0.4808, 0.002, 4
+
+
+def simula_tasse(g, pianificati, dal_i, sostituisci=None, fx=None, tassi=None):
+    """Come simula_prudente (euro, acquisto alla chiusura, costi) ma con le tasse italiane del regime amministrato.
+    -> (curva netta [(data, valore)], valore netto se si vende tutto l'ultimo giorno, tasse pagate in totale)."""
+    sost = sostituisci or {}
+    cambio, tasso, ult_fx, ult_t = [], [], None, 0.0
+    for d in g.date:
+        ult_fx = (fx or {}).get(d, ult_fx)
+        ult_t = (tassi or {}).get(d, ult_t)
+        cambio.append(ult_fx)
+        tasso.append(ult_t)
+    quote, costo, zaino, curva, pagate = {}, {}, [], [], 0.0    # zaino = [[anno, perdita ancora usabile]]
+
+    def realizza(k, guadagno, anno):
+        """Tassa di una vendita (guadagno > 0) o perdita nello zainetto; restituisce le tasse da pagare."""
+        cl = CLASSE_FISCALE.get(k, "etf")
+        if guadagno < 0:
+            zaino.append([anno, -guadagno * (QUOTA_STATO if cl == "stato" else 1.0)])
+            return 0.0
+        if cl == "stato":
+            return guadagno * ALIQ_STATO
+        if cl == "diversi":                             # prima si consumano le perdite piu' vecchie ancora valide
+            for z in zaino:
+                if z[0] >= anno - ANNI_ZAINETTO and z[1] > 0 and guadagno > 0:
+                    usa = min(z[1], guadagno)
+                    z[1] -= usa
+                    guadagno -= usa
+        return guadagno * ALIQUOTA
+
+    for i in range(dal_i, len(g.date)):
+        anno = int(g.date[i][:4])
+        if quote:
+            f = cambio[i - 1] / cambio[i] if fx and cambio[i] and cambio[i - 1] else 1.0
+            nuove = {}
+            for k, v in quote.items():
+                if k == "CASH":
+                    gg = (date.fromisoformat(g.date[i]) - date.fromisoformat(g.date[i - 1])).days
+                    r = (1 + tasso_liquidita(tasso[i]) / 100) ** (gg / 365) - 1 if fx else g.rend(_ticker("CASH"), i)
+                    nuove[k] = v * (1 + r * (1 - ALIQUOTA))     # interessi gia' netti
+                    if not fx:
+                        costo[k] = nuove[k]                    # senza euro: la liquidita' non accumula plusvalenze
+                else:
+                    nuove[k] = v * (1 + g.rend(_ticker(sost.get(k, k)), i)) * f
+            quote = nuove
+            if i + 1 < len(g.date) and g.date[i + 1][:4] != g.date[i][:4]:      # bollo al 31 dicembre
+                b = sum(quote.values()) * BOLLO
+                tot = sum(quote.values())
+                quote = {k: v * (1 - b / tot) for k, v in quote.items()}
+                pagate += b
+        if i in pianificati:
+            nuovi = pianificati[i]
+            if not quote:                                      # primo acquisto
+                quote = {k: 100.0 * w for k, w in nuovi.items()}
+                costo = dict(quote)
+            else:
+                valore = sum(quote.values())
+                tot = valore or 1.0
+                scambio = sum(abs(nuovi.get(k, 0) - quote.get(k, 0) / tot) for k in set(nuovi) | set(quote))
+                z0 = [list(z) for z in zaino]
+                netto = valore * (1 - COSTO * scambio)
+                for _ in range(4):                             # le tasse si pagano vendendo un po' di piu': si itera
+                    zaino[:] = [list(z) for z in z0]
+                    tassa = 0.0
+                    for k, v in quote.items():
+                        obiettivo = netto * nuovi.get(k, 0)
+                        if k != "CASH" and v > obiettivo + 1e-9:
+                            tassa += realizza(k, (v - obiettivo) / v * (v - costo.get(k, v)), anno)
+                    netto = (valore - tassa) * (1 - COSTO * scambio)
+                pagate += tassa
+                for k in set(quote) | set(nuovi):              # costo fiscale: vendite in proporzione, acquisti al prezzo
+                    v, obiettivo = quote.get(k, 0.0), netto * nuovi.get(k, 0)
+                    if k == "CASH":
+                        costo[k] = obiettivo
+                    elif obiettivo < v:
+                        costo[k] = costo.get(k, v) * (obiettivo / v)
+                    else:
+                        costo[k] = costo.get(k, 0.0) + (obiettivo - v)
+                quote = {k: netto * w for k, w in nuovi.items()}
+                costo = {k: c for k, c in costo.items() if k in quote}
+        curva.append((g.date[i], sum(quote.values()) if quote else 100.0))
+    # vendita finale di tutto (per confrontare con chi compra e tiene fino alla fine)
+    anno = int(g.date[-1][:4])
+    finale = sum(quote.values()) - sum(realizza(k, v - costo.get(k, v), anno) for k, v in quote.items() if k != "CASH")
+    return curva, finale, pagate
+
+
+def robustezza(g, prof, sc, giorni, fx=None, tassi=None, liq=None):
+    """v7.11 TEST DI ROBUSTEZZA: lo stesso profilo con il filtro di trend a 150 e 250 giorni invece di 200 (stessa
+    misura onesta). Se rendimento e drawdown restano vicini il modello non e' cucito sul passato. Restituisce
+    {sma: {"cagr", "maxdd"}} sull'intero storico."""
+    global SMA
+    out, base = {}, SMA
+    try:
+        for n in (150, 250):
+            SMA = n
+            piani, prec = {}, None
+            for i in giorni:
+                pesi = scegli(prof, g, i, sc)[0]
+                ins = frozenset(k for k in pesi if k != "CASH")
+                if prec is None or ins != prec or g.date[i][5:7] in TRIMESTRI:
+                    piani[i] = pesi
+                prec = ins
+            st = statistiche(simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"}, fx=fx, tassi=tassi), liq)
+            out[n] = {"cagr": st["cagr"], "maxdd": st["maxdd"]} if st else None
+    finally:
+        SMA = base
+    return out
+
+
+def tasse_profilo(g, piani, dal_i, fx=None, tassi=None, liq=None):
+    """Rendimento annuo prima e dopo le tasse (vendendo tutto alla fine) del profilo e dell'S&P 500 comprato e
+    tenuto (tasse solo alla vendita finale + bollo), dal primo ribilanciamento a oggi."""
+    lordo = simula_prudente(g, piani, dal_i, sostituisci={"AZ": "SPY"}, fx=fx, tassi=tassi)
+    netta, finale, _ = simula_tasse(g, piani, dal_i, sostituisci={"AZ": "SPY"}, fx=fx, tassi=tassi)
+    anni = (date.fromisoformat(g.date[-1]) - date.fromisoformat(g.date[dal_i])).days / 365.25
+    ca = lambda v: round(((v / 100.0) ** (1 / anni) - 1) * 100, 1)
+    sp_c, sp_fin, _ = simula_tasse(g, {dal_i: {"SP500": 1.0}}, dal_i, fx=fx, tassi=tassi)
+    sp_l = simula_prudente(g, {dal_i: {"SP500": 1.0}}, dal_i, fx=fx, tassi=tassi)
+    return {"cagr_lordo": ca(lordo[-1][1]), "cagr_netto": ca(finale),
+            "sp500_lordo": ca(sp_l[-1][1]), "sp500_netto": ca(sp_fin), "dal": g.date[dal_i]}
+
+
 # --------------------------------------------------------------------------- v6.100 SIMULATORE (punto 6)
 # Cosa sarebbe successo a un capitale investito in QUALSIASI mese dello storico (finestre mobili, partenza ogni mese)
 # per 1, 3, 5 e 10 anni, sulla stessa curva onesta del sito (euro, acquisto prudente, 5 azioni = S&P 500, costi).
@@ -1484,6 +1623,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
             "sim": simulatore(cp, tep if eur_ok else {}),       # v6.100: simulatore (finestre mobili, leva, prelievo)
             "crisi": crisi_profilo(g, piani, giorni[0], fxp, tep),   # v7.4: stress test sulle crisi storiche
             "compatto": compatto,                                     # v7.6: versione per capitali piccoli
+            "tasse": tasse_profilo(g, piani, giorni[0], fxp, tep) if eur_ok else None,   # v7.8 dopo le tasse
+            "robusto": robustezza(g, prof, sc, giorni, fxp, tep, liq),              # v7.11 media 150/250 giorni
             "rotazioni": list(reversed(cambi)),
             "mesi_chiusi": dettaglio_mesi(g, piani, giorni_c, curva, sat),
         })

@@ -345,3 +345,13 @@ class AnalisiTecnica(unittest.TestCase):
         self.assertLess(t["rsi"], 1)
         self.assertAlmostEqual(t["atr"], 0.2, places=1)    # 0,2% al giorno
         self.assertIsNone(A.tecnica(su[:30]))
+
+
+class Ampiezza(unittest.TestCase):
+    def test_conteggi_per_area(self):
+        from cot_radar import azioni as A
+        r = [{"t": "AAPL", "tr": 1}, {"t": "ENI.MI", "tr": -1}, {"t": "7203.T", "tr": 0}, {"t": "X", "tr": None}]
+        a = A.ampiezza(r)
+        self.assertEqual(a["tot"], {"su": 1, "lat": 1, "giu": 1, "n": 3})
+        self.assertEqual([x["nome"] for x in a["aree"]], ["USA", "Europa", "Asia"])
+        self.assertEqual(a["aree"][1]["giu"], 1)

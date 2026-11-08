@@ -411,3 +411,30 @@ class VersioneCompatta(unittest.TestCase):
             self.assertAlmostEqual(sum(c["base"].values()), sum(prof["base"].values()), places=9)
             self.assertIn("NASDAQ", prof["base"]) if prof["id"] == "aggressivo" else None
         self.assertIn("SP500C", P.STRUMENTI_UE)
+
+
+class TasseItaliane(unittest.TestCase):
+    """v7.8: regime amministrato. Griglia finta: ETF che raddoppia, ETC che perde e poi recupera."""
+
+    def griglia(self, prezzi):
+        from cot_radar import portafogli as P
+        date_ = [f"2020-01-{d:02d}" for d in range(1, len(next(iter(prezzi.values()))) + 1)]
+        return P.Griglia({t: list(zip(date_, v)) for t, v in prezzi.items()})
+
+    def test_compra_e_tieni_paga_26_alla_fine(self):
+        from cot_radar import portafogli as P
+        g = self.griglia({"SPY": [100, 150, 200], "SHY": [1, 1, 1]})
+        _, fin, _ = P.simula_tasse(g, {0: {"SP500": 1.0}}, 0)
+        self.assertAlmostEqual(fin, 200 - 100 * 0.26, places=6)      # guadagno 100, tasse 26
+
+    def test_perdita_etf_compensa_solo_redditi_diversi(self):
+        from cot_radar import portafogli as P
+        # giorno 1: SPY scende (perdita su ETF), giorno 2: si passa all'oro (ETC) che poi sale
+        g = self.griglia({"SPY": [100, 80, 80, 80], "GLD": [100, 100, 100, 125], "SHY": [1, 1, 1, 1]})
+        _, fin, _ = P.simula_tasse(g, {0: {"SP500": 1.0}, 2: {"GOLD": 1.0}}, 0)
+        # perdita ETF 20 nello zainetto; guadagno oro 20 (80 -> 100) compensato: nessuna tassa
+        self.assertAlmostEqual(fin, 100.0, delta=0.5)
+        # al contrario: perdita sull'oro, guadagno su ETF -> la perdita NON compensa, si pagano tasse
+        g = self.griglia({"SPY": [100, 100, 100, 125], "GLD": [100, 80, 80, 80], "SHY": [1, 1, 1, 1]})
+        _, fin, _ = P.simula_tasse(g, {0: {"GOLD": 1.0}, 2: {"SP500": 1.0}}, 0)
+        self.assertAlmostEqual(fin, 100.0 - 20 * 0.26, delta=0.5)

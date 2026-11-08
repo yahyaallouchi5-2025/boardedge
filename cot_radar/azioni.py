@@ -590,10 +590,26 @@ def pubblica(cartella, stato=None, titoli=None):
     _scrivi(os.path.join(cartella, "pubblico", "top.json"),
             {"aggiornato": ultimo, "mese": ora_italia().month, "anomalia": indice["anomalia"],
              "settori": {i: n for i, n, _ in SETTORI}, "listini": LISTINI, "titoli": top,
-             "sconto": in_sconto(righe, top)})
+             "sconto": in_sconto(righe, top), "ampiezza": ampiezza(righe)})
     _scrivi(os.path.join(cartella, "stato.json"), dict(stato or {}, pubblicati=len(righe)))
     log.info("azioni: %d titoli pubblicati (%d schede dettaglio), dati al %s", len(righe), dettagli, ultimo)
     return indice
+
+
+AREE_AMPIEZZA = (("USA", ("",)), ("Europa", ("MI", "DE", "PA", "AS", "MC", "BR", "HE")),
+        ("Asia", ("T", "HK", "SS", "SZ", "NS", "BO")))
+
+
+def ampiezza(righe):
+    """v7.9 AMPIEZZA DEL MERCATO per la Dashboard: quanti titoli sono in trend rialzista / laterale / ribassista
+    (stessa regola della freccia dell'Azionario: prezzo e SMA 50 contro SMA 200), in totale e per area."""
+    def conta(rr):
+        tr = [r.get("tr") for r in rr if r.get("tr") is not None]
+        return {"su": sum(1 for x in tr if x == 1), "lat": sum(1 for x in tr if x == 0),
+                "giu": sum(1 for x in tr if x == -1), "n": len(tr)}
+    suff = lambda t: t.rsplit(".", 1)[1] if "." in t else ""
+    return {"tot": conta(righe),
+            "aree": [dict(conta([r for r in righe if suff(r["t"]) in s]), nome=n) for n, s in AREE_AMPIEZZA]}
 
 
 def punteggi(righe):
