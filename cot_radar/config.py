@@ -151,7 +151,7 @@ PREZZI_YAHOO = {
     "USBOND": ("ZB=F", "materie"), "ULTRA": ("UB=F", "materie"),
 }
 # Serie FRED archiviate per sempre oltre ai prezzi: tasso BCE sui depositi (liquidita' in euro dei portafogli)
-ARCHIVIO_EXTRA = ["ECBDFR"]
+ARCHIVIO_EXTRA = ["ECBDFR", "DTB3"]       # v7.14: + T-bill 3 mesi (Treasury coperto in euro)
 
 # Driver di mercato: indicatori prezzati OGNI GIORNO dal mercato (quindi gia' "scontano" le notizie).
 # (chiave, nome, codice FRED, unita'). "diff" non esiste su FRED: e' calcolato come tasso USA 2a - tasso euro 2a (BCE).
@@ -173,6 +173,7 @@ FRED_IDS = {
     "DGS2": 1, "DGS10": 1, "DFII10": 1, "T10YIE": 1, "VIXCLS": 1, "BAMLH0A0HYM2": 1,
     **{v[0]: 1 for v in PRICES.values()},
     "ECBDFR": 1,         # v6.59: tasso BCE sui depositi (%), per la liquidita' in euro dei portafogli
+    "DTB3": 1,           # v7.14: T-bill USA 3 mesi (%): costo della copertura del cambio (studio Treasury in euro)
 }
 
 # --------------------------------------------------------------------------- serie BCE (tassi euro)

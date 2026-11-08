@@ -1918,3 +1918,10 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
  border:1px solid var(--line);background:transparent;color:var(--ink2);cursor:pointer;transition:border-color .2s,box-shadow .2s,background .2s,color .2s}
 .aztrf .aztr{margin-left:0}.aztrf:hover{border-color:var(--b);box-shadow:0 0 14px color-mix(in srgb,var(--b) 25%,transparent)}
 .aztrf.on{background:color-mix(in srgb,var(--b) 16%,transparent);border-color:var(--b);color:var(--ink)}
+
+/* v7.14 versamento mensile */
+.pconto-vers{margin-top:10px}
+.pconto-lab .info{display:inline-block;vertical-align:middle;margin-left:4px;text-transform:none;letter-spacing:0}
+.pconto-lab .info summary{width:18px;height:18px;font:600 11px system-ui,-apple-system,"Segoe UI",sans-serif}
+.pconto-lab .info div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink2);text-transform:none;letter-spacing:0}
+@media (max-width:600px){.pconto-lab .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}

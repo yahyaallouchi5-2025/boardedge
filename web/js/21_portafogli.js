@@ -171,7 +171,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <li>Premi <b>Acquista</b>: la borsa proposta (es. European Investor Exchange) va bene.</li>
     <li>Passa da <b>Importo target</b> alla scheda <b>Numero di titoli</b> e scrivi le quote indicate qui sopra (con l'importo Scalable arrotonda per difetto alle quote intere).</li>
     <li><b>Prepara ordine</b>, controlla il totale e conferma, in orario di borsa (09:00-17:30).</li>
-    <li>Niente <b>piano di accumulo</b>: si ripete ogni mese, mentre il portafoglio ruota.</li></ol></details>`;}
+    <li><b>Versamenti mensili</b>: inseriscili in &laquo;Il mio conto&raquo;, che indica dove mettere i soldi nuovi. Con il piano di accumulo aggiorna gli importi a ogni rotazione.</li></ol></details>`;}
 
  // --- RISCHIO DEL MESE della rotazione (v6.41): la composizione di oggi tenuta nello stesso mese di ogni anno dello storico.
  //     1) TERMOMETRO: drawdown peggiore del mese contro il limite del profilo (tacca bianca), verdetto in parole;
@@ -334,8 +334,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  //     "ebConto"), confrontate con il profilo scelto: valore, risultato (se c'e' il prezzo di carico), distanza dal
  //     modello e ordini a quote intere per riallinearsi alla rotazione. Strumenti equivalenti (Vanguard S&P 500 = S&P 500)
  //     contano come lo stesso mercato: non si vende uno per comprare l'altro (costi e tasse inutili).
- let mioConto={righe:[],altri:[],liq:0},contoEdit=false;
- try{const c=JSON.parse(localStorage.getItem("ebConto")||"null");if(c&&Array.isArray(c.righe))mioConto=Object.assign({righe:[],altri:[],liq:0},c);}catch(e){}
+ let mioConto={righe:[],altri:[],liq:0,vers:0},contoEdit=false;
+ try{const c=JSON.parse(localStorage.getItem("ebConto")||"null");if(c&&Array.isArray(c.righe))mioConto=Object.assign({righe:[],altri:[],liq:0,vers:0},c);}catch(e){}
  const salvaConto=()=>{try{localStorage.setItem("ebConto",JSON.stringify(mioConto));}catch(e){}};
  const EQUIV={SP500C:"SP500"};                       // strumento -> mercato del modello
  const strum=k=>(P.strumenti||{})[k]||null;
@@ -355,16 +355,26 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const investito=Object.values(tieni).reduce((a,b)=>a+b,0);
   let dist=Math.abs((T-investito)/(T||1)-peso("CASH"));
   new Set([...comp.map(c=>c.k),...Object.keys(tieni)]).forEach(k=>{if(k!="CASH")dist+=Math.abs((tieni[k]||0)/(T||1)-peso(k));});
-  const ord=[],min=T*SOGLIA_ORD;
-  comp.forEach(c=>{if(c.k=="CASH"||c.k=="AZ")return;const diff=T*c.peso/100-(tieni[c.k]||0);if(diff<min)return;
+  // con un versamento gli acquisti li fa il versamento: qui restano solo le vendite (sul conto + versamento)
+  const V=+mioConto.vers||0,Tt=T+V,ord=[],min=T*SOGLIA_ORD;
+  comp.forEach(c=>{if(V>0||c.k=="CASH"||c.k=="AZ")return;const diff=T*c.peso/100-(tieni[c.k]||0);if(diff<min)return;
    const u=strumentoAcq(c,T),pr=u&&prezzoLive(u.lk,u.prezzo);if(!pr)return;
    const q=Math.floor(diff/(pr*MARG));if(q>0)ord.push({t:"c",q,nome:u.nome,isin:u.isin,v:q*pr});});
   const gruppi={};pos.forEach(r=>(gruppi[r.mk]=gruppi[r.mk]||[]).push(r));
-  Object.entries(gruppi).forEach(([mk,rr])=>{let ecc=(tieni[mk]||0)-T*peso(mk);const fuori=!peso(mk);
+  Object.entries(gruppi).forEach(([mk,rr])=>{let ecc=(tieni[mk]||0)-Tt*peso(mk);const fuori=!peso(mk);
    if(!fuori&&ecc<min)return;rr.sort((a,b)=>b.v-a.v).forEach(r=>{if(ecc<=0||!r.pr)return;
     const q=fuori?r.q:Math.min(r.q,Math.floor(ecc/r.pr));if(q>0){ord.push({t:"v",q,tutto:q==r.q,nome:r.nome,v:q*r.pr,fuori});ecc-=q*r.pr;}});});
   if(!haAZ)altri.forEach(a=>ord.push({t:"v",tutto:true,nome:a.n||"Titolo",v:a.v,fuori:true}));
-  return {T,cst,gain,dist:dist/2*100,ord,haAZ,vAltri,comp};}
+  // v7.14 VERSAMENTO MENSILE: i soldi nuovi vanno SOLO ai mercati sotto il loro peso (in proporzione a quanto manca),
+  //     cosi' il conto si riallinea senza vendere (nessuna tassa). Importi in euro: con il piano di accumulo del broker
+  //     si possono comprare anche frazioni di quota.
+  const vers=[];
+  if(V>0){const T2=Tt,mancano=[];
+   comp.forEach(c=>{if(c.k=="CASH"||c.k=="AZ")return;const gap=T2*c.peso/100-(tieni[c.k]||0);if(gap>0)mancano.push([c,gap]);});
+   const tot=mancano.reduce((a,x)=>a+x[1],0);
+   mancano.forEach(([c,gap])=>{const v=tot>V?V*gap/tot:gap,u=strumentoAcq(c,T2);if(v>=1&&u)vers.push({nome:u.nome,isin:u.isin,v});});
+   const usato=vers.reduce((a,x)=>a+x.v,0);if(V-usato>=1)vers.push({cash:true,nome:"Resta sul conto",v:V-usato});}
+  return {T,cst,gain,dist:dist/2*100,ord,haAZ,vAltri,comp,vers,V};}
  function contoForm(){const S=Object.entries(P.strumenti||{});
   const opz=k=>S.map(([kk,x])=>`<option value="${kk}"${kk==k?" selected":""}>${esc(x.nome)}</option>`).join("");
   const val=v=>v?String(v).replace(".",","):"";
@@ -377,6 +387,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <span class="pconto-lab">Altri titoli</span><div class="pconto-fr pconto-h"><span>Nome</span><span>Valore oggi &euro;</span><span>Costo &euro;</span></div><div class="pconto-g" data-g="a">${mioConto.altri.map(altro).join("")}</div>
    <button type="button" class="pconto-add" data-add="a">+ Aggiungi titolo</button>
    <label class="pcap pconto-liq">Liquidit&agrave; sul conto <input inputmode="decimal" value="${val(mioConto.liq)}" aria-label="Liquidità sul conto in euro"> &euro;</label>
+   <label class="pcap pconto-liq pconto-vers">Versamento mensile <input inputmode="decimal" value="${val(mioConto.vers)}" aria-label="Versamento mensile in euro"> &euro;</label>
    <div class="pconto-b"><button type="button" class="pconto-ok">Salva</button><button type="button" class="pconto-no">Annulla</button></div>
    <template data-t="r">${riga({})}</template><template data-t="a">${altro({})}</template></div>`;}
  function contoHTML(p){const vuoto=!mioConto.righe.length&&!mioConto.altri.length&&!(+mioConto.liq);
@@ -393,6 +404,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${c.ord.length?`<div class="pconto-o">${c.ord.sort((a,b)=>(a.t=="v"?0:1)-(b.t=="v"?0:1)).map(o=>`<div class="pconto-or ${o.t=="v"?"ven":"com"}"><span class="pconto-ot">${o.t=="v"?"Vendi":"Compra"}</span>
      <span class="pconto-on"><b>${esc(o.nome)}</b><small>${o.t=="v"?(o.fuori?"fuori dal modello":"oltre il peso del modello"):(o.isin?"ISIN "+esc(o.isin):"")}</small></span>
      <span class="pconto-oq"><b>${o.tutto?"tutto":o.q+(o.q==1?" quota":" quote")}</b><small>&asymp; ${eur(o.v)}</small></span></div>`).join("")}</div>`:""}
+   ${c.V>0?`<span class="pconto-lab">Versamento del mese &middot; ${eur(c.V)} <details class="info pconto-vi"><summary title="Come funziona" aria-label="Come funziona">i</summary><div>I soldi nuovi vanno solo ai mercati <b>sotto il loro peso</b>, in proporzione a quanto manca: il conto si riallinea senza vendere, quindi senza tasse. Con il <b>piano di accumulo</b> del broker puoi comprare gli importi esatti (anche frazioni di quota); con l'ordine normale arrotonda alle quote intere. Si ricalcola ogni mese, perch&eacute; il portafoglio ruota.</div></details></span>
+   <div class="pconto-o">${c.vers.map(o=>`<div class="pconto-or ${o.cash?"":"com"}"><span class="pconto-ot">${o.cash?"Conto":"Versa"}</span><span class="pconto-on"><b>${esc(o.nome)}</b><small>${o.isin?"ISIN "+esc(o.isin):"nessun mercato sotto il peso"}</small></span><span class="pconto-oq"><b>${eur(o.v)}</b></span></div>`).join("")}</div>`:""}
    ${c.haAZ&&c.vAltri?`<p class="small pconto-n">I titoli singoli contano nella quota delle 5 azioni scelte: vedi l'acquisto diretto.</p>`:""}`;}
  function contoEventi(p){const box=el.querySelector("#pconto");if(!box)return;
   const ridis=()=>{box.innerHTML=contoHTML(p);contoEventi(p);};
@@ -407,7 +420,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   b(".pconto-ok").onclick=()=>{
    mioConto.righe=[...box.querySelectorAll('[data-g="r"] [data-r]')].map(r=>{const i=r.querySelectorAll("input");return {k:r.querySelector("select").value,q:num(i[0].value),pm:num(i[1].value)};}).filter(r=>r.q>0);
    mioConto.altri=[...box.querySelectorAll('[data-g="a"] [data-a]')].map(r=>{const i=r.querySelectorAll("input");return {n:i[0].value.trim().slice(0,40),v:num(i[1].value),c:num(i[2].value)};}).filter(a=>a.v>0);
-   mioConto.liq=num(b(".pconto-liq input").value);salvaConto();contoEdit=false;ridis();};}
+   mioConto.liq=num(b(".pconto-liq input").value);mioConto.vers=num(b(".pconto-vers input").value);salvaConto();contoEdit=false;ridis();};}
 
  function rotazioni(p){const ch=k=>`<span class="pchip" title="${esc(nomeK(k))}">${esc(nomeK(k))}</span>`;
   const perMese={};(p.mesi_chiusi||[]).forEach(m=>perMese[m.mese]=m);
