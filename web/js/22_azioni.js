@@ -69,7 +69,25 @@ try{(function(){const el=$("azioni");if(!el)return;
  // intestazione della scheda: prezzo grande (live se c'e') + variazione + orario
  function testaPrezzo(t){const l=lv(t);
   return l?`<b>${prezzo(l.p,t.val)}</b>${pc(l.g,2)}<span class="azlv azlvt"><i></i>LIVE &middot; ore ${l.ora} &middot; ritardo ~15 min</span>`
-   :`<b>${prezzo(t.p,t.val)}</b>${pc(t.v1g,2)}<span class="small">chiusura del ${gg(t.data)}</span>`;}
+   :`<b>${prezzo(t.p,t.val)}</b>${pc(t.v1g,2)}<span class="small">chiusura del ${gg(t.data)}</span><span class="azmkw" data-mk>${mercatiHTML()}</span>`;}
+
+ // --- v7.22c STATO DEI MERCATI (rosso lampeggiante = chiusi, verde = aperti). Orari ufficiali in ora locale della borsa;
+ //     le festivita' non sono note al sito: in quei giorni il badge puo' dire "aperta" ma i prezzi restano fermi.
+ const ORARI_B=[["USA","America/New_York","09:30","16:00"],["Europa","Europe/Berlin","09:00","17:30"]];
+ function oraIn(fuso,d){const x={};new Intl.DateTimeFormat("en-GB",{timeZone:fuso,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"})
+   .formatToParts(d).forEach(q=>x[q.type]=q.value);return {fer:!["Sat","Sun"].includes(x.weekday),hm:x.hour+":"+x.minute};}
+ const borsaAperta=(b,d)=>{const o=oraIn(b[1],d);return o.fer&&o.hm>=b[2]&&o.hm<b[3];};
+ function prossimaApertura(b,d){let t=new Date(Math.ceil(d.getTime()/18e5)*18e5);      // griglia di 30 minuti UTC
+  for(let k=0;k<400;k++,t=new Date(t.getTime()+18e5))if(borsaAperta(b,t))return t;return null;}
+ const oraIt=t=>t.toLocaleString("it-IT",{timeZone:"Europe/Rome",weekday:"short",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
+ function mercatiHTML(){const ora=new Date(),aperte=ORARI_B.filter(b=>borsaAperta(b,ora));
+  const prox=ORARI_B.filter(b=>!aperte.includes(b)).map(b=>[b[0],prossimaApertura(b,ora)]).filter(x=>x[1]).sort((a,b)=>a[1]-b[1]);
+  const orari=`Orari in ora italiana: Europa 9:00-17:30, USA 15:30-22:00 (con l'ora legale sfasata, a fine marzo e fine ottobre, gli USA aprono un'ora prima).`;
+  const info=`<details class="info"><summary title="Stato dei mercati" aria-label="Informazioni">i</summary><div>${aperte.length?`<b>Borsa ${aperte.map(b=>b[0]).join(" ed ")} aperta</b>: i prezzi accanto ai titoli si aggiornano da soli con circa 15 minuti di ritardo (punto verde).`:`<b>Mercati chiusi</b>: accanto ai titoli c'&egrave; il prezzo di chiusura dell'ultima seduta.`}${prox.length?` Prossima apertura: ${prox.map(x=>`<b>${x[0]}</b> ${oraIt(x[1])}`).join(", ")}.`:""}<br>${orari} Nei giorni festivi la borsa resta chiusa anche in orario di apertura. Un ordine inviato a mercato chiuso viene eseguito all'apertura, al prezzo di quel momento: pu&ograve; essere diverso dall'ultima chiusura.</div></details>`;
+  return aperte.length?`<span class="azmk on"><i></i>${aperte.map(b=>b[0]).join(" + ")} aperta${aperte.length>1?"e":""}</span>${info}`
+   :`<span class="azmk off"><i></i>Mercati chiusi${prox.length?` &middot; apre ${prox[0][0]} ${oraIt(prox[0][1])}`:""}</span>${info}`;}
+ function aggiornaMercati(){document.querySelectorAll("[data-mk]").forEach(c=>{if(c.querySelector("details[open]"))return;const h=mercatiHTML();if(c.innerHTML!==h)c.innerHTML=h;});}
+ setInterval(aggiornaMercati,60000);
 
  // --- titoli dopo i filtri (listino + ricerca); il settore si applica alla tabella, non alle card
  function filtrati(conSettore){const q=ST.cerca.trim().toLowerCase();
@@ -158,7 +176,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   const np=Math.max(1,Math.ceil(ord.length/PAG));if(ST.pag>np)ST.pag=np;
   const vis=ord.slice((ST.pag-1)*PAG,ST.pag*PAG);
   el.innerHTML=`<h2>Azionario per settore</h2><div class="sub azsub">${d.titoli.length.toLocaleString("it-IT")} titoli &middot; 11 settori &middot; in classifica per punteggio <details class="info"><summary title="Come funziona" aria-label="Informazioni">i</summary><div><b>Punteggio 0-100</b>, ricalcolato ogni sera confrontando tutti i titoli: forza degli ultimi 12 e 3 mesi, trend (prezzo rispetto alla media a 200 giorni) e stagionalit&agrave; di ${mese}. Pi&ugrave; alto = pi&ugrave; forte.<br><b>Uso</b>: tocca un settore per filtrare, un titolo per grafico, bilancio e stagionalit&agrave;. Tocca le colonne per ordinare.<br>Titoli di Stati Uniti, Europa, Giappone, Hong Kong, Cina e India. Dettagli nella Guida.</div></details></div>
-   <div class="azbar"><span class="azdata"><i></i>Dati al <b>${gg(d.aggiornato)}</b></span>
+   <div class="azbar"><span class="azdata"><i></i>Dati al <b>${gg(d.aggiornato)}</b></span><span class="azmkw" data-mk>${mercatiHTML()}</span>
     <div class="azcw"><label class="azcerca"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" placeholder="Cerca titolo o ticker" value="${esc(ST.cerca)}" aria-label="Cerca titolo o ticker" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="azsg"></label><div class="azsg" id="azsg" role="listbox" hidden></div></div>
     <div class="filters azlist">${[["tutti","Tutti"]].concat(d.listini.map(l=>[l.id,l.nome])).map(x=>`<button data-l="${x[0]}" class="${ST.list==x[0]?"on":""}">${x[1]}</button>`).join("")}</div></div>
    <div class="azidx">${d.indici.map(i=>`<div class="card azi${ST.list==i.l?" on":""}" data-l="${i.l}" role="button" tabindex="0"><span>${esc(i.n)}</span><b>${Number(i.p).toLocaleString("it-IT",{maximumFractionDigits:0,useGrouping:"always"})}</b>
