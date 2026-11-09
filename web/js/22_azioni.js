@@ -389,7 +389,7 @@ try{(function(){const el=$("azioni");if(!el)return;
    if(!d.u12&&!d.anni){box.innerHTML=`<h4 class="aztit">Dividendi ${info}</h4><p class="small">Nessun dividendo negli ultimi anni.</p>`;box.hidden=false;return;}
    box.innerHTML=`<h4 class="aztit">Dividendi ${info}</h4>
     <div class="azdvt"><b>${fx(dy,2)}%</b><span>rendimento ultimi 12 mesi<br><em>${prezzo(d.u12,val)} per azione</em></span></div>
-    <div class="azmini azdvm"><div><span>Ultimo stacco</span><b>${u?gg(u.d):"&ndash;"}</b><small>${u?prezzo(u.v,val)+(u.pag?" &middot; pagato "+gg(u.pag):""):""}</small></div>
+    <div class="azmini azdvm"><div><span>${u&&u.d>new Date().toISOString().slice(0,10)?"Prossimo stacco":"Ultimo stacco"}</span><b>${u?gg(u.d):"&ndash;"}</b><small>${u?prezzo(u.v,val)+(u.pag?" &middot; pagato "+gg(u.pag):""):""}</small></div>
      <div><span>Frequenza</span><b>${fq}</b></div>
      <div><span>Crescita 5 anni</span>${d.cagr5==null?'<b class="flat">n/d</b>':`<b class="${d.cagr5>=0?"up":"down"}">${d.cagr5>0?"+":""}${fx(d.cagr5,1)}% <em>l'anno</em></b>`}</div>
      <div><span>Anni consecutivi</span><b>${d.anni||0}</b></div></div>

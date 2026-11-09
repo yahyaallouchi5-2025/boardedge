@@ -6,7 +6,7 @@ verificata con prova-eodhd il 07/11/2026). Mai bloccante per la scheda.
 FLUSSO (giro USA della sera, dopo le notizie):
   per ogni titolo coperto da EODHD (USA, Xetra, Parigi, Amsterdam...) con il file vecchio di oltre 7 giorni:
   una richiesta "div/<SIMBOLO>?from=<11 anni fa>" -> pubblico/dividendi/<TICKER>.json
-  {"t", "v", "agg", "valuta", "u12" (somma degli ultimi 12 mesi), "freq" (pagamenti l'anno, media degli ultimi 2 anni),
+  {"t", "v", "agg", "valuta", "u12" (somma degli ultimi "freq" stacchi gia' avvenuti), "freq" (pagamenti l'anno, media degli ultimi 2 anni),
    "cagr5" (crescita annua del dividendo in 5 anni, %), "anni" (anni solari consecutivi con dividendo),
    "storia": [[anno, totale]] ultimi 10 anni (l'anno in corso e' parziale), "ultimi": [{"d" stacco, "pag", "v"}]}
   Il rendimento da dividendo (u12 / prezzo) lo calcola azioni.pubblica con il prezzo del giorno (colonna "Div.").
@@ -22,7 +22,7 @@ from . import azioni as A
 from . import eodhd
 
 log = logging.getLogger(__name__)
-VERSIONE = 1
+VERSIONE = 2              # v7.22b: u12 senza stacchi futuri
 RIFAI_GIORNI = 7               # i dividendi cambiano di rado: una volta a settimana basta
 TEMPO_MAX = 600                # secondi massimi per giro: il resto al giro dopo
 ANNI = 11
@@ -43,10 +43,14 @@ def riassunto(js, oggi):
         if v > 0:
             pag.append({"d": d, "pag": (x.get("paymentDate") or "")[:10] or None, "v": round(v, 4), "val": x.get("currency")})
     pag.sort(key=lambda p: p["d"])
-    # 372 giorni (non 365): lo stacco dello stesso trimestre di un anno fa puo' cadere qualche giorno prima
-    un_anno, due_anni = (oggi - timedelta(days=372)).isoformat(), (oggi - timedelta(days=730)).isoformat()
-    recenti = [p for p in pag if p["d"] > un_anno]
-    freq = round(len([p for p in pag if p["d"] > due_anni]) / 2)     # pagamenti l'anno, media di 2 anni
+    # v7.22b solo stacchi gia' avvenuti (EODHD elenca anche quelli annunciati, con data futura)
+    oggi_s = oggi.isoformat()
+    fatti = [p for p in pag if p["d"] <= oggi_s]
+    due_anni, max_eta = (oggi - timedelta(days=730)).isoformat(), (oggi - timedelta(days=400)).isoformat()
+    freq = round(len([p for p in fatti if p["d"] > due_anni]) / 2)   # pagamenti l'anno, media di 2 anni
+    # ultimi 12 mesi = gli ultimi "freq" stacchi (non una finestra di giorni: con le date che slittano di qualche
+    # giorno una finestra fissa ne conta 3 o 5 invece di 4); scartati quelli di oltre 400 giorni fa
+    recenti = [p for p in fatti[-freq:] if p["d"] > max_eta] if freq else []
     per_anno = {}
     for p in pag:
         per_anno[int(p["d"][:4])] = per_anno.get(int(p["d"][:4]), 0) + p["v"]
