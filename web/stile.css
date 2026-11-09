@@ -1883,14 +1883,23 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 @media (max-width:420px){.aztec-c{padding:10px 12px}.aztec-c>b{font-size:18px}}
 
 /* v7.8 dopo le tasse */
-.ptax{display:flex;flex-wrap:wrap;align-items:center;gap:8px 18px;margin-top:10px;padding:12px 16px;border-radius:12px;border:1px solid var(--line);
- background:color-mix(in srgb,var(--card) 70%,transparent);font-size:13px;color:var(--ink2);transition:border-color .2s}
+/* v7.19 confronto dopo le tasse: tre righe (profilo evidenziato), tre numeri ciascuna, barra del drawdown */
+.ptax{margin-top:10px;padding:12px 16px;border-radius:12px;border:1px solid var(--line);background:color-mix(in srgb,var(--card) 70%,transparent);transition:border-color .2s}
 .ptax:hover{border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.ptax-t{display:flex;align-items:center;gap:8px;margin-bottom:8px;position:relative}
 .ptax-l{font-size:11.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--mute)}.ptax-l small{font-weight:600;letter-spacing:0;text-transform:none;margin-left:4px}
-.ptax-v b{font-size:17px;font-weight:800;font-variant-numeric:tabular-nums}.ptax-v em{font-style:normal;font-size:12px;color:var(--mute);margin-left:4px}
-.ptax-b b{font-size:14px;color:var(--ink)}
-.ptax .info{margin-left:-10px}.ptax .info div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink2)}
-@media (max-width:600px){.ptax .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
+.ptax .info div{font:500 13px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--ink2)}
+.ptax-r{display:grid;grid-template-columns:minmax(0,1.4fr) repeat(3,minmax(0,1fr));gap:12px;align-items:start;padding:9px 10px;border-radius:10px;transition:background .2s}
+.ptax-r+.ptax-r{border-top:1px solid color-mix(in srgb,var(--line) 60%,transparent)}
+.ptax-r:hover{background:color-mix(in srgb,var(--acc) 6%,transparent)}
+.ptax-me{background:color-mix(in srgb,var(--acc) 9%,transparent)}
+.ptax-n{font-size:13.5px;font-weight:700;color:var(--ink);min-width:0}
+.ptax-c{display:grid;gap:2px;min-width:0}.ptax-c small{font-size:11px;color:var(--mute);white-space:nowrap}
+.ptax-c b{font-size:15px;font-weight:800;font-variant-numeric:tabular-nums}
+.ptax-dd i{display:block;height:4px;border-radius:3px;background:color-mix(in srgb,var(--line) 70%,transparent);overflow:hidden;margin-top:3px}
+.ptax-dd i em{display:block;height:100%;border-radius:3px;background:var(--s)}
+@media (max-width:600px){.ptax{padding:12px}.ptax-r{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 10px}.ptax-n{grid-column:1/4}
+ .ptax .info div{position:fixed;left:16px!important;right:16px!important;top:auto;width:auto;margin-top:8px}}
 
 /* v7.9 Portafogli in 3 sezioni */
 .pvista{display:flex;gap:4px;margin:14px 0 4px;padding:4px;border-radius:14px;border:1px solid var(--line);background:color-mix(in srgb,var(--card) 70%,transparent);width:max-content;max-width:100%}
