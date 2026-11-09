@@ -2006,3 +2006,44 @@ b.qe-esp{color:var(--b)}b.qe-rec{color:var(--acc)}b.qe-sta{color:var(--s)}b.qe-s
 @media (max-width:900px){.qe-main{grid-template-columns:1fr}.qe-mappa{max-width:320px}}
 @media (max-width:600px){.qe-row{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.qe-card{padding:12px}
  .qe-det{padding:14px}.qe-al{margin-left:0}.qe-dons{grid-template-columns:repeat(3,minmax(0,1fr))}.qe-ind{grid-template-columns:1fr 1fr}}
+/* ===== v7.22 AZIONARIO PRO: prezzi live, colonna dividendi, scheda larga a due colonne, riquadro dividendi ===== */
+/* pallino LIVE e lampo quando il prezzo cambia */
+.azlv{display:inline-flex;align-items:center;gap:6px}
+.azlv i{width:6px;height:6px;border-radius:50%;background:var(--b);box-shadow:0 0 0 0 color-mix(in srgb,var(--b) 60%,transparent);animation:azpulse 2s infinite;flex:none}
+@keyframes azpulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--b) 55%,transparent)}70%{box-shadow:0 0 0 6px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.azlvt{font-size:12px;font-weight:700;color:var(--b);letter-spacing:.3px}
+.azsu{animation:azflashsu 1.2s ease}.azgiu{animation:azflashgiu 1.2s ease}
+@keyframes azflashsu{0%{background:color-mix(in srgb,var(--b) 30%,transparent)}100%{background:transparent}}
+@keyframes azflashgiu{0%{background:color-mix(in srgb,var(--s) 30%,transparent)}100%{background:transparent}}
+@media (prefers-reduced-motion:reduce){.azlv i,.azsu,.azgiu{animation:none}}
+.azdy{color:var(--ink);font-weight:700}
+/* scheda del titolo larga come la Dashboard */
+.azwrap{max-width:1320px}
+.azbarra{padding:12px max(16px,calc((100% - 1320px)/2 + 28px))}
+.azsez{display:flex;flex-wrap:wrap;align-items:center;gap:4px 6px}
+.azsez .pisin{height:22px;margin-left:2px;font:650 11.5px system-ui;color:var(--ink2)}
+.azgrid{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:24px;align-items:start}
+.azsx,.azdx{min-width:0}
+.azdx>*:first-child{margin-top:0}
+.azdx>div+div,.azdx>section+div{margin-top:18px}
+.azgrid .azmini{grid-template-columns:repeat(6,minmax(0,1fr))}
+.azdx .azmini{grid-template-columns:repeat(2,minmax(0,1fr))}
+/* riquadro dividendi */
+.azdiv{padding:16px 18px;border-radius:14px;border:1px solid var(--line);background:linear-gradient(180deg,var(--card),var(--card2));transition:border-color .2s}
+.azdiv:hover{border-color:color-mix(in srgb,var(--acc) 40%,var(--line))}
+.azdiv .aztit{margin-top:0}
+.azdvt{display:flex;align-items:center;gap:14px;margin:6px 0 4px}.azdvt>b{font-size:30px;font-weight:800;color:var(--b);font-variant-numeric:tabular-nums}
+.azdvt span{font-size:12.5px;color:var(--ink2);line-height:1.4}.azdvt em{font-style:normal;color:var(--mute)}
+.azdvm small{display:block;font-size:11px;color:var(--mute);margin-top:2px}.azdvm em{font-style:normal;font-size:11px;color:var(--mute);font-weight:600}
+.azdvb{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));gap:6px;align-items:end;height:92px;margin-top:16px;padding-top:6px}
+.azdvb div{display:grid;grid-template-rows:1fr auto;height:100%;gap:4px;text-align:center}
+.azdvb i{align-self:end;display:block;border-radius:4px 4px 2px 2px;background:linear-gradient(180deg,var(--acc),color-mix(in srgb,var(--acc) 45%,transparent));transition:filter .2s}
+.azdvb i.parz{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--acc) 70%,transparent) 0 4px,color-mix(in srgb,var(--acc) 35%,transparent) 4px 8px)}
+.azdvb div:hover i{filter:brightness(1.25)}
+.azdvb em{font-style:normal;font-size:10.5px;color:var(--mute)}
+@media (max-width:1100px){.azgrid{grid-template-columns:1fr}.azgrid .azmini{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media (max-width:600px){.azgrid .azmini{grid-template-columns:repeat(2,minmax(0,1fr))}.azdvt>b{font-size:26px}}
+/* v7.22 classifica: con la colonna Div. la tabella deve stare nella pagina senza scorrere di lato sui portatili */
+@media (max-width:1560px){.aztab .azh2,.aztab .azh4{display:none}}
+.azsez .azisin{display:inline-flex}
+@media (max-width:1560px){.aztab .aznome b{max-width:180px}.aztab th,.aztab td{padding:12px 8px}}
