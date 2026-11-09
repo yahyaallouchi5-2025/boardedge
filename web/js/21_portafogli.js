@@ -350,31 +350,49 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   pos.forEach(r=>{if(r.pm>0&&r.pr){cst+=r.q*r.pm;gain+=r.q*(r.pr-r.pm);}});
   altri.forEach(a=>{if(a.c>0){cst+=a.c;gain+=a.v-a.c;}});
   const comp=compAcq(p,T),haAZ=comp.some(c=>c.k=="AZ"),peso=k=>((comp.find(c=>c.k==k)||{}).peso||0)/100;
+  // v7.17 i titoli singoli contano nella quota delle 5 azioni SOLO se sono tra le 5 del modello (nome o ticker):
+  //     gli altri (es. eBay quando esce dal modello) sono "fuori dal modello"
+  const az=comp.find(c=>c.k=="AZ"),listaAZ=az?((az.titoli&&az.titoli.length?az.titoli:(az.anteprima||{}).titoli)||[]):[];
+  const norm=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
+  const nelModello=a=>{const nn=norm(a.n);if(nn.length<2)return false;
+   return listaAZ.some(x=>{const tk=norm(String(x.t).split(".")[0]),pr=norm((String(x.n||"").match(/[A-Za-z][A-Za-z&'-]{2,}/)||[""])[0]);
+    return nn==tk||(pr.length>=3&&nn.includes(pr))||(nn.length>=3&&norm(x.n).includes(nn));});};
+  altri.forEach(a=>{a.dentro=haAZ&&nelModello(a);});
   const tieni={};pos.forEach(r=>{tieni[r.mk]=(tieni[r.mk]||0)+r.v;});
-  if(haAZ&&vAltri)tieni.AZ=(tieni.AZ||0)+vAltri;     // con le 5 azioni nel modello, i titoli singoli contano li'
+  altri.forEach(a=>{const k=a.dentro?"AZ":"_fuori";tieni[k]=(tieni[k]||0)+a.v;});
   const investito=Object.values(tieni).reduce((a,b)=>a+b,0);
   let dist=Math.abs((T-investito)/(T||1)-peso("CASH"));
   new Set([...comp.map(c=>c.k),...Object.keys(tieni)]).forEach(k=>{if(k!="CASH")dist+=Math.abs((tieni[k]||0)/(T||1)-peso(k));});
-  // con un versamento gli acquisti li fa il versamento: qui restano solo le vendite (sul conto + versamento)
-  const V=+mioConto.vers||0,Tt=T+V,ord=[],min=T*SOGLIA_ORD;
-  comp.forEach(c=>{if(V>0||c.k=="CASH"||c.k=="AZ")return;const diff=T*c.peso/100-(tieni[c.k]||0);if(diff<min)return;
-   const u=strumentoAcq(c,T),pr=u&&prezzoLive(u.lk,u.prezzo);if(!pr)return;
-   const q=Math.floor(diff/(pr*MARG));if(q>0)ord.push({t:"c",q,nome:u.nome,isin:u.isin,v:q*pr});});
+  // v7.17 PRIMA L'ACQUISTO (deciso con Ya): il conto si riallinea comprando, non vendendo.
+  //  1. sovrappeso nel modello: non si vende mai, si diluisce con gli acquisti dei mesi dopo
+  //  2. fuori dal modello: si vende SOLO se e' in perdita o in pari (la perdita va nello zainetto e compensa guadagni futuri);
+  //     se e' in guadagno si tiene (venderla costerebbe il 26%); senza costo inserito si tiene e si chiede il costo
+  //  3. soldi da investire = liquidita' + versamento + vendite in perdita - liquidita' che il modello vuole tenere
+  //  4. vanno ai mercati sotto il loro peso, in proporzione a quanto manca, a quote intere (acquisto diretto)
+  const V=+mioConto.vers||0,Tt=T+V,ord=[],min=T*SOGLIA_ORD,TASSA=0.26;
+  let venduto=0;
+  const fuori=[];
   const gruppi={};pos.forEach(r=>(gruppi[r.mk]=gruppi[r.mk]||[]).push(r));
-  Object.entries(gruppi).forEach(([mk,rr])=>{let ecc=(tieni[mk]||0)-Tt*peso(mk);const fuori=!peso(mk);
-   if(!fuori&&ecc<min)return;rr.sort((a,b)=>b.v-a.v).forEach(r=>{if(ecc<=0||!r.pr)return;
-    const q=fuori?r.q:Math.min(r.q,Math.floor(ecc/r.pr));if(q>0){ord.push({t:"v",q,tutto:q==r.q,nome:r.nome,v:q*r.pr,fuori});ecc-=q*r.pr;}});});
-  if(!haAZ)altri.forEach(a=>ord.push({t:"v",tutto:true,nome:a.n||"Titolo",v:a.v,fuori:true}));
-  // v7.14 VERSAMENTO MENSILE: i soldi nuovi vanno SOLO ai mercati sotto il loro peso (in proporzione a quanto manca),
-  //     cosi' il conto si riallinea senza vendere (nessuna tassa). Importi in euro: con il piano di accumulo del broker
-  //     si possono comprare anche frazioni di quota.
-  const vers=[];
-  if(V>0){const T2=Tt,mancano=[];
-   comp.forEach(c=>{if(c.k=="CASH"||c.k=="AZ")return;const gap=T2*c.peso/100-(tieni[c.k]||0);if(gap>0)mancano.push([c,gap]);});
-   const tot=mancano.reduce((a,x)=>a+x[1],0);
-   mancano.forEach(([c,gap])=>{const v=tot>V?V*gap/tot:gap,u=strumentoAcq(c,T2);if(v>=1&&u)vers.push({nome:u.nome,isin:u.isin,v});});
-   const usato=vers.reduce((a,x)=>a+x.v,0);if(V-usato>=1)vers.push({cash:true,nome:"Resta sul conto",v:V-usato});}
-  return {T,cst,gain,dist:dist/2*100,ord,haAZ,vAltri,comp,vers,V};}
+  Object.entries(gruppi).forEach(([mk,rr])=>{if(!peso(mk))rr.forEach(r=>{if(r.pr)fuori.push({nome:r.nome,v:r.v,g:r.pm>0?r.q*(r.pr-r.pm):null,q:r.q});});});
+  altri.forEach(a=>{if(!a.dentro)fuori.push({nome:a.n||"Titolo",v:a.v,g:a.c>0?a.v-a.c:null});});
+  fuori.forEach(f=>{
+   if(f.g!=null&&f.g<1){ord.push({t:"v",tutto:true,nome:f.nome,v:f.v,perdita:Math.max(0,-f.g)});venduto+=f.v;}
+   else ord.push({t:"t",nome:f.nome,v:f.v,tasse:f.g!=null?f.g*TASSA:null});});
+  const D=liq+V+venduto-Tt*peso("CASH");
+  if(D>=1){const mancano=[];
+   comp.forEach(c=>{if(c.k=="CASH")return;const gap=Tt*c.peso/100-(tieni[c.k]||0);if(gap<min)return;
+    if(c.k=="AZ"){mancano.push({c,gap,az:true});return;}
+    const u=strumentoAcq(c,T),pr=u&&prezzoLive(u.lk,u.prezzo);if(pr)mancano.push({c,gap,u,pr});});
+   const tot=mancano.reduce((a,x)=>a+x.gap,0);
+   mancano.forEach(m=>{m.obi=tot>D?D*m.gap/tot:m.gap;m.q=m.az?0:Math.floor(m.obi/(m.pr*MARG));m.spesa=m.az?m.obi:m.q*m.pr*MARG;});
+   let resto=D-mancano.reduce((a,m)=>a+m.spesa,0);
+   // secondo giro: con il resto una quota in piu' dove manca di piu' (se ne manca almeno mezza)
+   mancano.filter(m=>!m.az).sort((a,b)=>(b.gap-b.spesa)-(a.gap-a.spesa)).forEach(m=>{
+    if(m.pr*MARG<=resto&&m.gap-m.spesa>=m.pr*0.5){m.q++;m.spesa+=m.pr*MARG;resto-=m.pr*MARG;}});
+   mancano.forEach(m=>{if(m.az){if(m.obi>=1)ord.push({t:"c",az:true,nome:"Azioni del modello",v:m.obi});}
+    else if(m.q>0)ord.push({t:"c",q:m.q,nome:m.u.nome,isin:m.u.isin,v:m.q*m.pr});});
+   if(resto>=1)ord.push({t:"r",nome:"Resta sul conto",v:resto});}
+  return {T,cst,gain,dist:dist/2*100,ord,haAZ,vAltri,comp,V,D};}
  function contoForm(){const S=Object.entries(P.strumenti||{});
   const opz=k=>S.map(([kk,x])=>`<option value="${kk}"${kk==k?" selected":""}>${esc(x.nome)}</option>`).join("");
   const val=v=>v?String(v).replace(".",","):"";
@@ -387,12 +405,12 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <span class="pconto-lab">Altri titoli</span><div class="pconto-fr pconto-h"><span>Nome</span><span>Valore oggi &euro;</span><span>Costo &euro;</span></div><div class="pconto-g" data-g="a">${mioConto.altri.map(altro).join("")}</div>
    <button type="button" class="pconto-add" data-add="a">+ Aggiungi titolo</button>
    <label class="pcap pconto-liq">Liquidit&agrave; sul conto <input inputmode="decimal" value="${val(mioConto.liq)}" aria-label="Liquidità sul conto in euro"> &euro;</label>
-   <label class="pcap pconto-liq pconto-vers">Versamento mensile <input inputmode="decimal" value="${val(mioConto.vers)}" aria-label="Versamento mensile in euro"> &euro;</label>
+   <label class="pcap pconto-liq pconto-vers">Versamento (facoltativo) <input inputmode="decimal" value="${val(mioConto.vers)}" aria-label="Versamento in euro"> &euro;</label>
    <div class="pconto-b"><button type="button" class="pconto-ok">Salva</button><button type="button" class="pconto-no">Annulla</button></div>
    <template data-t="r">${riga({})}</template><template data-t="a">${altro({})}</template></div>`;}
  function contoHTML(p){const vuoto=!mioConto.righe.length&&!mioConto.altri.length&&!(+mioConto.liq);
   const testa=`<div class="pconto-t"><h3>Il mio conto <span class="pbprof">${esc(p.nome)}</span></h3>
-   <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div>Inserisci le quote che hai sul conto: restano <b>solo in questo browser</b>, non vengono inviate a nessuno. Il conto si confronta con il profilo scelto (con meno di ${eur((P.compatto||{}).sotto||10000)} la versione compatta).<br><br><b>Risultato</b>: guadagno o perdita sulle righe con il prezzo di carico. <b>Distanza dal modello</b>: quanta parte del conto &egrave; in posti diversi dal modello (0% = identico).<br><br><b>Ordini</b>: quote intere per riallinearsi alla composizione in vigore; scarti sotto il 2% del conto si lasciano (niente micro-scambi). Vanguard S&amp;P 500 e iShares S&amp;P 500 contano come lo stesso mercato. Ogni vendita in guadagno paga le tasse: se lo scarto &egrave; piccolo puoi aspettare la rotazione. Prezzi indicativi: controllali sul broker.</div></details>
+   <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div>Inserisci le quote che hai sul conto: restano <b>solo in questo browser</b>, non vengono inviate a nessuno. Il conto si confronta con il profilo scelto (con meno di ${eur((P.compatto||{}).sotto||10000)} la versione compatta).<br><br><b>Risultato</b>: guadagno o perdita sulle righe con il prezzo di carico. <b>Distanza dal modello</b>: quanta parte del conto &egrave; in posti diversi dal modello (0% = identico).<br><br><b>Prima l'acquisto</b>: il conto si riallinea comprando. La liquidit&agrave; (e l'eventuale versamento) va ai mercati <b>sotto il loro peso</b>, a quote intere; quello in sovrappeso non si vende. Un titolo <b>fuori dal modello</b> si vende solo se &egrave; in perdita (la perdita va nello zainetto e riduce le tasse future); se &egrave; in guadagno si tiene, perch&eacute; venderlo costerebbe il 26%.<br><br>Scarti sotto il 2% del conto si lasciano. Vanguard S&amp;P 500 e iShares S&amp;P 500 contano come lo stesso mercato. Prezzi indicativi: controllali sul broker.</div></details>
    ${!vuoto&&!contoEdit?`<button type="button" class="pconto-mod">Modifica</button>`:""}</div>`;
   if(contoEdit)return testa+contoForm();
   if(vuoto)return testa+`<p class="small pconto-v">Inserisci le quote che hai sul conto: vedi quanto sei lontano dal modello e cosa comprare o vendere.</p><button type="button" class="pconto-ins">Inserisci le quote</button>`;
@@ -400,13 +418,16 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return testa+`<div class="pmc-k pconto-k"><div><small>Valore del conto</small><b>${eur(c.T)}</b></div>
     <div><small>Risultato</small><b class="${c.gain>=0?"up":"down"}">${c.cst?(c.gain>=0?"+":"&minus;")+eur(Math.abs(c.gain))+` <em>${pc(perc)}</em>`:"n/d"}</b></div>
     <div><small>Distanza dal modello</small><b class="${c.dist<=5?"up":c.dist<=15?"":"down"}">${fx(c.dist,0)}%</b></div></div>
-   <span class="pconto-lab">${c.ord.length?"Per allinearti al modello":"Il conto &egrave; allineato al modello"}</span>
-   ${c.ord.length?`<div class="pconto-o">${c.ord.sort((a,b)=>(a.t=="v"?0:1)-(b.t=="v"?0:1)).map(o=>`<div class="pconto-or ${o.t=="v"?"ven":"com"}"><span class="pconto-ot">${o.t=="v"?"Vendi":"Compra"}</span>
-     <span class="pconto-on"><b>${esc(o.nome)}</b><small>${o.t=="v"?(o.fuori?"fuori dal modello":"oltre il peso del modello"):(o.isin?"ISIN "+esc(o.isin):"")}</small></span>
-     <span class="pconto-oq"><b>${o.tutto?"tutto":o.q+(o.q==1?" quota":" quote")}</b><small>&asymp; ${eur(o.v)}</small></span></div>`).join("")}</div>`:""}
-   ${c.V>0?`<span class="pconto-lab">Versamento del mese &middot; ${eur(c.V)} <details class="info pconto-vi"><summary title="Come funziona" aria-label="Come funziona">i</summary><div>I soldi nuovi vanno solo ai mercati <b>sotto il loro peso</b>, in proporzione a quanto manca: il conto si riallinea senza vendere, quindi senza tasse. Con il <b>piano di accumulo</b> del broker puoi comprare gli importi esatti (anche frazioni di quota); con l'ordine normale arrotonda alle quote intere. Si ricalcola ogni mese, perch&eacute; il portafoglio ruota.</div></details></span>
-   <div class="pconto-o">${c.vers.map(o=>`<div class="pconto-or ${o.cash?"":"com"}"><span class="pconto-ot">${o.cash?"Conto":"Versa"}</span><span class="pconto-on"><b>${esc(o.nome)}</b><small>${o.isin?"ISIN "+esc(o.isin):"nessun mercato sotto il peso"}</small></span><span class="pconto-oq"><b>${eur(o.v)}</b></span></div>`).join("")}</div>`:""}
-   ${c.haAZ&&c.vAltri?`<p class="small pconto-n">I titoli singoli contano nella quota delle 5 azioni scelte: vedi l'acquisto diretto.</p>`:""}`;}
+   <span class="pconto-lab">${c.ord.some(o=>o.t=="c"||o.t=="v")?"Ordini &middot; prima l'acquisto":"Nessun ordine da fare"}</span>
+   ${c.ord.length?`<div class="pconto-o">${c.ord.sort((a,b)=>"vctr".indexOf(a.t)-"vctr".indexOf(b.t)).map(o=>{
+    const cl={v:"ven",c:"com",t:"tie",r:""}[o.t],et={v:"Vendi",c:"Compra",t:"Tieni",r:"Conto"}[o.t];
+    const nota=o.t=="v"?(o.perdita>=1?`fuori dal modello &middot; in perdita: ${eur(o.perdita)} nello zainetto`:"fuori dal modello &middot; in pari: nessuna tassa")
+     :o.t=="t"?(o.tasse==null?"fuori dal modello &middot; inserisci il costo per decidere":`fuori dal modello &middot; in guadagno: venderla costerebbe &asymp; ${eur(o.tasse)} di tasse`)
+     :o.t=="r"?"avanzo: non basta per 1 quota":o.az?"scegli i titoli nell'acquisto diretto":(o.isin?"ISIN "+esc(o.isin):"");
+    const qt=o.t=="v"?"tutto":o.t=="c"&&!o.az?o.q+(o.q==1?" quota":" quote"):"";
+    return `<div class="pconto-or ${cl}"><span class="pconto-ot">${et}</span><span class="pconto-on"><b>${esc(o.nome)}</b><small>${nota}</small></span>
+     <span class="pconto-oq">${qt?`<b>${qt}</b><small>&asymp; ${eur(o.v)}</small>`:`<b>${eur(o.v)}</b>`}</span></div>`;}).join("")}</div>`:""}
+`;}
  function contoEventi(p){const box=el.querySelector("#pconto");if(!box)return;
   const ridis=()=>{box.innerHTML=contoHTML(p);contoEventi(p);};
   const b=sel=>box.querySelector(sel);
