@@ -560,6 +560,11 @@ def pubblica(cartella, stato=None, titoli=None):
         righe.append(dict({"t": x["t"], "n": rec.get("nome") or x["nome"], "s": x["s"], "l": x["l"],
                            "val": rec.get("valuta"), "st_media": mese and mese["media"], "st_pos": mese and mese["pos"],
                            "st_n": mese and mese["n"]}, **r))
+        try:                                   # v7.22 rendimento da dividendo (ultimi 12 mesi) al prezzo di oggi
+            from . import dividendi
+            righe[-1]["dy"] = dividendi.rendimento(cartella, x["t"], r.get("p"), rec.get("valuta"))
+        except Exception:
+            pass
         det = {"t": x["t"], "n": rec.get("nome") or x["nome"], "s": x["s"], "l": x["l"], "val": rec.get("valuta"),
                "borsa": rec.get("borsa"), "d": rec["d"], "m": rec.get("m") or [], "stag": stag,
                "tec": tecnica(rec["d"])}                                   # v7.7 analisi tecnica
@@ -808,6 +813,13 @@ def main(argv):
     except Exception:
         import traceback
         log.error("notizie dei titoli non aggiornate:\n%s", traceback.format_exc())
+    # v7.22 dividendi di ogni titolo (EODHD, una volta a settimana per titolo): mai bloccante
+    try:
+        from . import dividendi
+        dividendi.aggiorna(cartella, el=titoli)
+    except Exception:
+        import traceback
+        log.error("dividendi dei titoli non aggiornati:\n%s", traceback.format_exc())
     print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in stato.items()}, ensure_ascii=False))
     return 1 if errore_giro else 0
 

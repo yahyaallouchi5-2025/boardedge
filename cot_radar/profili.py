@@ -17,6 +17,7 @@ Come lavora (dentro il workflow Azioni, mai bloccante):
 Limite noto: "in vendita" non e' un dato pubblico affidabile, quindi non viene mostrato.
 File scritto: pubblico/profili/<TICKER>.json (letto dalla scheda del titolo, solo quando la si apre)."""
 import json
+import re
 import logging
 import os
 import time
@@ -156,6 +157,28 @@ def candidati_wikipedia(nome):
     per_titolo = {x.get("title"): (x.get("pageprops") or {}).get("wikibase_item") for x in (pp.get("pages") or {}).values()}
     norm = {x.get("to"): x.get("from") for x in pp.get("normalized") or []}
     return [q for q in (per_titolo.get(t) or per_titolo.get(norm.get(t)) for t in titoli) if q]
+
+
+def _norm(x):
+    """minuscolo, senza accenti (Mondelēz -> mondelez, Tōkyū -> tokyu)."""
+    import unicodedata
+    return "".join(c for c in unicodedata.normalize("NFKD", str(x or "")) if not unicodedata.combining(c)).lower()
+
+
+def pertinente(testo, nome, t):
+    """v7.22 La descrizione parla davvero di QUESTA azienda? Deve citare una parola significativa del nome, il nome
+    intero o il ticker. Evita le voci sbagliate trovate per nome (es. Baycurrent -> Toyota, Mediobanca -> Mindbody,
+    l'indice SSE 50 al posto dell'azienda). Senza nome non si giudica (True)."""
+    if not testo or not nome:
+        return bool(testo)
+    from .notizie_az import VUOTE
+    txt = _norm(testo)
+    parole = set(re.findall(r"[a-z0-9][a-z0-9&'-]+", txt))
+    sign = [w for w in re.findall(r"[a-z][a-z&'-]+", _norm(nome)) if len(w) >= 3 and w not in VUOTE]
+    base = t.split(".")[0].lower()
+    compatto = re.sub(r"[^a-z0-9]", "", _norm(nome))
+    return (any(w in parole for w in sign) or (len(compatto) >= 2 and compatto in re.sub(r"[^a-z0-9]", "", txt))
+            or (len(base) >= 2 and base.isalpha() and base in parole))
 
 
 def desc_da_wikipedia(t, nome, qid=None):
@@ -335,6 +358,8 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
     lim_vuoti = (oggi - timedelta(days=RIPROVA_VUOTI)).isoformat()
     lim_desc = (oggi - timedelta(days=RIPROVA_DESC)).isoformat()
 
+    nomi = {x["t"]: x.get("nome") for x in (el if el is not None else A.elenco())}
+
     def scaduto(t):                              # vecchio di 30 giorni, oppure in inglese senza traduzione (v6.54c)
         p = A._leggi(file_di(t)) or {}
         d = p.get("desc") or {}
@@ -342,8 +367,8 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
         if p.get("vuoto"):                       # v6.73: i titoli non trovati si riprovano ogni settimana
             return agg < lim_vuoti or p.get("rv") != RICERCA            # v7.7: e subito con la ricerca nuova
         return (agg < limite or p.get("v") != VERSIONE or (not d and (agg < lim_desc or p.get("rv") != RICERCA))
-                or (d.get("lingua") not in (None, "it") and not d.get("trad")))
-    nomi = {x["t"]: x.get("nome") for x in (el if el is not None else A.elenco())}
+                or (d.get("lingua") not in (None, "it") and not d.get("trad"))
+                or (d and not pertinente(d.get("testo"), nomi.get(t), t)))     # v7.22: descrizione di un'altra azienda
     da_fare = [t for t in titoli if scaduto(t)]
     da_fare = sorted(da_fare, key=lambda t: "." in t)[:MAX_PER_GIRO]
     fatti_ok, mancanti, inizio = 0, [], time.time()
@@ -375,6 +400,9 @@ def aggiorna(cartella, oggi=None, el=None, pausa=PAUSA):
                     desc = desc_da_wikipedia(t, nomi[t], qid[t])
                 except Exception as e:
                     log.warning("profili: descrizione da Wikipedia non trovata per %s (%s)", t, type(e).__name__)
+            if desc and not pertinente(desc.get("testo"), nomi.get(t), t):   # v7.22: voce di un'altra azienda
+                log.warning("profili: descrizione scartata per %s (parla di un'altra azienda)", t)
+                desc = None
             desc = traduci(desc)
             if pausa:
                 time.sleep(pausa)
