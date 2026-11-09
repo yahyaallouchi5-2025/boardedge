@@ -48,7 +48,7 @@ try{(function(){const el=$("topaz");if(!el)return;
 
  // "Apri grafico" (vetrina e riquadro in sconto): scheda Azionario con il dettaglio del titolo
  function apriSc(){el.querySelectorAll(".tzapri").forEach(b=>b.onclick=()=>{try{window.ebStat&&ebStat.ev("vetrina",{ticker:b.dataset.t});}catch(e){}window.ebApriTitolo&&ebApriTitolo(b.dataset.t);});}
- // v7.9 AMPIEZZA DEL MERCATO (azioni.py ampiezza()): quota di titoli in trend rialzista, in totale e per area
+ // v7.9 AMPIEZZA DEL MERCATO: dalla v7.21 non e' piu' mostrata (sostituita dalle ciambelle dei settori nel Quadro economico)
  function ampiezzaHTML(d){const a=d.ampiezza;if(!a||!a.tot||!a.tot.n)return "";
   const q=x=>x.n?Math.round(x.su/x.n*100):0,tot=q(a.tot),[parola,cls]=tot>=60?["Forte","up"]:tot>=40?["Misto","tzamp-m"]:["Debole","down"];
   const barra=x=>`<span class="tzamp-bar"><i class="su" style="width:${x.su/x.n*100}%"></i><i class="lat" style="width:${x.lat/x.n*100}%"></i><i class="giu" style="width:${x.giu/x.n*100}%"></i></span>`;
@@ -56,7 +56,7 @@ try{(function(){const el=$("topaz");if(!el)return;
    <div class="tzamp-big"><b class="${cls}">${tot}%</b><span>in trend rialzista &middot; <b class="${cls}">${parola}</b></span></div>${barra(a.tot)}
    <div class="tzamp-aree">${(a.aree||[]).filter(x=>x.n).map(x=>`<div><span>${esc(x.nome)}</span>${barra(x)}<b>${q(x)}%</b></div>`).join("")}</div></div>`;}
  function disegna(d){const T=d.titoli||[];const mese=MESI[(d.mese||new Date().getMonth()+1)-1];
-  if(!T.length){el.innerHTML=`${ampiezzaHTML(d)}<div class="card tz"><div class="tztesta"><div><span class="tzchip">Selezione di oggi</span><h3>Le azioni pi&ugrave; forti</h3></div></div><p class="small" style="margin:8px 0 0">Oggi nessun titolo supera tutti i filtri: la selezione torna appena trend, forza e stagionalit&agrave; si allineano.</p></div>${scontati(d)}`;apriSc();return;}
+  if(!T.length){el.innerHTML=`<div class="card tz"><div class="tztesta"><div><span class="tzchip">Selezione di oggi</span><h3>Le azioni pi&ugrave; forti</h3></div></div><p class="small" style="margin:8px 0 0">Oggi nessun titolo supera tutti i filtri: la selezione torna appena trend, forza e stagionalit&agrave; si allineano.</p></div>${scontati(d)}`;apriSc();return;}
   const slide=(t,i)=>`<article class="tzs${i?"":" on"}" data-i="${i}" aria-roledescription="slide" aria-label="${i+1} di ${T.length}">
    <div class="tzinfo"><span class="tzpos">#${i+1} di ${T.length} &middot; ${esc((d.settori||{})[t.s]||t.s)}</span>
     <h4>${esc(t.n)}</h4><span class="small">${esc(t.t)} &middot; ${t.l.map(x=>esc((d.listini||{})[x]||x)).join(", ")}</span>
@@ -67,7 +67,7 @@ try{(function(){const el=$("topaz");if(!el)return;
     <li><i class="ok"></i><span>${mese[0].toUpperCase()+mese.slice(1)} positivo nel <b>${t.st_pos}%</b> degli anni (${t.st_n} anni, media <b>${pc(t.st_media)}</b>)</span></li></ul>
    <div class="tzdx">${anello(t.pt)}<div class="tzgraf">${spark(t.sp)}<span class="small">ultimo anno</span></div>
     <button class="tzapri" data-t="${esc(t.t)}">Apri grafico e stagionalit&agrave; <span aria-hidden="true">&rarr;</span></button></div></article>`;
-  el.innerHTML=`${ampiezzaHTML(d)}<div class="card tz" tabindex="0" aria-roledescription="carosello" aria-label="Le azioni pi&ugrave; forti di oggi">
+  el.innerHTML=`<div class="card tz" tabindex="0" aria-roledescription="carosello" aria-label="Le azioni pi&ugrave; forti di oggi">
    <div class="tztesta"><div><span class="tzchip"><i></i>Selezione di oggi</span><h3>Le ${T.length} azioni pi&ugrave; forti</h3>
     <span class="small">Una per settore, solo lato acquisto &middot; dati al ${gg(d.aggiornato)}</span></div>
     <div class="tzcom"><button class="tzfr" data-v="-1" aria-label="Precedente">&lsaquo;</button><div class="tzdots">${T.map((t,i)=>`<button class="${i?"":"on"}" data-i="${i}" aria-label="${esc(t.n)}"><i></i></button>`).join("")}</div><button class="tzfr" data-v="1" aria-label="Successiva">&rsaquo;</button>
