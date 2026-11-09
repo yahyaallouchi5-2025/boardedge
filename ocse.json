@@ -1,0 +1,306 @@
+{
+ "quando": "2026-11-09 19:41 UTC",
+ "prove": {
+  "cli_europa": {
+   "http": 200,
+   "righe": 85,
+   "colonne": [
+    "DATAFLOW",
+    "REF_AREA",
+    "FREQ",
+    "MEASURE",
+    "UNIT_MEASURE",
+    "ACTIVITY",
+    "ADJUSTMENT",
+    "TRANSFORMATION",
+    "TIME_HORIZ",
+    "METHODOLOGY",
+    "TIME_PERIOD",
+    "OBS_VALUE"
+   ],
+   "aree": {
+    "FRA": {
+     "n": 17,
+     "primo": [
+      "2025-06",
+      "99.40022"
+     ],
+     "ultimi": [
+      [
+       "2026-08",
+       "100.5792"
+      ],
+      [
+       "2026-09",
+       "100.6618"
+      ],
+      [
+       "2026-10",
+       "100.7311"
+      ]
+     ]
+    },
+    "ITA": {
+     "n": 17,
+     "primo": [
+      "2025-06",
+      "99.96324"
+     ],
+     "ultimi": [
+      [
+       "2026-08",
+       "100.0597"
+      ],
+      [
+       "2026-09",
+       "100.0494"
+      ],
+      [
+       "2026-10",
+       "100.0433"
+      ]
+     ]
+    },
+    "ESP": {
+     "n": 17,
+     "primo": [
+      "2025-06",
+      "100.0648"
+     ],
+     "ultimi": [
+      [
+       "2026-08",
+       "99.49265"
+      ],
+      [
+       "2026-09",
+       "99.40405"
+      ],
+      [
+       "2026-10",
+       "99.35284"
+      ]
+     ]
+    },
+    "DEU": {
+     "n": 17,
+     "primo": [
+      "2025-06",
+      "100.0856"
+     ],
+     "ultimi": [
+      [
+       "2026-08",
+       "100.8694"
+      ],
+      [
+       "2026-09",
+       "101.0189"
+      ],
+      [
+       "2026-10",
+       "101.1611"
+      ]
+     ]
+    },
+    "G4E": {
+     "n": 17,
+     "primo": [
+      "2025-06",
+      "100.0576"
+     ],
+     "ultimi": [
+      [
+       "2026-08",
+       "100.7669"
+      ],
+      [
+       "2026-09",
+       "100.8733"
+      ],
+      [
+       "2026-10",
+       "100.9527"
+      ]
+     ]
+    }
+   }
+  },
+  "cli_storia_usa": {
+   "http": 200,
+   "righe": 861,
+   "colonne": [
+    "DATAFLOW",
+    "REF_AREA",
+    "FREQ",
+    "MEASURE",
+    "UNIT_MEASURE",
+    "ACTIVITY",
+    "ADJUSTMENT",
+    "TRANSFORMATION",
+    "TIME_HORIZ",
+    "METHODOLOGY",
+    "TIME_PERIOD",
+    "OBS_VALUE"
+   ],
+   "aree": {
+    "USA": {
+     "n": 861,
+     "primo": [
+      "1955-01",
+      "101.4682"
+     ],
+     "ultimi": [
+      [
+       "2026-07",
+       "100.8691"
+      ],
+      [
+       "2026-08",
+       "100.9464"
+      ],
+      [
+       "2026-09",
+       "100.9993"
+      ]
+     ]
+    }
+   }
+  },
+  "bis_cpi_jp_v1": {
+   "http": 200,
+   "righe": 21,
+   "colonne": [
+    "FREQ",
+    "REF_AREA",
+    "UNIT_MEASURE",
+    "UNIT_MULT",
+    "TIME_FORMAT",
+    "BREAKS",
+    "COVERAGE",
+    "DECIMALS",
+    "TITLE_TS",
+    "TIME_PERIOD",
+    "OBS_VALUE",
+    "OBS_CONF"
+   ],
+   "aree": {
+    "JP": {
+     "n": 21,
+     "primo": [
+      "2025-01",
+      "3.979058"
+     ],
+     "ultimi": [
+      [
+       "2026-07",
+       "1.898102"
+      ],
+      [
+       "2026-08",
+       "1.894317"
+      ],
+      [
+       "2026-09",
+       "2.097902"
+      ]
+     ]
+    }
+   }
+  },
+  "bis_cpi_jp_v2": {
+   "http": 200,
+   "righe": 21,
+   "colonne": [
+    "FREQ",
+    "REF_AREA",
+    "UNIT_MEASURE",
+    "UNIT_MULT",
+    "TIME_FORMAT",
+    "BREAKS",
+    "COVERAGE",
+    "DECIMALS",
+    "TITLE_TS",
+    "TIME_PERIOD",
+    "OBS_VALUE",
+    "OBS_CONF"
+   ],
+   "aree": {
+    "JP": {
+     "n": 21,
+     "primo": [
+      "2025-01",
+      "3.979058"
+     ],
+     "ultimi": [
+      [
+       "2026-07",
+       "1.898102"
+      ],
+      [
+       "2026-08",
+       "1.894317"
+      ],
+      [
+       "2026-09",
+       "2.097902"
+      ]
+     ]
+    }
+   }
+  },
+  "bce_hicp": {
+   "http": 200,
+   "righe": 7,
+   "colonne": [
+    "KEY",
+    "FREQ",
+    "REF_AREA",
+    "ADJUSTMENT",
+    "ICP_ITEM",
+    "STS_INSTITUTION",
+    "ICP_SUFFIX",
+    "TIME_PERIOD",
+    "OBS_VALUE",
+    "OBS_STATUS",
+    "OBS_CONF",
+    "OBS_PRE_BREAK"
+   ],
+   "aree": {
+    "U2": {
+     "n": 7,
+     "primo": [
+      "2025-06",
+      "2"
+     ],
+     "ultimi": [
+      [
+       "2025-10",
+       "2.1"
+      ],
+      [
+       "2025-11",
+       "2.1"
+      ],
+      [
+       "2025-12",
+       "1.9"
+      ]
+     ]
+    }
+   }
+  },
+  "bce_disoccupazione": {
+   "http": 504,
+   "righe": 0,
+   "colonne": [],
+   "aree": {}
+  },
+  "bce_produzione": {
+   "http": 504,
+   "righe": 0,
+   "colonne": [],
+   "aree": {}
+  }
+ }
+}
