@@ -151,7 +151,9 @@ PREZZI_YAHOO = {
     "USBOND": ("ZB=F", "materie"), "ULTRA": ("UB=F", "materie"),
 }
 # Serie FRED archiviate per sempre oltre ai prezzi: tasso BCE sui depositi (liquidita' in euro dei portafogli)
-ARCHIVIO_EXTRA = ["ECBDFR", "DTB3"]       # v7.14: + T-bill 3 mesi (Treasury coperto in euro)
+ARCHIVIO_EXTRA = ["ECBDFR", "DTB3",       # v7.14: + T-bill 3 mesi (Treasury coperto in euro)
+                  # v7.18 quadro economico: storia completa per lo studio dei regimi (crescita x inflazione)
+                  "CPIAUCSL", "UNRATE", "INDPRO", "DGS10", "DGS2", "BAMLH0A0HYM2"]
 
 # Driver di mercato: indicatori prezzati OGNI GIORNO dal mercato (quindi gia' "scontano" le notizie).
 # (chiave, nome, codice FRED, unita'). "diff" non esiste su FRED: e' calcolato come tasso USA 2a - tasso euro 2a (BCE).
@@ -174,6 +176,10 @@ FRED_IDS = {
     **{v[0]: 1 for v in PRICES.values()},
     "ECBDFR": 1,         # v6.59: tasso BCE sui depositi (%), per la liquidita' in euro dei portafogli
     "DTB3": 1,           # v7.14: T-bill USA 3 mesi (%): costo della copertura del cambio (studio Treasury in euro)
+    # v7.18 QUADRO ECONOMICO (serie MENSILI, escono con circa un mese di ritardo): inflazione, lavoro, produzione
+    "CPIAUCSL": 1,       # prezzi al consumo USA (indice): inflazione annua = variazione su 12 mesi
+    "UNRATE": 1,         # tasso di disoccupazione USA (%): regola di Sahm (segnale d'inizio recessione)
+    "INDPRO": 1,         # produzione industriale USA (indice): crescita dell'economia reale
 }
 
 # --------------------------------------------------------------------------- serie BCE (tassi euro)
