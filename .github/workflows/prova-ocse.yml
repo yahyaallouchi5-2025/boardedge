@@ -1,7 +1,6 @@
-# prova-ocse.yml - v7.21b PROVA DELLE FONTI OCSE per il quadro economico di Eurozona, Giappone, Regno Unito, Australia,
-# Canada (inflazione, disoccupazione, produzione industriale, indicatore anticipatore CLI). API pubblica, senza chiave.
-# Risultato: ramo "prova-ocse", file ocse.json = per ogni fonte e paese le serie trovate e l'ultimo mese disponibile.
-# Nessun cambio al sito. Si lancia a mano (Actions -> Prova OCSE -> Run workflow).
+# prova-ocse.yml - v7.21c PROVA DELLE FONTI per il quadro economico: anticipatore OCSE per l'Eurozona (paesi grandi),
+# inflazione del Giappone dalla BIS, inflazione/disoccupazione/produzione dell'Eurozona dalla BCE, storia lunga del CLI.
+# Risultato: ramo "prova-ocse", file ocse.json. Nessun cambio al sito. Si lancia a mano (Actions -> Prova OCSE).
 name: Prova OCSE
 on:
   workflow_dispatch:
@@ -12,25 +11,16 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - name: Interroga l'OCSE
+      - name: Interroga OCSE, BIS e BCE
         run: |
           mkdir out && cd out
           python3 -u - <<'PY'
           import csv, io, json, time, urllib.error, urllib.request
-          import xml.etree.ElementTree as ET
-          BASE = "https://sdmx.oecd.org/public/rest/"
-          PAESI = "EA20+JPN+GBR+AUS+CAN+USA"
-          FONTI = {   # nome: (agenzia, dataflow, versione)
-              "inflazione": ("OECD.SDD.TPS", "DSD_PRICES@DF_PRICES_ALL", "1.0"),
-              "disoccupazione": ("OECD.SDD.TPS", "DSD_LFS@DF_IALFS_UNE_M", "1.0"),
-              "produzione": ("OECD.SDD.STES", "DSD_STES@DF_INDSERV", "4.0"),
-              "anticipatore": ("OECD.SDD.STES", "DSD_STES@DF_CLI", "4.1"),
-          }
-          def get(url, accept=None):
-              """(codice http, testo). Pausa e nuovo tentativo se l'OCSE limita le richieste (429)."""
+          def get(url):
+              """(codice http, testo); nuovi tentativi se il server limita le richieste (429)."""
               for t in range(4):
                   try:
-                      req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/prova-ocse", **({"Accept": accept} if accept else {})})
+                      req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/prova-ocse"})
                       with urllib.request.urlopen(req, timeout=120) as r:
                           return r.status, r.read().decode("utf-8", "replace")
                   except urllib.error.HTTPError as e:
@@ -41,36 +31,28 @@ jobs:
                       if t < 3:
                           time.sleep(10); continue
                       return type(e).__name__, ""
-          def dimensioni(ag, df, ver):
-              """Ordine delle dimensioni della chiave, dalla struttura del dataflow."""
-              c, x = get(f"{BASE}dataflow/{ag}/{df}/{ver}?references=datastructure")
-              if c != 200:
-                  return c, None
-              root = ET.fromstring(x)
-              dims = [(int(d.get("position") or 0), d.get("id")) for d in root.iter() if d.tag.endswith("}Dimension")]
-              return c, [i for _, i in sorted(dims)]
-          out = {"quando": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "fonti": {}}
-          PAESI_OK = set(PAESI.split("+")) | {"EA19", "EMU", "EU27_2020"}
-          for nome, (ag, df, ver) in FONTI.items():
-              c2, testo = get(f"{BASE}data/{ag},{df},{ver}/all?startPeriod=2025-06&format=csvfile")
-              r = {"dati_http": c2}
-              serie = {}
-              for row in csv.DictReader(io.StringIO(testo)) if c2 == 200 else []:
-                  if row.get("REF_AREA") not in PAESI_OK:
-                      continue
-                  cols = [k for k in row if k not in ("TIME_PERIOD", "OBS_VALUE", "OBS_STATUS", "UNIT_MULT", "DECIMALS", "BASE_PER", "PRICE_BASE", "DATAFLOW", "ACTION", "STRUCTURE", "STRUCTURE_ID", "STRUCTURE_NAME", "OBS_STATUS_2", "CONF_STATUS")]
-                  k = tuple(f"{c}={row[c]}" for c in cols if row.get(c) not in ("", "_Z", None))
-                  s = serie.setdefault(k, {"ultimo": "", "valore": None, "n": 0})
-                  s["n"] += 1
-                  if row.get("TIME_PERIOD", "") >= s["ultimo"]:
-                      s["ultimo"], s["valore"] = row.get("TIME_PERIOD", ""), row.get("OBS_VALUE")
-              # per non esplodere: solo totale (_T) e indicatori principali
-              sel = {k: v for k, v in serie.items() if nome != "inflazione" or ("EXPENDITURE=_T" in k)}
-              r["serie"] = [{"chiave": list(k), **v} for k, v in sorted(sel.items())][:300]
-              r["n_serie"] = len(serie)
-              out["fonti"][nome] = r
-              print(nome, c2, len(serie))
-              time.sleep(15)
+          OCSE = "https://sdmx.oecd.org/public/rest/data/OECD.SDD.STES,DSD_STES@DF_CLI,4.1/"
+          PROVE = {
+              "cli_europa": OCSE + "DEU+FRA+ITA+ESP+NLD+EA20+G4E+EA19+OECDE.M.LI...AA...H?startPeriod=2025-06&format=csvfile",
+              "cli_storia_usa": OCSE + "USA.M.LI...AA...H?startPeriod=1955-01&format=csvfile",
+              "bis_cpi_jp_v1": "https://stats.bis.org/api/v1/data/WS_LONG_CPI/M.JP.771?startPeriod=2025-01&format=csv",
+              "bis_cpi_jp_v2": "https://stats.bis.org/api/v2/data/dataflow/BIS/WS_LONG_CPI/1.0/M.JP.771?startPeriod=2025-01&format=csv",
+              "bce_hicp": "https://data-api.ecb.europa.eu/service/data/ICP/M.U2.N.000000.4.ANR?startPeriod=2025-06&format=csvdata",
+              "bce_disoccupazione": "https://data-api.ecb.europa.eu/service/data/LFSI/M.I9.S.UNEHRT.TOTAL0.15_74.T?startPeriod=2025-06&format=csvdata",
+              "bce_produzione": "https://data-api.ecb.europa.eu/service/data/STS/M.I9.Y.PROD.NS0020.4.000?startPeriod=2025-06&format=csvdata",
+          }
+          out = {"quando": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "prove": {}}
+          for nome, url in PROVE.items():
+              c, testo = get(url)
+              righe = list(csv.DictReader(io.StringIO(testo))) if c == 200 else []
+              area = lambda r: r.get("REF_AREA") or r.get("REF_AREA:Reference area") or ""
+              per = {}
+              for r in righe:
+                  per.setdefault(area(r), []).append((r.get("TIME_PERIOD") or r.get("TIME_PERIOD:Time period or range") or "", r.get("OBS_VALUE") or r.get("OBS_VALUE:Observation Value") or ""))
+              out["prove"][nome] = {"http": c, "righe": len(righe), "colonne": list(righe[0].keys())[:12] if righe else [],
+                                    "aree": {a: {"n": len(v), "primo": min(v), "ultimi": sorted(v)[-3:]} for a, v in per.items()}}
+              print(nome, c, len(righe))
+              time.sleep(8)
           json.dump(out, open("ocse.json", "w"), ensure_ascii=False, indent=1)
           PY
       - name: Salva il risultato nel ramo prova-ocse
