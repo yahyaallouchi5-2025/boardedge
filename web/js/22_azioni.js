@@ -35,7 +35,7 @@ try{(function(){const el=$("azioni");if(!el)return;
  let caricato=null;
  function carica(){if(caricato)return caricato;scheletro();
   return caricato=fetch(BASE+"indice.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
-   .then(d=>{ST.dati=d;window.__azioni=d;disegna();
+   .then(d=>{ST.dati=d;window.__azioni=d;disegna();leggiLive();
     if(d.anomalia)ebManutenzione({scheda:"azioni",codice:d.anomalia.codice,quando:d.anomalia.quando,dal:d.aggiornato});})
    .catch(e=>{console.error("[BoardEdge] azioni non caricate:",e);
     el.innerHTML=`<h2>Azionario per settore</h2><div class="card azvuoto"><span class="pav-i grande" aria-hidden="true">!</span><h3>Dati azionari momentaneamente non disponibili</h3><p class="small">La scheda torna appena il servizio &egrave; di nuovo regolare.</p></div>`;
@@ -45,6 +45,31 @@ try{(function(){const el=$("azioni");if(!el)return;
  // o subito se la pagina si apre gia' su "Azioni" (link #azioni)
  const nb=document.querySelector('#nav button[data-t=azioni]');if(nb)nb.addEventListener("click",()=>setTimeout(carica,0));
  setTimeout(()=>{if(el.classList.contains("on")||el.offsetParent!==null)carica();},0);
+
+ // --- v7.22 PREZZI LIVE (cot_radar/live.py -> live_az.json nel ramo "live", ogni 15 minuti a borsa aperta, ritardo
+ //     ~15 min): prezzo e variazione di oggi accanto a ogni titolo e nella scheda, con un lampo quando cambiano.
+ //     Si rilegge ogni minuto SOLO se la scheda Azionario o il dettaglio di un titolo sono visibili.
+ const LIVE="https://raw.githubusercontent.com/yahyaallouchi5-2025/cot-radar/live/live_az.json";
+ const LV={p:{},quando:0};
+ const lv=t=>{const v=LV.p[t.t];if(!v||!v[0])return null;
+  if(t.data&&v[2]&&new Date(v[2]*1000).toISOString().slice(0,10)<t.data)return null;   // piu' vecchio della chiusura
+  return {p:v[0],g:v[1]?(v[0]/v[1]-1)*100:null,ora:v[2]?new Date(v[2]*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):""};};
+ const prezzoCella=t=>{const l=lv(t);return l?`<span class="azlv" title="Prezzo con ~15 min di ritardo, ore ${l.ora}"><i></i>${prezzo(l.p,t.val)}</span>`:prezzo(t.p,t.val);};
+ const varCella=t=>{const l=lv(t);return pc(l&&l.g!=null?l.g:t.v1g,2);};
+ function aggiornaLive(){document.querySelectorAll("[data-lv]").forEach(c=>{const t=ST.dati&&ST.dati.titoli.find(x=>x.t==c.dataset.lv);if(!t)return;
+   const nuovo=c.dataset.k=="g"?varCella(t):c.dataset.k=="h"?testaPrezzo(t):prezzoCella(t);
+   if(c.innerHTML!==nuovo){const l=lv(t),prima=parseFloat(c.dataset.v||"NaN");c.innerHTML=nuovo;
+    if(l&&!isNaN(prima)&&l.p!==prima){c.classList.remove("azsu","azgiu");void c.offsetWidth;c.classList.add(l.p>prima?"azsu":"azgiu");}
+    if(l)c.dataset.v=l.p;}});}
+ async function leggiLive(){const det=document.querySelector(".azdett.on");if(document.hidden||(el.offsetParent===null&&!det))return;
+  try{const r=await fetch(LIVE+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();
+   if(!d||!d.quando||d.quando===LV.quando||Date.now()/1000-d.quando>20*3600)return;
+   LV.p=d.p||{};LV.quando=d.quando;aggiornaLive();}catch(e){}}
+ setInterval(leggiLive,60000);document.addEventListener("visibilitychange",leggiLive);
+ // intestazione della scheda: prezzo grande (live se c'e') + variazione + orario
+ function testaPrezzo(t){const l=lv(t);
+  return l?`<b>${prezzo(l.p,t.val)}</b>${pc(l.g,2)}<span class="azlv azlvt"><i></i>LIVE &middot; ore ${l.ora} &middot; ritardo ~15 min</span>`
+   :`<b>${prezzo(t.p,t.val)}</b>${pc(t.v1g,2)}<span class="small">chiusura del ${gg(t.data)}</span>`;}
 
  // --- titoli dopo i filtri (listino + ricerca); il settore si applica alla tabella, non alle card
  function filtrati(conSettore){const q=ST.cerca.trim().toLowerCase();
@@ -128,7 +153,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   d.salva(E.nomeFile("Azionario"+(ST.list!="tutti"?" "+nomeList(ST.list):"")+(ST.set!="tutti"?" "+nomeSet(ST.set):"")),T+" - BoardEdge",(n,tot)=>E.piede(d,n,tot,"Azionario BoardEdge"));}
 
  function disegna(){const d=ST.dati,base=filtrati(false),righe=filtrati(true),mese=MESI[new Date().getMonth()];
-  const COL=[["rk","#",1],["n","Titolo",0],["pt","Punteggio",0],["sd","Smart Discount",1],["p","Prezzo",1],["v1g","1G",1],["v1m","1M",1],["v3m","3M",1,"azh"],["vytd","Da gennaio",1,"azh"],["v1a","1 anno",1],["st_pos",mese[0].toUpperCase()+mese.slice(1),1,"azh"],["t200","Trend",1,"azh azh3"],["sp","Ultimo anno",0,"azh2"]];
+  const COL=[["rk","#",1],["n","Titolo",0],["pt","Punteggio",0],["sd","Smart Discount",1],["p","Prezzo",1],["v1g","1G",1],["v1m","1M",1],["v3m","3M",1,"azh"],["vytd","Da gennaio",1,"azh azh4"],["v1a","1 anno",1],["dy","Div.",1,"azh"],["st_pos",mese[0].toUpperCase()+mese.slice(1),1,"azh"],["t200","Trend",1,"azh azh3"],["sp","Ultimo anno",0,"azh2"]];
   const ord=ordinati(righe);
   const np=Math.max(1,Math.ceil(ord.length/PAG));if(ST.pag>np)ST.pag=np;
   const vis=ord.slice((ST.pag-1)*PAG,ST.pag*PAG);
@@ -148,9 +173,9 @@ try{(function(){const el=$("azioni");if(!el)return;
     <button type="button" class="aztrf${ST.soloSu?" on":""}" aria-pressed="${!!ST.soloSu}" title="Mostra solo i titoli in trend rialzista">${trIcon(1)}Solo trend rialzista</button>${window.ebPdf?ebPdf.bottone():""}</div>
    <div class="tablewrap"><table class="aztab"><tr>${COL.map(c=>`<th class="${c[2]?"num":""} ${c[3]||""}${c[0]!="sp"?" azo":""}${ST.ord==c[0]?" on":""}" ${c[0]!="sp"?`data-o="${c[0]}"`:""}${c[0]=="sd"?` title="SMART DISCOUNT 0-100: quanto il titolo e' scontato oggi rispetto alla sua storia e se in passato comprare a quello sconto e' andato meglio che comprare a caso"`:""}${c[0]=="st_pos"?` title="Stagionalit&agrave; di ${mese}: quota di anni positivi e rendimento medio del mese"`:""}${c[0]=="t200"?` title="Distanza dalla media a 200 giorni: positivo = trend rialzista"`:""}${c[0]=="pt"?` title="Punteggio 0-100: forza 12 e 3 mesi, trend e stagionalit&agrave; del mese"`:""}>${c[1]}${ST.ord==c[0]?(ST.dir>0?" &uarr;":" &darr;"):""}</th>`).join("")}</tr>
     ${vis.map(t=>`<tr class="clic" data-t="${esc(t.t)}" tabindex="0"><td class="num azrk">${t.rk}</td><td class="aznome"><b>${esc(t.n)}${trIcon(t.tr)}</b><span>${esc(t.t)} &middot; ${t.l.map(nomeList).join(", ")}</span></td>
-     <td>${forza(t.pt)}</td><td class="num">${sdCella(t)}</td><td class="num">${prezzo(t.p,t.val)}</td><td class="num">${pc(t.v1g,2)}</td><td class="num">${pc(t.v1m)}</td><td class="num azh">${pc(t.v3m)}</td><td class="num azh">${pc(t.vytd)}</td>
-     <td class="num">${pc(t.v1a)}</td><td class="num azh azst">${t.st_pos==null?'<span class="flat">n/d</span>':`<b>${t.st_pos}%</b> ${pc(t.st_media)}`}</td><td class="num azh azh3">${pc(t.t200)}</td><td class="azh2">${spark(t.sp,(t.v1a||0)>=0?"su":"giu")}</td></tr>`).join("")}
-    ${!righe.length?`<tr><td colspan="12" class="small" style="text-align:center;padding:28px">Nessun titolo con questi filtri.</td></tr>`:""}</table></div>
+     <td>${forza(t.pt)}</td><td class="num">${sdCella(t)}</td><td class="num" data-lv="${esc(t.t)}">${prezzoCella(t)}</td><td class="num" data-lv="${esc(t.t)}" data-k="g">${varCella(t)}</td><td class="num">${pc(t.v1m)}</td><td class="num azh">${pc(t.v3m)}</td><td class="num azh azh4">${pc(t.vytd)}</td>
+     <td class="num">${pc(t.v1a)}</td><td class="num azh">${t.dy?`<b class="azdy">${fx(t.dy,1)}%</b>`:'<span class="flat">&ndash;</span>'}</td><td class="num azh azst">${t.st_pos==null?'<span class="flat">n/d</span>':`<b>${t.st_pos}%</b> ${pc(t.st_media)}`}</td><td class="num azh azh3">${pc(t.t200)}</td><td class="azh2">${spark(t.sp,(t.v1a||0)>=0?"su":"giu")}</td></tr>`).join("")}
+    ${!righe.length?`<tr><td colspan="14" class="small" style="text-align:center;padding:28px">Nessun titolo con questi filtri.</td></tr>`:""}</table></div>
    ${pagine(ord.length)}`;
   // eventi
   /* SUGGERIMENTI MENTRE SCRIVI: da 1 lettera, per nome o ticker (senza maiuscole/accenti), massimo 6 righe.
