@@ -1,4 +1,4 @@
-# prova-ocse.yml - v7.21 PROVA DELLE FONTI OCSE per il quadro economico di Eurozona, Giappone, Regno Unito, Australia,
+# prova-ocse.yml - v7.21b PROVA DELLE FONTI OCSE per il quadro economico di Eurozona, Giappone, Regno Unito, Australia,
 # Canada (inflazione, disoccupazione, produzione industriale, indicatore anticipatore CLI). API pubblica, senza chiave.
 # Risultato: ramo "prova-ocse", file ocse.json = per ogni fonte e paese le serie trovate e l'ultimo mese disponibile.
 # Nessun cambio al sito. Si lancia a mano (Actions -> Prova OCSE -> Run workflow).
@@ -50,24 +50,26 @@ jobs:
               dims = [(int(d.get("position") or 0), d.get("id")) for d in root.iter() if d.tag.endswith("}Dimension")]
               return c, [i for _, i in sorted(dims)]
           out = {"quando": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "fonti": {}}
+          PAESI_OK = set(PAESI.split("+")) | {"EA19", "EMU", "EU27_2020"}
           for nome, (ag, df, ver) in FONTI.items():
-              c, dims = dimensioni(ag, df, ver)
-              r = {"struttura_http": c, "dimensioni": dims}
-              if dims:
-                  key = ".".join(PAESI if d == "REF_AREA" else ("M" if d == "FREQ" else "") for d in dims)
-                  c2, testo = get(f"{BASE}data/{ag},{df},{ver}/{key}?startPeriod=2025-01&format=csvfile")
-                  r["dati_http"] = c2
-                  serie = {}
-                  for row in csv.DictReader(io.StringIO(testo)) if c2 == 200 else []:
-                      k = (row.get("REF_AREA"),) + tuple(row.get(d, "") for d in dims if d not in ("REF_AREA", "FREQ"))
-                      s = serie.setdefault(k, {"ultimo": "", "valore": None, "n": 0})
-                      s["n"] += 1
-                      if row.get("TIME_PERIOD", "") >= s["ultimo"]:
-                          s["ultimo"], s["valore"] = row.get("TIME_PERIOD", ""), row.get("OBS_VALUE")
-                  r["serie"] = [{"chiave": list(k), **v} for k, v in sorted(serie.items())][:400]
-                  r["n_serie"] = len(serie)
+              c2, testo = get(f"{BASE}data/{ag},{df},{ver}/all?startPeriod=2025-06&format=csvfile")
+              r = {"dati_http": c2}
+              serie = {}
+              for row in csv.DictReader(io.StringIO(testo)) if c2 == 200 else []:
+                  if row.get("REF_AREA") not in PAESI_OK:
+                      continue
+                  cols = [k for k in row if k not in ("TIME_PERIOD", "OBS_VALUE", "OBS_STATUS", "UNIT_MULT", "DECIMALS", "BASE_PER", "PRICE_BASE", "DATAFLOW", "ACTION", "STRUCTURE", "STRUCTURE_ID", "STRUCTURE_NAME", "OBS_STATUS_2", "CONF_STATUS")]
+                  k = tuple(f"{c}={row[c]}" for c in cols if row.get(c) not in ("", "_Z", None))
+                  s = serie.setdefault(k, {"ultimo": "", "valore": None, "n": 0})
+                  s["n"] += 1
+                  if row.get("TIME_PERIOD", "") >= s["ultimo"]:
+                      s["ultimo"], s["valore"] = row.get("TIME_PERIOD", ""), row.get("OBS_VALUE")
+              # per non esplodere: solo totale (_T) e indicatori principali
+              sel = {k: v for k, v in serie.items() if nome != "inflazione" or ("EXPENDITURE=_T" in k)}
+              r["serie"] = [{"chiave": list(k), **v} for k, v in sorted(sel.items())][:300]
+              r["n_serie"] = len(serie)
               out["fonti"][nome] = r
-              print(nome, r.get("struttura_http"), r.get("dati_http"), r.get("n_serie"))
+              print(nome, c2, len(serie))
               time.sleep(15)
           json.dump(out, open("ocse.json", "w"), ensure_ascii=False, indent=1)
           PY
