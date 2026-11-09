@@ -19,7 +19,8 @@
    "us-ism-services-pmi-november-2026": "2026-11-04",
    "eurozone-flash-cpi-november-2026": "2026-11-04",
    "bank-of-england-mpc-rate-decision-november-2026": "2026-11-05",
-   "us-employment-situation-non-farm-payrolls-november-2026": "2026-11-06"
+   "us-employment-situation-non-farm-payrolls-november-2026": "2026-11-06",
+   "us-cpi-report-november-2026": "2026-11-10"
   },
   "esito": {
    "CAD-2026-10-19": "2026-10-19",
@@ -39,6 +40,6 @@
   },
   "settimana": "2026-11-09"
  },
- "briefing": "2026-11-02",
- "aggiornato": "2026-11-07T00:07Z"
+ "briefing": "2026-11-09",
+ "aggiornato": "2026-11-09T08:39Z"
 }
