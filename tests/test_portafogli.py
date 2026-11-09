@@ -438,3 +438,15 @@ class TasseItaliane(unittest.TestCase):
         g = self.griglia({"SPY": [100, 100, 100, 125], "GLD": [100, 80, 80, 80], "SHY": [1, 1, 1, 1]})
         _, fin, _ = P.simula_tasse(g, {0: {"GOLD": 1.0}, 2: {"SP500": 1.0}}, 0)
         self.assertAlmostEqual(fin, 100.0 - 20 * 0.26, delta=0.5)
+
+
+class ConfrontoSP500(unittest.TestCase):
+    """v7.19: drawdown e mesi per tornare in pari della curva (usati nel confronto profilo / meta' / S&P 500)."""
+
+    def test_dd_e_recupero(self):
+        from cot_radar import portafogli as P
+        curva = [("2020-01-01", 100), ("2020-03-01", 50), ("2020-07-01", 101), ("2020-08-01", 120)]
+        dd, mesi = P._dd_rec(curva)
+        self.assertEqual(dd, -50.0)
+        self.assertEqual(mesi, 6)                      # da gennaio (picco) a luglio (di nuovo sopra)
+        self.assertEqual(P._dd_rec([("2020-01-01", 100), ("2020-02-01", 80)])[1], None)   # non ancora in pari

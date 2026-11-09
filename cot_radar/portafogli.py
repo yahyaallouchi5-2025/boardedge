@@ -878,17 +878,44 @@ def robustezza(g, prof, sc, giorni, fx=None, tassi=None, liq=None):
     return out
 
 
+def _dd_rec(curva):
+    """v7.19 Drawdown peggiore (%) della curva [(data, valore)] e MESI dal picco prima del drawdown al ritorno sopra
+    quel picco (None = non ancora tornato in pari)."""
+    mx, mxd, peg, picco = 0.0, None, 0.0, None
+    for d, v in curva:
+        if v > mx:
+            mx, mxd = v, d
+        if mx and v / mx - 1 < peg:
+            peg, picco = v / mx - 1, mxd
+    if picco is None:
+        return 0.0, 0
+    pv = dict(curva)[picco]
+    dopo = next((d for d, v in curva if d > picco and v >= pv), None)
+    mesi = round((date.fromisoformat(dopo) - date.fromisoformat(picco)).days / 30.44) if dopo else None
+    return round(peg * 100, 1), mesi
+
+
 def tasse_profilo(g, piani, dal_i, fx=None, tassi=None, liq=None):
     """Rendimento annuo prima e dopo le tasse (vendendo tutto alla fine) del profilo e dell'S&P 500 comprato e
-    tenuto (tasse solo alla vendita finale + bollo), dal primo ribilanciamento a oggi."""
+    tenuto (tasse solo alla vendita finale + bollo), dal primo ribilancio a oggi.
+    v7.19 CONFRONTO (deciso con Ya il 09/11/2026): tre modi di investire lo stesso capitale, dopo le tasse e dal primo
+    ribilancio (quindi con il 2008 dentro): il profilo, meta' S&P 500 comprato e tenuto + meta' profilo (due parti
+    separate del conto, mai ribilanciate tra loro) e solo S&P 500. Per ognuno: rendimento annuo netto, drawdown
+    peggiore e mesi per tornare in pari."""
     lordo = simula_prudente(g, piani, dal_i, sostituisci={"AZ": "SPY"}, fx=fx, tassi=tassi)
     netta, finale, _ = simula_tasse(g, piani, dal_i, sostituisci={"AZ": "SPY"}, fx=fx, tassi=tassi)
     anni = (date.fromisoformat(g.date[-1]) - date.fromisoformat(g.date[dal_i])).days / 365.25
     ca = lambda v: round(((v / 100.0) ** (1 / anni) - 1) * 100, 1)
     sp_c, sp_fin, _ = simula_tasse(g, {dal_i: {"SP500": 1.0}}, dal_i, fx=fx, tassi=tassi)
     sp_l = simula_prudente(g, {dal_i: {"SP500": 1.0}}, dal_i, fx=fx, tassi=tassi)
+    a, b = dict(netta), dict(sp_c)
+    mix = [(d, (a[d] + b[d]) / 2) for d in sorted(set(a) & set(b))]
+    confronto = []
+    for k, curva, fin in (("prof", netta, finale), ("mix", mix, (finale + sp_fin) / 2), ("sp", sp_c, sp_fin)):
+        dd, rec = _dd_rec(curva)
+        confronto.append({"k": k, "netto": ca(fin), "dd": dd, "rec": rec})
     return {"cagr_lordo": ca(lordo[-1][1]), "cagr_netto": ca(finale),
-            "sp500_lordo": ca(sp_l[-1][1]), "sp500_netto": ca(sp_fin), "dal": g.date[dal_i]}
+            "sp500_lordo": ca(sp_l[-1][1]), "sp500_netto": ca(sp_fin), "dal": g.date[dal_i], "confronto": confronto}
 
 
 # --------------------------------------------------------------------------- v6.100 SIMULATORE (punto 6)
