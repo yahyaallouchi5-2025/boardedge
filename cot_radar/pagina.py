@@ -246,11 +246,12 @@ def build(data_source=load_all, demo=False, sito=False):
         paesi_pag = paesi.carica(scarica=not demo)
     except Exception:
         log.error("paesi emergenti non calcolati:\n%s", traceback.format_exc())
-    # v7.20 QUADRO ECONOMICO USA (quadro.py): fase dell'economia, solo informativa. Isolato: se fallisce manca la card.
+    # v7.20-21 QUADRO ECONOMICO (economie.py + quadro.py): fase di 6 economie, solo informativa. Isolato.
     quadro_pag = None
     try:
-        from . import quadro
-        quadro_pag = quadro.calcola(fred, storico.CARTELLA if os.path.isdir(storico.CARTELLA) else None)
+        from . import economie                      # v7.21: 6 economie (OCSE + BIS + FRED), cache nell'archivio
+        quadro_pag = economie.calcola(fred, storico.CARTELLA if os.path.isdir(storico.CARTELLA) else None,
+                                      scarica=not demo)
     except Exception:
         log.warning("quadro economico non calcolato:\n%s", traceback.format_exc())
     # CORRELAZIONI DEI PREZZI (correlazioni.py): stessi prezzi dei portafogli + settori USA e dollaro. Isolate.
@@ -289,7 +290,7 @@ def build(data_source=load_all, demo=False, sito=False):
             "assets": assets, "pairs": pairs, "corr": corr, "corr_px": corr_px, "market": market, "fed": fed,
             "order": [a[0] for a in ASSETS] + ["USD"], "sectors": SECTORS, "stato": pubblico(stato), "admin": "__ADMIN__", "eventi": news["prossimi"], "agenda": agenda_out,
             "stag": stag, "stag_meta": stag_meta, "reg": reg, "bt": bt, "vol": vol, "tat": tat, "port": port, "fore": fore,
-            "carry": carry_pag, "carry_st": carry_st, "paesi": paesi_pag, "categorie": cat_pag, "quadro": quadro_pag,
+            "carry": carry_pag, "carry_st": carry_st, "paesi": paesi_pag, "categorie": cat_pag, "economie": quadro_pag,
             "tv": {k: {"s": v[0], "inv": v[1]} for k, v in TV_SYMBOLS.items()}, "tvp": TV_PAIRS}
     # "stato" pubblico = solo esito e fonti; "admin" = segnaposto che main.py sostituisce con il registro
     # completo (cifrato sul sito, in chiaro sul PC). Vedi cot_radar/admin.py

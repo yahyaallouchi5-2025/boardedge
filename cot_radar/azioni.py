@@ -590,7 +590,8 @@ def pubblica(cartella, stato=None, titoli=None):
     _scrivi(os.path.join(cartella, "pubblico", "top.json"),
             {"aggiornato": ultimo, "mese": ora_italia().month, "anomalia": indice["anomalia"],
              "settori": {i: n for i, n, _ in SETTORI}, "listini": LISTINI, "titoli": top,
-             "sconto": in_sconto(righe, top), "ampiezza": ampiezza(righe)})
+             "sconto": in_sconto(righe, top), "ampiezza": ampiezza(righe),
+             "economie": economie_borsa(righe, indici)})
     _scrivi(os.path.join(cartella, "stato.json"), dict(stato or {}, pubblicati=len(righe)))
     log.info("azioni: %d titoli pubblicati (%d schede dettaglio), dati al %s", len(righe), dettagli, ultimo)
     return indice
@@ -610,6 +611,37 @@ def ampiezza(righe):
     suff = lambda t: t.rsplit(".", 1)[1] if "." in t else ""
     return {"tot": conta(righe),
             "aree": [dict(conta([r for r in righe if suff(r["t"]) in s]), nome=n) for n, s in AREE_AMPIEZZA]}
+
+
+# v7.21 BORSA PER ECONOMIA (sezione "Quadro economico" della Dashboard): per USA, Eurozona e Giappone, settore per
+# settore, quanti titoli sono in trend rialzista e il punteggio medio, piu' gli indici della stessa economia.
+# Regno Unito, Australia e Canada non hanno titoli nell'Azionario: la Dashboard mostra solo i loro dati economici.
+ECONOMIE_BORSA = {"usa": (("",), ("^GSPC", "^NDX")),
+                  "eur": (("MI", "DE", "PA", "AS", "MC", "BR", "HE"), ("^STOXX50E", "^GDAXI", "FTSEMIB.MI")),
+                  "jpn": (("T",), ("^N225",))}
+
+
+def economie_borsa(righe, indici):
+    """{economia: {"settori": {id: {"n", "su", "pt"}}, "indici": [{"n", "tr", "v3m", "v1a"}]}}.
+    su = titoli in trend rialzista (stessa freccia dell'Azionario), pt = punteggio medio 0-100 del settore."""
+    suff = lambda t: t.rsplit(".", 1)[1] if "." in t else ""
+    per_t = {i["t"]: i for i in indici}
+    out = {}
+    for eid, (suffissi, idx) in ECONOMIE_BORSA.items():
+        settori = {}
+        for r in righe:
+            if suff(r["t"]) not in suffissi or r.get("tr") is None:
+                continue
+            s = settori.setdefault(r["s"], {"n": 0, "su": 0, "pt": 0})
+            s["n"] += 1
+            s["su"] += r["tr"] == 1
+            s["pt"] += r.get("pt") or 0
+        for s in settori.values():
+            s["pt"] = round(s["pt"] / s["n"]) if s["n"] else None
+        out[eid] = {"settori": settori,
+                    "indici": [{"n": per_t[t]["n"], "tr": per_t[t].get("tr"), "v3m": per_t[t].get("v3m"),
+                                "v1a": per_t[t].get("v1a")} for t in idx if t in per_t]}
+    return out
 
 
 def punteggi(righe):
