@@ -238,10 +238,10 @@ try{(function(){const el=$("azioni");if(!el)return;
    <div class="azbarra"><button class="azx" aria-label="Torna all'elenco dei titoli"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Indietro</button>
     <span class="azbt"><b>${esc(t.n)}</b><small>${esc(t.t)}</small></span></div>
    <div class="azwrap">
-   <div class="aztesta"><span class="small">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).join(", ")}</span><h3>${esc(t.n)} <small>${esc(t.t)}</small></h3>
-    <div class="azprz"><b>${prezzo(t.p,t.val)}</b>${pc(t.v1g,2)}<span class="small">al ${gg(t.data)}</span></div></div>
+   <div class="aztesta"><span class="small azsez">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).join(", ")} &middot; ${esc(borsa(t.t))}<span class="azisin"></span></span><h3>${esc(t.n)} <small>${esc(t.t)}</small></h3>
+    <div class="azprz" data-lv="${esc(t.t)}" data-k="h">${testaPrezzo(t)}</div></div>
    <div class="azcorpo">${sk("100%",230,"border-radius:14px")}<div class="azmini">${Array(6).fill(`<div>${sk("60%",11)}${sk("70%",18)}</div>`).join("")}</div>${sk("100%",150,"border-radius:14px;margin-top:18px")}</div></div></div>`;
-  ov.scrollTop=0;
+  ov.scrollTop=0;leggiLive();
   requestAnimationFrame(()=>ov.classList.add("on"));ov.querySelector(".azx").focus({preventScroll:true});
   try{window.ebStat&&ebStat.ev("azione",{ticker:tk});}catch(e){}
   fetch(BASE+"titoli/"+encodeURIComponent(tk.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
@@ -258,18 +258,19 @@ try{(function(){const el=$("azioni");if(!el)return;
     <div class="azstag">${v.map((m,i)=>`<div class="${i==mc?"cur":""}" title="${m?`${MESI[i]}: media ${m.media>0?"+":""}${fx(m.media,2)}% · mediana ${m.mediana>0?"+":""}${fx(m.mediana,2)}% · positivo ${m.pos}% (${m.n} anni)`:"n/d"}">
      <span class="azsb"><i class="${m&&m.media>=0?"su":"giu"}" style="height:${m?Math.max(2,Math.abs(m.media)/mx*50):0}%;${m&&m.media<0?"top:50%":"bottom:50%"}"></i></span>
      <b class="${m&&m.media>=0?"up":"down"}">${m?(m.media>0?"+":"")+fx(m.media,1):"–"}</b><small>${m?m.pos+"%":""}</small><em>${MESI[i]}</em></div>`).join("")}</div>`;})():"";
-  c.innerHTML=`<div class="vfswitch azper">${PER.map(p=>`<button data-p="${p[0]}" class="${ST.per==p[0]?"on":""}">${p[1]}</button>`).join("")}</div>
+  c.innerHTML=`<div class="azgrid"><div class="azsx"><div class="vfswitch azper">${PER.map(p=>`<button data-p="${p[0]}" class="${ST.per==p[0]?"on":""}">${p[1]}</button>`).join("")}</div>
    <div class="azgraf">${grafico(serie(),ST.per=="max",t.val)}</div>
    <div class="azmini"><div><span>1 mese</span>${pc(t.v1m)}</div><div><span>3 mesi</span>${pc(t.v3m)}</div><div><span>Da inizio anno</span>${pc(t.vytd)}</div>
     <div><span>1 anno</span>${pc(t.v1a)}</div><div><span>Dal massimo 1 anno</span>${pc(t.dmax)}</div><div><span>Trend (media 200g)</span>${pc(t.t200)}</div></div>
    ${tecBlocco(x,t)}
-   ${sdBlocco(t)}
    <div class="azbil">${sk("40%",16)}${sk("100%",140,"border-radius:14px;margin-top:10px")}</div>
-   <div class="aznews" hidden></div>
-   <div class="azprof">${sk("30%",16)}${sk("100%",14,"margin-top:12px")}${sk("90%",14,"margin-top:8px")}<div class="azmini">${Array(4).fill(`<div>${sk("60%",11)}${sk("70%",16)}</div>`).join("")}</div></div>
+   <div class="aznews" hidden></div></div>
+   <div class="azdx">${sdBlocco(t)}
+   <div class="azdiv" hidden></div>
+   <div class="azprof">${sk("30%",16)}${sk("100%",14,"margin-top:12px")}${sk("90%",14,"margin-top:8px")}<div class="azmini">${Array(4).fill(`<div>${sk("60%",11)}${sk("70%",16)}</div>`).join("")}</div></div></div></div>
    ${stag}<p class="small azfonte">${esc(x.borsa||"")}${x.val?" &middot; prezzi in "+esc(x.val):""}</p>`;
   c.querySelectorAll(".azper button").forEach(b=>b.onclick=()=>{ST.per=b.dataset.p;corpo(ov,t,x);});
-  bilancio(c.querySelector(".azbil"),t);profilo(c.querySelector(".azprof"),t);notizie(c.querySelector(".aznews"),t);
+  bilancio(c.querySelector(".azbil"),t);profilo(c.querySelector(".azprof"),t);notizie(c.querySelector(".aznews"),t);dividendi(c.querySelector(".azdiv"),t);
   tooltip(c.querySelector(".azgraf"),serie(),t.val,ST.per=="max");}
 
  // --- v7.7 ANALISI TECNICA (cot_radar/azioni.py tecnica(): SMA 50/200, RSI 14, ATR 14, range 52 settimane) e icona
@@ -376,6 +377,25 @@ try{(function(){const el=$("azioni");if(!el)return;
  // v7.7 quando manca la descrizione: una riga con quello che sappiamo (settore e borsa) e la ricerca su Wikipedia
  const cercaWiki=t=>`https://it.wikipedia.org/w/index.php?search=${encodeURIComponent(String(t.n||"").replace(/[,.]?\s+(inc|corp|corporation|co|company|ltd|limited|plc|s\.?p\.?a|ag|sa|se|n\.?v)\.?$/i,""))}`;
  const descBase=t=>`<p class="azdesc">${esc(t.n)}: azienda del settore ${esc(nomeSet(t.s).toLowerCase())}, quotata alla ${esc(borsa(t.t))}. <a href="${cercaWiki(t)}" target="_blank" rel="noopener">Cerca su Wikipedia</a></p>`;
+ // --- v7.22 DIVIDENDI (cot_radar/dividendi.py -> dividendi/<TICKER>.json, EODHD): rendimento sugli ultimi 12 mesi,
+ //     ultimo stacco, frequenza, crescita a 5 anni, anni consecutivi e barre degli ultimi 10 anni. Senza file: nascosto.
+ function dividendi(box,t){if(!box)return;
+  fetch(BASE+"dividendi/"+encodeURIComponent(t.t.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>{
+   if(!box.isConnected||!d)return;
+   const val=d.valuta||t.val,l=lv(t),px=l?l.p:t.p,dy=d.u12&&px?d.u12/px*100:0;
+   const FREQ={1:"Annuale",2:"Semestrale",4:"Trimestrale",12:"Mensile"},fq=FREQ[d.freq]||(d.freq?d.freq+" volte l'anno":"&ndash;");
+   const S=d.storia||[],mx=Math.max(...S.map(x=>x[1]),0)||1,u=(d.ultimi||[])[0];
+   const info=`<details class="info"><summary title="Come si legge" aria-label="Informazioni">i</summary><div><b>Rendimento</b>: dividendi staccati negli ultimi 12 mesi diviso il prezzo di oggi. <b>Crescita 5 anni</b>: aumento medio annuo del dividendo tra l'ultimo anno completo e 5 anni prima. <b>Anni consecutivi</b>: anni solari di fila con almeno un dividendo. Importi rettificati per i frazionamenti; l'anno in corso &egrave; parziale. Il dividendo si incassa se si possiede il titolo il giorno prima dello <b>stacco</b>. Su Scalable in regime amministrato il dividendo arriva gi&agrave; tassato (26% in Italia, pi&ugrave; l'eventuale ritenuta del paese della societ&agrave;).</div></details>`;
+   if(!d.u12&&!d.anni){box.innerHTML=`<h4 class="aztit">Dividendi ${info}</h4><p class="small">Nessun dividendo negli ultimi anni.</p>`;box.hidden=false;return;}
+   box.innerHTML=`<h4 class="aztit">Dividendi ${info}</h4>
+    <div class="azdvt"><b>${fx(dy,2)}%</b><span>rendimento ultimi 12 mesi<br><em>${prezzo(d.u12,val)} per azione</em></span></div>
+    <div class="azmini azdvm"><div><span>Ultimo stacco</span><b>${u?gg(u.d):"&ndash;"}</b><small>${u?prezzo(u.v,val)+(u.pag?" &middot; pagato "+gg(u.pag):""):""}</small></div>
+     <div><span>Frequenza</span><b>${fq}</b></div>
+     <div><span>Crescita 5 anni</span>${d.cagr5==null?'<b class="flat">n/d</b>':`<b class="${d.cagr5>=0?"up":"down"}">${d.cagr5>0?"+":""}${fx(d.cagr5,1)}% <em>l'anno</em></b>`}</div>
+     <div><span>Anni consecutivi</span><b>${d.anni||0}</b></div></div>
+    <div class="azdvb" role="img" aria-label="Dividendi degli ultimi 10 anni">${S.map((x,i)=>`<div title="${x[0]}: ${prezzo(x[1],val)}${i==S.length-1?" (anno in corso)":""}"><i class="${i==S.length-1?"parz":""}" style="height:${Math.max(x[1]?4:0,x[1]/mx*100)}%"></i><em>${String(x[0]).slice(2)}</em></div>`).join("")}</div>`;
+   box.hidden=false;});}
+
  function profilo(box,t){if(!box)return;
   fetch(BASE+"profili/"+encodeURIComponent(t.t.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(p=>{
    if(!box.isConnected)return;
@@ -388,10 +408,12 @@ try{(function(){const el=$("azioni");if(!el)return;
     <div class="azmini azfatti">${f("Settore",esc(nomeSet(t.s)))}${f("Fondata",esc(p.fondata||""))}${f("Sede",esc([p.sede,p.paese].filter(Boolean).join(", ")))}
      ${f((p.ceo||[]).length>1?"Amministratori delegati":"Amministratore delegato",esc((p.ceo||[]).join(", ")))}${f("Dipendenti",dip)}
      ${f("Quotata su",esc((p.borse||[]).join(", ")||t.l.map(nomeList).join(", ")))}${acq?f("Acquisita da",esc(acq.nome)+` <em>(${acq.anno})</em>`):""}
-     ${p.isin?`<div><span>ISIN</span><b><button type="button" class="pisin" data-isin="${esc(p.isin)}" title="Copia l'ISIN da cercare nell'app del broker"><code>${esc(p.isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></b></div>`:""}</div>
+</div>
     <p class="small azfonte">Fonte: Wikidata e Wikipedia${p.desc&&p.desc.url?` &middot; <a href="${esc(p.desc.url)}" target="_blank" rel="noopener">voce completa</a>`:""}${p.sito?` &middot; <a href="${esc(p.sito)}" target="_blank" rel="noopener">sito ufficiale</a>`:""}.</p>`;
-   // v6.73: ISIN copiabile (per cercare il titolo nell'app del broker)
-   const bi=box.querySelector(".pisin");if(bi)bi.onclick=async()=>{try{await navigator.clipboard.writeText(p.isin);}catch(e){}
+   // v6.73: ISIN copiabile (per cercare il titolo nell'app del broker). v7.22: nella riga in alto accanto al settore
+   const slot=document.querySelector(".azdett.on .azisin");
+   if(slot&&p.isin)slot.innerHTML=`<button type="button" class="pisin" title="Copia l'ISIN da cercare nell'app del broker">ISIN <code>${esc(p.isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button>`;
+   const bi=slot&&slot.querySelector(".pisin");if(bi)bi.onclick=async()=>{try{await navigator.clipboard.writeText(p.isin);}catch(e){}
     const c=bi.querySelector("code");bi.classList.add("ok");c.textContent="Copiato";setTimeout(()=>{bi.classList.remove("ok");c.textContent=p.isin;},1500);};
    /* v6.54c: "Traduci" al posto di "(da Wikipedia in inglese)": un tocco mostra l'italiano, un altro torna all'originale */
    const bt=box.querySelector(".trad"),dt=box.querySelector(".dtesto");
