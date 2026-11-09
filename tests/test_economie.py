@@ -32,6 +32,14 @@ class FaseEconomia(unittest.TestCase):
         self.assertTrue(st["allarme"])
         self.assertEqual(st["disoc"], 4.8)
 
+    def test_trimestri_ignorati(self):
+        # v7.22b: l'OCSE manda alcune disoccupazioni trimestrali ('2026-Q3'): prima facevano saltare tutto il quadro
+        cli, cpi = mesi("2025-01", [100] * 20), mesi("2025-01", [2] * 20)
+        une = dict(mesi("2025-01", [4.0] * 20), **{"2026-Q3": 4.1, "2026-Q2": 4.0})
+        st = EC.fase(cli, cpi, une)
+        self.assertEqual(st["mese_disoc"], "2026-08")
+        self.assertFalse(st["allarme"])
+
     def test_eurozona_media_pesata(self):
         cli = {p: {"2026-01": 100.0} for p in EC.PESI_EUR}
         cli["DEU"]["2026-01"] = 102.0

@@ -20,6 +20,7 @@ CACHE: storico/economie.json (salvata nel ramo "storico" dal workflow del sito).
 
 DEBUG: python -c "from cot_radar import economie; help(economie.calcola)"
 """
+import re
 import csv
 import io
 import json
@@ -86,7 +87,7 @@ def scarica_disoccupazione(get=_get, oggi=None):
     voluti, out = {e[2] for e in ECONOMIE if e[2]}, {}
     for r in _righe(get(URL_UNE.format(dal=dal))):
         if (r.get("REF_AREA") in voluti and r.get("MEASURE") == "UNE_LF_M" and r.get("ADJUSTMENT") == "Y"
-                and r.get("SEX") == "_T" and r.get("AGE") == "Y_GE15" and len(r.get("TIME_PERIOD", "")) == 7):
+                and r.get("SEX") == "_T" and r.get("AGE") == "Y_GE15" and _MESE.match(r.get("TIME_PERIOD", ""))):
             try:
                 out.setdefault(r["REF_AREA"], {})[r["TIME_PERIOD"]] = float(r["OBS_VALUE"])
             except ValueError:
@@ -149,8 +150,18 @@ def cli_eurozona(cli):
     return {m: round(sum(PESI_EUR[p] * cli[p][m] for p in PESI_EUR), 4) for m in mesi}
 
 
+_MESE = re.compile(r"^\d{4}-\d{2}$")
+
+
+def solo_mesi(serie):
+    """Tiene solo le chiavi 'AAAA-MM' (v7.22b: l'OCSE manda alcune disoccupazioni trimestrali, '2026-Q3',
+    anche lunghe 7 caratteri: nella cache vecchia ci sono ancora)."""
+    return {k: v for k, v in (serie or {}).items() if _MESE.match(str(k))}
+
+
 def fase(cli, cpi, une, oggi_mese=None):
     """Stato di un'economia con le sue serie mensili {'AAAA-MM': v}. None se mancano i dati essenziali."""
+    cli, cpi, une = solo_mesi(cli), solo_mesi(cpi), solo_mesi(une)
     if not cli or not cpi:
         return None
     m_cli = max(cli)
@@ -217,7 +228,11 @@ def calcola(fred, cartella=None, scarica=True):
             cpi_f = Q.mensile(fred.get("CPIAUCSL"))
             p = {m: (cpi_f[m] / cpi_f[Q.mm(m, -12)] - 1) * 100 for m in cpi_f if Q.mm(m, -12) in cpi_f} or p
         u = Q.mensile(fred.get("UNRATE")) if eid == "usa" else (une.get(ocse) or {})
-        st = fase(c, p, u)
+        try:
+            st = fase(c, p, u)
+        except Exception as e:                       # un'economia con dati strani non toglie le altre
+            log.warning("economie: %s non calcolata (%s)", nome, e)
+            st = None
         if not st:
             log.warning("economie: %s senza dati sufficienti", nome)
             continue
