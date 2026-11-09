@@ -1,0 +1,81 @@
+# prova-ocse.yml - v7.21 PROVA DELLE FONTI OCSE per il quadro economico di Eurozona, Giappone, Regno Unito, Australia,
+# Canada (inflazione, disoccupazione, produzione industriale, indicatore anticipatore CLI). API pubblica, senza chiave.
+# Risultato: ramo "prova-ocse", file ocse.json = per ogni fonte e paese le serie trovate e l'ultimo mese disponibile.
+# Nessun cambio al sito. Si lancia a mano (Actions -> Prova OCSE -> Run workflow).
+name: Prova OCSE
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prova:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Interroga l'OCSE
+        run: |
+          mkdir out && cd out
+          python3 -u - <<'PY'
+          import csv, io, json, time, urllib.error, urllib.request
+          import xml.etree.ElementTree as ET
+          BASE = "https://sdmx.oecd.org/public/rest/"
+          PAESI = "EA20+JPN+GBR+AUS+CAN+USA"
+          FONTI = {   # nome: (agenzia, dataflow, versione)
+              "inflazione": ("OECD.SDD.TPS", "DSD_PRICES@DF_PRICES_ALL", "1.0"),
+              "disoccupazione": ("OECD.SDD.TPS", "DSD_LFS@DF_IALFS_UNE_M", "1.0"),
+              "produzione": ("OECD.SDD.STES", "DSD_STES@DF_INDSERV", "4.0"),
+              "anticipatore": ("OECD.SDD.STES", "DSD_STES@DF_CLI", "4.1"),
+          }
+          def get(url, accept=None):
+              """(codice http, testo). Pausa e nuovo tentativo se l'OCSE limita le richieste (429)."""
+              for t in range(4):
+                  try:
+                      req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/prova-ocse", **({"Accept": accept} if accept else {})})
+                      with urllib.request.urlopen(req, timeout=120) as r:
+                          return r.status, r.read().decode("utf-8", "replace")
+                  except urllib.error.HTTPError as e:
+                      if e.code == 429 and t < 3:
+                          time.sleep(20 * (t + 1)); continue
+                      return e.code, ""
+                  except Exception as e:
+                      if t < 3:
+                          time.sleep(10); continue
+                      return type(e).__name__, ""
+          def dimensioni(ag, df, ver):
+              """Ordine delle dimensioni della chiave, dalla struttura del dataflow."""
+              c, x = get(f"{BASE}dataflow/{ag}/{df}/{ver}?references=datastructure")
+              if c != 200:
+                  return c, None
+              root = ET.fromstring(x)
+              dims = [(int(d.get("position") or 0), d.get("id")) for d in root.iter() if d.tag.endswith("}Dimension")]
+              return c, [i for _, i in sorted(dims)]
+          out = {"quando": time.strftime("%Y-%m-%d %H:%M UTC", time.gmtime()), "fonti": {}}
+          for nome, (ag, df, ver) in FONTI.items():
+              c, dims = dimensioni(ag, df, ver)
+              r = {"struttura_http": c, "dimensioni": dims}
+              if dims:
+                  key = ".".join(PAESI if d == "REF_AREA" else ("M" if d == "FREQ" else "") for d in dims)
+                  c2, testo = get(f"{BASE}data/{ag},{df},{ver}/{key}?startPeriod=2025-01&format=csvfile")
+                  r["dati_http"] = c2
+                  serie = {}
+                  for row in csv.DictReader(io.StringIO(testo)) if c2 == 200 else []:
+                      k = (row.get("REF_AREA"),) + tuple(row.get(d, "") for d in dims if d not in ("REF_AREA", "FREQ"))
+                      s = serie.setdefault(k, {"ultimo": "", "valore": None, "n": 0})
+                      s["n"] += 1
+                      if row.get("TIME_PERIOD", "") >= s["ultimo"]:
+                          s["ultimo"], s["valore"] = row.get("TIME_PERIOD", ""), row.get("OBS_VALUE")
+                  r["serie"] = [{"chiave": list(k), **v} for k, v in sorted(serie.items())][:400]
+                  r["n_serie"] = len(serie)
+              out["fonti"][nome] = r
+              print(nome, r.get("struttura_http"), r.get("dati_http"), r.get("n_serie"))
+              time.sleep(15)
+          json.dump(out, open("ocse.json", "w"), ensure_ascii=False, indent=1)
+          PY
+      - name: Salva il risultato nel ramo prova-ocse
+        run: |
+          cd out
+          git init -q -b prova-ocse
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add ocse.json && git commit -qm "prova OCSE"
+          git push -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" prova-ocse
