@@ -1,0 +1,34 @@
+# sorveglianza.yml - v7.24 ALLARME PER L'ADMIN: ogni ora controlla che sito, Azionario, prezzi live e workflow
+# principali siano freschi e senza errori (cot_radar/sorveglianza.py). Se qualcosa si ferma apre UNA issue
+# "sorveglianza" (mail + notifica dell'app GitHub) e la chiude da sola quando torna tutto regolare.
+# Telegram privato facoltativo: Secrets TELEGRAM_BOT_TOKEN e TELEGRAM_ADMIN_CHAT. A mano: Actions -> Sorveglianza.
+name: Sorveglianza
+on:
+  schedule:
+    - cron: "23 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+  issues: write
+  actions: read
+concurrency:
+  group: sorveglianza
+  cancel-in-progress: true
+jobs:
+  controllo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Controllo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+          TELEGRAM_ADMIN_CHAT: ${{ secrets.TELEGRAM_ADMIN_CHAT }}
+        run: |
+          gh label create sorveglianza --color B60205 --description "Allarme automatico" 2>/dev/null || true
+          python -m cot_radar.sorveglianza
