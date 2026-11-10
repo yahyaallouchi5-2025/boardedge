@@ -1956,6 +1956,8 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 .qe-card{display:grid;gap:8px;text-align:left;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--card);color:var(--ink);
  font:inherit;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;min-width:0}
 .qe-card:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.qe-chev{width:16px;height:16px;margin-left:auto;flex:none;fill:none;stroke:var(--mute);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;transition:transform .2s,stroke .2s}
+.qe-card:hover .qe-chev{stroke:var(--ink)}.qe-card.on .qe-chev{transform:rotate(180deg);stroke:var(--acc)}
 .qe-card.on{border-color:var(--acc);box-shadow:0 0 18px color-mix(in srgb,var(--acc) 22%,transparent)}
 .qe-card:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
 .qe-cn{display:flex;align-items:center;gap:8px;min-width:0}.qe-cn b{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
@@ -1963,7 +1965,9 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 .qe-dot{width:8px;height:8px;border-radius:50%;background:var(--s);margin-left:auto;box-shadow:0 0 8px var(--s)}
 .qe-chip{justify-self:start;font-size:12px;font-weight:800;padding:3px 10px;border-radius:99px;color:var(--qc);background:color-mix(in srgb,var(--qc) 14%,transparent)}
 .qe-cs{display:grid;gap:2px;font-size:11.5px;color:var(--ink2)}.qe-cs span{display:flex;align-items:center;gap:4px}
-.qe-det{padding:18px 20px}
+.qe-det{padding:18px 20px;animation:qeapri .25s ease-out;scroll-margin-top:12px}
+@keyframes qeapri{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.qe-det{animation:none}}
 .qe-dh{display:flex;align-items:center;flex-wrap:wrap;gap:6px 10px;margin-bottom:14px}.qe-dh .qe-flag{width:30px;height:20px}
 .qe-dh>b{font-size:22px;font-weight:800}.qe-dh>span:not(.qe-al){font-size:13px;color:var(--ink2)}
 .qe-al{margin-left:auto;font-size:11.5px;font-weight:800;padding:4px 10px;border-radius:99px;color:var(--b);background:color-mix(in srgb,var(--b) 12%,transparent)}

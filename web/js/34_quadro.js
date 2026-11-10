@@ -46,12 +46,12 @@ try{(function(){
    <b>Allarme recessione</b>: regola di Sahm, cio&egrave; la disoccupazione (media 3 mesi) salita di almeno 0,5 punti dal minimo dell'ultimo anno; per gli USA anche curva dei tassi invertita con spread delle aziende pi&ugrave; indebitate in salita.<br><br>
    ${tab?`<b>USA, com'&egrave; andata</b>: rendimento medio annuo del mese dopo, per fase, dal 1990 (oro dal 2004).${tab}`:""}
    <b>Solo contesto, non un segnale</b>: i mercati si muovono prima dei dati economici (in recessione l'S&amp;P 500 ha spesso gi&agrave; ripreso a salire). I portafogli seguono il filtro di trend sui prezzi.`,"qe-is");
- let sel=E.economie[0].id;
- try{const s=localStorage.getItem("ebEconomia");if(E.economie.some(x=>x.id==s))sel=s;}catch(e){}
+ // v7.22d: il dettaglio (mappa, indicatori, ciambelle) si apre SOLO al click su una card; un secondo click lo chiude
+ let sel=null;
  let borsa=null;                                           // top.json "economie": arriva dopo, se c'e'
  const card=x=>{const f=FASI[x.regime];
-  return `<button type="button" class="qe-card${x.id==sel?" on":""}" data-id="${x.id}" aria-pressed="${x.id==sel}">
-   <span class="qe-cn">${bandiera(x.id)}<b>${esc(x.nome)}</b>${x.allarme?`<i class="qe-dot" title="Allarme recessione"></i>`:""}</span>
+  return `<button type="button" class="qe-card${x.id==sel?" on":""}" data-id="${x.id}" aria-expanded="${x.id==sel}" aria-controls="qe-det" title="${x.id==sel?"Chiudi il dettaglio":"Apri il dettaglio"}">
+   <span class="qe-cn">${bandiera(x.id)}<b>${esc(x.nome)}</b>${x.allarme?`<i class="qe-dot" title="Allarme recessione"></i>`:""}<svg class="qe-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
    <span class="qe-chip ${f[1]}">${x.regime}</span>
    <span class="qe-cs"><span>Crescita ${fr(x.cli,x.cli3,"bene")}</span><span>Inflazione ${fx(x.infl,1)}% ${fr(x.infl,x.infl6,"male")}</span></span></button>`;};
  function dettaglio(x){const f=FASI[x.regime],b=borsa&&borsa.economie&&borsa.economie[x.id],nomiS=(borsa&&borsa.settori)||{};
@@ -74,11 +74,12 @@ try{(function(){
   return `<div class="qe-dh">${bandiera(x.id)}<b class="${f[1]}">${x.regime}</b><span>${esc(x.nome)}: l'economia ${f[0]} &middot; dati di ${meseIt(x.mese)}</span>
     <span class="qe-al ${x.allarme?"on":""}">${x.allarme?"Allarme recessione":"Nessun allarme recessione"}</span></div>
    <div class="qe-main">${mappa}<div class="qe-ind">${tiles.join("")}</div></div>${settHTML}${idx}${cot}`;}
- function disegna(){const x=E.economie.find(e=>e.id==sel)||E.economie[0];
+ function disegna(){const x=E.economie.find(e=>e.id==sel);
   el.innerHTML=`<div class="qe-sec"><div class="qe-h"><h2>Quadro economico</h2>${infoSez}</div>
-   <div class="qe-row">${E.economie.map(card).join("")}</div>
-   <div class="card qe-det">${dettaglio(x)}</div></div>`;
-  el.querySelectorAll(".qe-card").forEach(b=>b.onclick=()=>{sel=b.dataset.id;try{localStorage.setItem("ebEconomia",sel);}catch(e){}disegna();});}
+   <div class="qe-row${x?" qe-scelta":""}">${E.economie.map(card).join("")}</div>
+   ${x?`<div class="card qe-det" id="qe-det">${dettaglio(x)}</div>`:""}</div>`;
+  el.querySelectorAll(".qe-card").forEach(b=>b.onclick=()=>{const apri=sel!=b.dataset.id;sel=apri?b.dataset.id:null;disegna();
+   if(apri){const d=el.querySelector(".qe-det");if(d&&d.getBoundingClientRect().top>innerHeight*.75)d.scrollIntoView({behavior:"smooth",block:"start"});}});}
  disegna();
  fetch("../azioni/top.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(d=>{if(d&&d.economie){borsa=d;disegna();}}).catch(()=>{});
 })();}catch(e){console.error("quadro economico",e);}
