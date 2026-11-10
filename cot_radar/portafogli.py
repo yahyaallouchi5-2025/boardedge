@@ -1667,6 +1667,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                   avviso["dal"], ", ".join(avviso["mercati"]), ", ".join(ESITO.get("falliti", [])) or "nessuno")
     out = {
         "aggiornato": g.date[-1], "rotazione": attesa or g.date[ultimo_rib], "prossima": prossima,
+        "az_fino": AZ_FINO,                                   # v7.29 per "Cosa fare oggi" (quota azioni -> S&P 500)
         **({"attesa": True, "decisa_al": g.date[-1]} if attesa else {}),
         "dal": g.date[giorni[0]], "oos_dal": OOS_DAL, "fonte": "Yahoo Finance (prezzi rettificati)",
         "profili": out_prof, "chiusure": chiusure,
