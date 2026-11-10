@@ -11,7 +11,8 @@ COSA CONTROLLA (workflow sorveglianza.yml, ogni ora)
   1) sito pubblicato: stato.json del sito, campo "creato" (UTC), non piu' vecchio di ORE_SITO;
   2) Azionario: azioni/indice.json, campo "generato" (ora italiana), non piu' vecchio di ORE_AZIONI;
   3) prezzi live: live.json nel ramo "live", campo "quando" (secondi), fresco durante le ore di borsa;
-  4) ultimo giro CONCLUSO dei workflow principali (Sito, Azioni, Prezzi live, Test): nessuno fallito.
+  4) ultimo giro CONCLUSO dei workflow principali (Sito, Azioni, Prezzi live, Test): nessuno fallito;
+  5) v7.27 titoli tolti dalla borsa o con i prezzi fermi (azioni/eventi_titoli.json): da togliere dall'elenco CSV.
   Nel fine settimana (e il lunedi' mattina) le soglie si allungano: le borse sono chiuse e i giri non partono.
 
 COME AVVISA
@@ -63,7 +64,7 @@ def _ore(adesso, quando):
     return (adesso - quando).total_seconds() / 3600
 
 
-def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None):
+def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None, eventi=None):
     """Lista di frasi (in italiano) con cio' che non va. Vuota = tutto regolare.
     stato = stato.json del sito; indice = azioni/indice.json; live = live.json; giri = {nome: (conclusione, url)}."""
     out = []
@@ -99,6 +100,16 @@ def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None):
     for nome, (concl, url) in sorted((giri or {}).items()):
         if concl in ("failure", "timed_out", "startup_failure"):
             out.append("Ultimo giro \"%s\" fallito: %s" % (nome, url))
+    # 5) titoli da togliere dall'elenco (azioni_elenco.csv)
+    ev = eventi or {}
+    dl = sorted(ev.get("delistati") or {})
+    if dl:
+        out.append("Titoli tolti dalla borsa, da togliere da azioni_elenco.csv: %s."
+                   % ", ".join("%s (%s)" % (t, (ev["delistati"][t] or {}).get("nome") or "?") for t in dl))
+    fe = sorted(set(ev.get("fermi") or {}) - set(dl))
+    if fe:
+        out.append("Prezzi fermi da oltre una settimana (sospesi o delistati?): %s."
+                   % ", ".join("%s dal %s" % (t, ev["fermi"][t]) for t in fe))
     return out
 
 
@@ -180,9 +191,10 @@ def main(argv):
     stato = _prova(lambda: _json(SITO + "stato.json?t=%d" % adesso.timestamp()))
     indice = _prova(lambda: _json(SITO + "azioni/indice.json?t=%d" % adesso.timestamp()))
     live = _prova(lambda: _json(LIVE))
+    eventi = _prova(lambda: _json(SITO + "azioni/eventi_titoli.json?t=%d" % adesso.timestamp()))
     giri = giri_workflow(token) if token else {}
     from . import orari_borse
-    prob = problemi(adesso, stato, indice, live, giri, orari_borse.leggi_remoto())
+    prob = problemi(adesso, stato, indice, live, giri, orari_borse.leggi_remoto(), eventi)
     print("\n".join(prob) if prob else "Tutto regolare.")
     if "--prova" not in argv and token:
         avvisa(prob, adesso, token, env)

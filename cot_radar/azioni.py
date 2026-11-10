@@ -108,9 +108,13 @@ DOPPIE = {"ASML.AS": "ASML", "SHOP.TO": "SHOP", "TRI.TO": "TRI", "0005.HK": "HSB
           "GOOG": "GOOGL", "FOX": "FOXA", "NWS": "NWSA"}
 
 
+# v7.27 titoli tolti dalla borsa o con i prezzi fermi (eventi_titoli.py): riempito da pubblica() e dal giro
+SOSPESI = set()
+
+
 def acquistabile(t):
     """True se il titolo puo' entrare nella vetrina e nelle 5 azioni dei portafogli (vedi NON_ACQUISTABILI)."""
-    return not t.endswith(NON_ACQUISTABILI) and t not in DOPPIE
+    return not t.endswith(NON_ACQUISTABILI) and t not in DOPPIE and t not in SOSPESI
 
 
 TOP_N = 5                      # titoli nella vetrina della Dashboard (al massimo 1 per settore)
@@ -576,6 +580,9 @@ def pubblica(cartella, stato=None, titoli=None):
     Usa SOLO le copie grezze: se oggi Yahoo non ha risposto, la scheda mostra gli ultimi dati con l'avviso."""
     el = titoli if titoli is not None else elenco()
     righe, dettagli, mensili = [], 0, {}
+    ev = _leggi(os.path.join(cartella, "pubblico", "eventi_titoli.json")) or {}     # v7.27 delistati, fermi, split
+    SOSPESI.clear()
+    SOSPESI.update(set(ev.get("delistati") or {}) | set(ev.get("fermi") or {}))
     for x in el:
         rec = _leggi(os.path.join(cartella, "grezzi", _nome_file(x["t"]) + ".json"))
         r = riassunto(rec) if rec else None
@@ -588,6 +595,12 @@ def pubblica(cartella, stato=None, titoli=None):
                            "st_n": mese and mese["n"]}, **r))
         if x["t"] in DOPPIE:                   # v7.24 seconda quotazione: la tabella rimanda alla principale
             righe[-1]["dq"] = DOPPIE[x["t"]]
+        if x["t"] in (ev.get("delistati") or {}):  # v7.27 stato del titolo: "dl" tolto dalla borsa, "fermo" prezzi fermi
+            righe[-1]["ev"] = "dl"
+        elif x["t"] in (ev.get("fermi") or {}):
+            righe[-1]["ev"] = "fermo"
+        if x["t"] in (ev.get("split") or {}):      # frazionamento recente: nota nella scheda
+            righe[-1]["spl"] = {k: ev["split"][x["t"]][k] for k in ("data", "r")}
         try:                                   # v7.22 rendimento da dividendo (ultimi 12 mesi) al prezzo di oggi
             from . import dividendi
             righe[-1]["dy"] = dividendi.rendimento(cartella, x["t"], r.get("p"), rec.get("valuta"))
@@ -791,7 +804,19 @@ def main(argv):
         orari_borse.aggiorna(cartella)
     except Exception as e:
         log.warning("calendario borse non aggiornato (%s)", e)
+    if sel in ("usa", "tutte"):
+        # v7.27 frazionamenti PRIMA dei prezzi: lo storico di chi si e' frazionato si riscarica gia' in questo giro
+        try:
+            from . import eventi_titoli
+            eventi_titoli.aggiorna(cartella, el=titoli)
+        except Exception as e:
+            log.warning("frazionamenti/delistati non controllati (%s)", e)
     stato = aggiorna(cartella, da_fare, chiusura=CHIUSURA.get(sel, CHIUSURA_UTC))
+    try:                                       # v7.27 prezzi fermi ricalcolati con i prezzi appena scaricati
+        from . import eventi_titoli
+        eventi_titoli.aggiorna(cartella, el=titoli, frazionamenti=False)
+    except Exception as e:
+        log.warning("controllo prezzi fermi non riuscito (%s)", e)
     errore_giro = bool(stato.get("anomalia"))
     # STATO PER AREA: un giro riuscito toglie solo l'anomalia della SUA area; il popup/striscia resta finche' un'area
     # e' ancora indietro. stato.json conserva {aree: {asia: {...}, europa: {...}, usa: {...}}}.
@@ -824,7 +849,9 @@ def main(argv):
     # v7.26 grafici intraday "5 giorni" della scheda del titolo (intraday.py): una volta al giorno, mai bloccante
     try:
         from . import intraday
-        intraday.aggiorna(cartella, el=titoli)
+        from . import eventi_titoli
+        ev = _leggi(eventi_titoli.file_eventi(cartella)) or {}
+        intraday.aggiorna(cartella, el=titoli, split=ev.get("split"))      # barre rettificate se c'e' un frazionamento
     except Exception as e:
         log.warning("intraday non aggiornato (%s)", e)
     # quota "Azioni scelte" dei portafogli modello (satellite.py): mai bloccante per la scheda Azionario

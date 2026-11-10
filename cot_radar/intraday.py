@@ -79,17 +79,27 @@ def da_yahoo(t, adesso):
     return None
 
 
-def scarica(t, valuta, adesso):
+def rettifica(barre, split):
+    """v7.27 frazionamento nelle ultime sedute: le barre a 5 minuti NON sono rettificate, quindi quelle prima della
+    data del frazionamento si moltiplicano per il fattore (es. 10:1 -> x0,1), altrimenti il grafico mostrerebbe un
+    finto drawdown del -90%. split = {"data": "AAAA-MM-GG", "f": fattore} o None."""
+    if not split or not split.get("f") or not split.get("data"):
+        return barre
+    giorno = lambda ts: datetime.fromtimestamp(ts + 2 * 3600, timezone.utc).date().isoformat()
+    return [[ts, round(v * split["f"], 4) if giorno(ts) < split["data"] else v] for ts, v in barre]
+
+
+def scarica(t, valuta, adesso, split=None):
     """Barre a 5 minuti delle ultime 5 sedute, o None."""
     s = simbolo(t, valuta)
     if not s:
         return None
     sym, fattore, fonte = s
     barre = da_eodhd(sym, fattore, adesso) if fonte == "eodhd" else da_yahoo(sym, adesso)
-    return sedute(sorted(barre)) if barre else None
+    return sedute(rettifica(sorted(barre), split)) if barre else None
 
 
-def aggiorna(cartella, el=None, adesso=None):
+def aggiorna(cartella, el=None, adesso=None, split=None):
     """Riscrive pubblico/intraday/ per tutti i titoli con intraday. Mai bloccante. Restituisce {"ok", "vuoti"}."""
     adesso = adesso or time.time()
     inizio = time.time()
@@ -106,7 +116,7 @@ def aggiorna(cartella, el=None, adesso=None):
         t, valuta = lavoro
         if time.time() - inizio > TEMPO_MAX:
             return False
-        b = scarica(t, valuta, adesso)
+        b = scarica(t, valuta, adesso, (split or {}).get(t))
         if not b:
             return False
         A._scrivi(os.path.join(cartella, "pubblico", "intraday", A._nome_file(t) + ".json"), {"t": t, "agg": agg, "b": b})
