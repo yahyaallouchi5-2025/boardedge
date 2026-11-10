@@ -1,0 +1,48 @@
+# prezzi-live-continuo.yml - v7.24 PREZZI INTRADAY (cot_radar/live.py, EODHD real-time, ritardo ~15 min) in CICLO.
+# PERCHE': il vecchio prezzi-live.yml partiva "ogni 15 minuti", ma GitHub avvia di rado le corse cosi' frequenti
+# (in mesi: 4 giri in tutto). Ora 4 partenze al giorno; ognuna resta accesa fino a ~5h45 e ogni 15 minuti, SE una
+# borsa e' aperta (Europa, USA/Canada, Sydney: live.ORARI), scarica i prezzi e riscrive il ramo "live" (un solo
+# commit, sovrascritto). Anche se GitHub parte in ritardo, il ciclo copre comunque la seduta.
+# Una partenza nuova sostituisce quella vecchia (concurrency): mai due cicli insieme.
+# Chiamate EODHD: ~1 per simbolo a giro, ~64 giri al giorno (dentro il limite del piano). Chiave solo dai Secrets.
+name: Prezzi live continuo
+on:
+  schedule:
+    - cron: "41 6 * * 1-5"     # Europa (apre alle 07/08 UTC)
+    - cron: "41 12 * * 1-5"    # meta' giornata + apertura USA
+    - cron: "41 18 * * 1-5"    # chiusura USA
+    - cron: "41 22 * * 0-4"    # Sydney (notte italiana)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: prezzi-live-continuo
+  cancel-in-progress: true
+jobs:
+  ciclo:
+    runs-on: ubuntu-latest
+    timeout-minutes: 355
+    steps:
+      - uses: actions/checkout@v4
+      - name: Ciclo dei prezzi intraday
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: |
+          FINE=$(( $(date +%s) + 345*60 ))
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          while [ "$(date +%s)" -lt "$FINE" ]; do
+            if python3 -m cot_radar.live --aperta; then
+              rm -rf out prima.json
+              # live.json del giro prima (solo per riusare i simboli gia' trovati: meno richieste)
+              curl -sf -m 20 -o prima.json "https://raw.githubusercontent.com/${{ github.repository }}/live/live.json" || true
+              if python3 -m cot_radar.live out prima.json; then
+                ( cd out && git init -q -b live && git add -A && git commit -qm "prezzi live: $(date -u +%F' '%H:%M)" \
+                  && git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" live:live ) \
+                  || echo "push non riuscito: riprovo al giro dopo"
+              fi
+            else
+              echo "$(date -u +%H:%M) borse chiuse"
+            fi
+            sleep 900
+          done
