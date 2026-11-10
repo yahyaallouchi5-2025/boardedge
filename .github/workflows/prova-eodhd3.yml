@@ -1,0 +1,26 @@
+# prova-eodhd3.yml - v7.25 PROVA MIRATA del piano EODHD (strumenti/prova_eodhd3.py): festivita' delle borse,
+# intraday a 5 minuti, Londra/Toronto/Sydney, split e delistati in blocco, sentiment, insider. Nessun cambio al sito.
+# Chiave solo dai Secrets. Risultato: ramo "prova-eodhd3", file eodhd3.json. A mano: Actions -> Prova EODHD 3.
+name: Prova EODHD 3
+on:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  prova:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Interroga EODHD
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: mkdir out && cd out && python3 -u ../strumenti/prova_eodhd3.py
+      - name: Salva nel ramo "prova-eodhd3"
+        run: |
+          cd out
+          git init -q -b prova-eodhd3
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "prova EODHD 3: $(date -u +%F)"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" prova-eodhd3:prova-eodhd3
