@@ -254,10 +254,12 @@ try{(function(){const el=$("azioni");if(!el)return;
   try{window.ebStat&&ebStat.ev("azione",{ticker:tk});}catch(e){}
   fetch(BASE+"titoli/"+encodeURIComponent(tk.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
    .then(x=>{if(!ov.querySelector(".azcorpo"))return;ST.tit=x;corpo(ov,t,x);})
-   .catch(e=>{const c=ov.querySelector(".azcorpo");if(c)c.innerHTML=`<div class="card azvuoto"><h3>Dettaglio non disponibile</h3><p class="small">Riprova tra qualche minuto.</p></div>`;});}
+   .catch(e=>{console.error("[BoardEdge] scheda titolo:",e);const c=ov.querySelector(".azcorpo");if(c)c.innerHTML=`<div class="card azvuoto"><h3>Dettaglio non disponibile</h3><p class="small">Riprova tra qualche minuto.</p></div>`;});}
 
  function corpo(ov,t,x){const c=ov.querySelector(".azcorpo");
-  const PER=[["1a","1 anno"],["2a","2 anni"],["max","Storico"]];
+  const PER=(haIntra(t)?[["oggi","Oggi"],["5g","5 giorni"]]:[]).concat([["1a","1 anno"],["2a","2 anni"],["max","Storico"]]);
+  if(!PER.some(p=>p[0]==ST.per))ST.per="1a";
+  const intra=ST.per=="oggi"||ST.per=="5g";
   const serie=()=>{if(ST.per=="max")return x.m.map(p=>[p[0]+"-01",p[1]]);const lim=new Date(x.d[x.d.length-1][0]);lim.setFullYear(lim.getFullYear()-(ST.per=="1a"?1:2));
    const l=lim.toISOString().slice(0,10);return x.d.filter(p=>p[0]>=l);};
   const MESI=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"],mc=new Date().getMonth();
@@ -267,7 +269,7 @@ try{(function(){const el=$("azioni");if(!el)return;
      <span class="azsb"><i class="${m&&m.media>=0?"su":"giu"}" style="height:${m?Math.max(2,Math.abs(m.media)/mx*50):0}%;${m&&m.media<0?"top:50%":"bottom:50%"}"></i></span>
      <b class="${m&&m.media>=0?"up":"down"}">${m?(m.media>0?"+":"")+fx(m.media,1):"–"}</b><small>${m?m.pos+"%":""}</small><em>${MESI[i]}</em></div>`).join("")}</div>`;})():"";
   c.innerHTML=`<div class="azgrid"><div class="azsx"><div class="vfswitch azper">${PER.map(p=>`<button data-p="${p[0]}" class="${ST.per==p[0]?"on":""}">${p[1]}</button>`).join("")}</div>
-   <div class="azgraf">${grafico(serie(),ST.per=="max",t.val)}</div>
+   <div class="azgraf">${intra?`<div class="azgsk">${sk("100%",230,"border-radius:14px")}</div>`:grafico(serie(),ST.per=="max",t.val)}</div>
    <div class="azmini"><div><span>1 mese</span>${pc(t.v1m)}</div><div><span>3 mesi</span>${pc(t.v3m)}</div><div><span>Da inizio anno</span>${pc(t.vytd)}</div>
     <div><span>1 anno</span>${pc(t.v1a)}</div><div><span>Dal massimo 1 anno</span>${pc(t.dmax)}</div><div><span>Trend (media 200g)</span>${pc(t.t200)}</div></div>
    ${tecBlocco(x,t)}
@@ -279,7 +281,59 @@ try{(function(){const el=$("azioni");if(!el)return;
    ${stag}<p class="small azfonte">${esc(x.borsa||"")}${x.val?" &middot; prezzi in "+esc(x.val):""}</p>`;
   c.querySelectorAll(".azper button").forEach(b=>b.onclick=()=>{ST.per=b.dataset.p;corpo(ov,t,x);});
   bilancio(c.querySelector(".azbil"),t);profilo(c.querySelector(".azprof"),t);notizie(c.querySelector(".aznews"),t);dividendi(c.querySelector(".azdiv"),t);
-  tooltip(c.querySelector(".azgraf"),serie(),t.val,ST.per=="max");}
+  if(intra)disegnaIntra(c.querySelector(".azgraf"),t,ST.per);else tooltip(c.querySelector(".azgraf"),serie(),t.val,ST.per=="max");}
+
+ // --- v7.26 GRAFICI INTRADAY "Oggi" e "5 giorni" (cot_radar/intraday.py)
+ //     5 giorni = barre a 5 minuti (../azioni/intraday/<T>.json, una volta al giorno); Oggi = un punto ogni 15 minuti dal
+ //     ciclo dei prezzi live (ramo "live", oggi/<T>.json). Se le barre non hanno ancora la seduta di oggi si aggiungono
+ //     i punti live. Sedute separate dal giorno UTC di (ora + 2 ore), come nel backend (Sydney resta intera).
+ //     Tokyo, Hong Kong, Cina, India: niente intraday nel piano -> nessuna linguetta.
+ const INTRA_SUF=["","TO","L","AX","DE","PA","AS","MC","BR","HE","MI"];
+ const sufT=tk=>{const m=/\.([A-Z]+)$/.exec(tk);return m?m[1]:"";};
+ const haIntra=t=>!t.t.startsWith("^")&&INTRA_SUF.includes(sufT(t.t));
+ const gruppoMkt=tk=>({"":"USA",TO:"Canada",L:"Londra",AX:"Australia"})[sufT(tk)]||"Europa";
+ const RAWL="https://raw.githubusercontent.com/yahyaallouchi5-2025/cot-radar/live/oggi/";
+ const CINTRA={};
+ const giornoS=ts=>new Date((ts+7200)*1000).toISOString().slice(0,10);
+ const oraIt=ts=>new Date(ts*1000).toLocaleTimeString("it-IT",{timeZone:"Europe/Rome",hour:"2-digit",minute:"2-digit"});
+ const giornoIt=ts=>new Date(ts*1000).toLocaleDateString("it-IT",{timeZone:"Europe/Rome",weekday:"short",day:"2-digit",month:"2-digit"});
+ function datiIntra(t){const f=encodeURIComponent(t.t.replace("^","_"))+".json";
+  if(!CINTRA[t.t])CINTRA[t.t]=Promise.all([
+   fetch(BASE+"intraday/"+f,{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null),
+   fetch(RAWL+f+"?t="+Math.floor(Date.now()/6e4),{cache:"no-store"}).then(r=>r.ok?r.json():null).catch(()=>null)
+  ]).then(([b,o])=>{const barre=(b&&b.b)||[],ult=barre.length?barre[barre.length-1][0]:0;
+   return barre.concat((Array.isArray(o)?o:[]).filter(p=>p[0]>ult));});
+  return CINTRA[t.t];}
+ function disegnaIntra(box,t,per){datiIntra(t).then(all=>{if(!box.isConnected)return;
+  const giorni=[...new Set(all.map(p=>giornoS(p[0])))];
+  if(!all.length||!giorni.length){box.innerHTML=`<div class="azgvuoto">Grafico intraday non ancora disponibile per questo titolo: arriva con il giro di stasera.</div>`;return;}
+  const g5=giorni.slice(-5),ultimoG=giorni[giorni.length-1],seduta=all.filter(p=>giornoS(p[0])==ultimoG),prec=all.filter(p=>giornoS(p[0])<ultimoG);
+  const oggiG=giornoS(Date.now()/1000),eOggi=ultimoG==oggiG,st=window.ebMercati?ebMercati.stato(gruppoMkt(t.t)):null;
+  const s=per=="oggi"?seduta:all.filter(p=>g5.includes(giornoS(p[0]))),base=per=="oggi"?(prec.length?prec[prec.length-1][1]:(lv(t)&&LV.p[t.t]&&LV.p[t.t][1])||seduta[0][1]):s[0][1];
+  const ult=s[s.length-1],vs=s.map(p=>p[1]),mx=Math.max(...vs),mn=Math.min(...vs),var_=(ult[1]/base-1)*100;
+  const titolo=per=="oggi"?(eOggi?`Oggi${st&&st.aperto?` <span class="azlv azlvt"><i></i>LIVE</span>`:` &middot; seduta chiusa`}`:`Ultima seduta &middot; ${giornoIt(ult[0])}`)
+   :`${g5.length} ${g5.length==1?"seduta":"sedute"} &middot; dal ${giornoIt(s[0][0])}`;
+  const nota=per=="oggi"&&!eOggi&&st?`<span class="azgnota">${st.festivo?`Oggi borsa chiusa per festivit&agrave; (${esc(st.festivo)})`:`La seduta di oggi non &egrave; ancora iniziata`}${st.prossima?` &middot; apre ${ebMercati.oraIt(st.prossima)}`:""}</span>`:"";
+  box.innerHTML=`<div class="azgint"><div class="azgh"><b>${titolo}</b>${nota}</div>${graficoIntra(s,base,t.val,per,box.clientWidth<520)}
+   <div class="azistat"><span>Ultimo <b>${prezzo(ult[1],t.val)}</b> <em class="${var_>=0?"up":"down"}">${var_>0?"+":""}${fx(var_,2)}%</em></span>
+    <span>Max <b>${prezzo(mx,t.val)}</b></span><span>Min <b>${prezzo(mn,t.val)}</b></span>
+    <span class="azist-t">${per=="oggi"?`ore ${oraIt(ult[0])} &middot; ritardo ~15 min`:`barre a 5 minuti`}</span></div></div>`;
+  tooltip(box,s,t.val,i=>(per=="oggi"?"":giornoIt(s[i][0])+" ")+oraIt(s[i][0]),base);});}
+ function graficoIntra(s,base,val,per,stretto){if(s.length<2)return `<div class="azgvuoto">Ancora pochi punti: il grafico si riempie ogni 15 minuti durante la seduta.</div>`;
+  const W=640,H=240,L=8,R=58,T=12,B=26,v=s.map(p=>p[1]).concat(per=="oggi"?[base]:[]),lo=Math.min(...v),hi=Math.max(...v),pad=(hi-lo||hi*0.01)*0.08;
+  const lo2=lo-pad,hi2=hi+pad,X=i=>L+i/(s.length-1)*(W-L-R),Y=z=>T+(hi2-z)/(hi2-lo2)*(H-T-B);
+  const path=s.map((p,i)=>(i?"L":"M")+X(i).toFixed(1)+" "+Y(p[1]).toFixed(1)).join("");
+  const su=s[s.length-1][1]>=base,tick=[0,.25,.5,.75,1].map(k=>lo2+(hi2-lo2)*k);
+  const et=[];let prevK="";s.forEach((p,i)=>{const k=per=="oggi"?oraIt(p[0]).slice(0,2):giornoS(p[0]);
+   if(k!=prevK){if(i>0||per!="oggi")et.push([i,per=="oggi"?k+":00":(stretto?giornoIt(p[0]).slice(-5):giornoIt(p[0])),i>0&&per!="oggi"]);prevK=k;}});
+  const passo=per=="oggi"?Math.max(1,Math.ceil(et.length/(stretto?4:7))):1;
+  return `<svg viewBox="0 0 ${W} ${H}" class="azsvg ${su?"su":"giu"}" preserveAspectRatio="none">
+   <defs><linearGradient id="azgri" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".28"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs>
+   ${tick.map(z=>`<line x1="${L}" x2="${W-R}" y1="${Y(z)}" y2="${Y(z)}" class="pgr"/><text x="${W-R+6}" y="${Y(z)+4}" class="pax">${Number(z).toLocaleString("it-IT",{maximumFractionDigits:z<10?2:z<1000?1:0})}</text>`).join("")}
+   ${et.filter((e,k)=>k%passo==0).map(e=>`${e[2]?`<line x1="${X(e[0])}" x2="${X(e[0])}" y1="${T}" y2="${H-B}" class="azgsep"/>`:""}<text x="${Math.min(W-R-14,Math.max(L+14,X(e[0])+(per=="oggi"?0:18)))}" y="${H-7}" text-anchor="middle" class="pax">${e[1]}</text>`).join("")}
+   ${per=="oggi"?`<line x1="${L}" x2="${W-R}" y1="${Y(base)}" y2="${Y(base)}" class="azgbase"/><text x="${W-R+6}" y="${Y(base)-5}" class="pax azgbt">prec.</text>`:""}
+   <path d="${path}L${X(s.length-1)} ${H-B}L${L} ${H-B}Z" fill="url(#azgri)"/><path d="${path}" class="azlin"/>
+   <line class="pcur" x1="0" x2="0" y1="${T}" y2="${H-B}" style="display:none"/><circle class="pcurp" r="4" style="display:none"/></svg><div class="ptip" hidden></div>`;}
 
  // --- v7.7 ANALISI TECNICA (cot_radar/azioni.py tecnica(): SMA 50/200, RSI 14, ATR 14, range 52 settimane) e icona
  //     del trend accanto al nome in tabella (indice.json "tr": 1 rialzista, 0 laterale, -1 ribassista)
@@ -454,13 +508,13 @@ try{(function(){const el=$("azioni");if(!el)return;
    <path d="${path}L${X(s.length-1)} ${H-B}L${L} ${H-B}Z" fill="url(#azgr)"/><path d="${path}" class="azlin"/>
    <line class="pcur" x1="0" x2="0" y1="${T}" y2="${H-B}" style="display:none"/><circle class="pcurp" r="4" style="display:none"/></svg><div class="ptip" hidden></div>`;}
 
- function tooltip(box,s,val,mensile){const svg=box&&box.querySelector("svg");if(!svg||s.length<2)return;const tip=box.querySelector(".ptip"),lin=svg.querySelector(".pcur"),pt=svg.querySelector(".pcurp");
+ function tooltip(box,s,val,mensile,base){const lab=typeof mensile=="function"?mensile:null,b0=base||(s[0]&&s[0][1]);   /* v7.26 etichetta e base per l'intraday */const svg=box&&box.querySelector("svg");if(!svg||s.length<2)return;const tip=box.querySelector(".ptip"),lin=svg.querySelector(".pcur"),pt=svg.querySelector(".pcurp");
   const W=640,L=8,R=58;
   svg.addEventListener("mousemove",e=>{const r=svg.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W,i=Math.max(0,Math.min(s.length-1,Math.round((x-L)/(W-L-R)*(s.length-1))));
    const X=L+i/(s.length-1)*(W-L-R);
    const path=svg.querySelector(".azlin").getAttribute("d").split(/[ML]/).filter(Boolean)[i].trim().split(" ");
    lin.setAttribute("x1",X);lin.setAttribute("x2",X);lin.style.display="";pt.setAttribute("cx",path[0]);pt.setAttribute("cy",path[1]);pt.style.display="";
-   tip.hidden=false;tip.innerHTML=`<b>${mensile?fd(s[i][0].slice(0,7)):gg(s[i][0])}</b> ${prezzo(s[i][1],val)} <span>(${(s[i][1]/s[0][1]-1)>0?"+":""}${fx((s[i][1]/s[0][1]-1)*100,1)}%)</span>`;
+   tip.hidden=false;tip.innerHTML=`<b>${lab?lab(i):mensile?fd(s[i][0].slice(0,7)):gg(s[i][0])}</b> ${prezzo(s[i][1],val)} <span>(${(s[i][1]/b0-1)>0?"+":""}${fx((s[i][1]/b0-1)*100,lab?2:1)}%)</span>`;
    tip.style.left=Math.min(r.width-190,Math.max(0,e.clientX-r.left+12))+"px";});
   svg.addEventListener("mouseleave",()=>{lin.style.display="none";pt.style.display="none";tip.hidden=true;});}
 })();}catch(e){fail('Azioni','azioni',e);}
