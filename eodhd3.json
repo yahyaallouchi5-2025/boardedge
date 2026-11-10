@@ -1,0 +1,1096 @@
+{
+ "quando": "2026-11-10 20:27 UTC",
+ "prove": {
+  "orari_US": {
+   "http": 200,
+   "ok": true,
+   "byte": 1466,
+   "riassunto": {
+    "nome": "USA Stocks",
+    "fuso": "America/New_York",
+    "aperta_ora": true,
+    "orari": {
+     "Open": "09:30:00",
+     "Close": "16:00:00",
+     "OpenUTC": "14:30:00",
+     "CloseUTC": "21:00:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-11-26",
+      "Thanksgiving Day",
+      "official"
+     ],
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "official"
+     ],
+     [
+      "2027-01-18",
+      "Dr. Martin Luther King Jr’s Birthday",
+      "official"
+     ],
+     [
+      "2027-02-15",
+      "Washington’s Birthday",
+      "official"
+     ],
+     [
+      "2027-03-26",
+      "Good Friday",
+      "official"
+     ]
+    ],
+    "n_festivi": 11,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_XETRA": {
+   "http": 200,
+   "ok": true,
+   "byte": 1070,
+   "riassunto": {
+    "nome": "XETRA Stock Exchange",
+    "fuso": "Europe/Berlin",
+    "aperta_ora": false,
+    "orari": {
+     "Open": "09:00:00",
+     "Close": "17:30:00",
+     "OpenUTC": "08:00:00",
+     "CloseUTC": "16:30:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-12-24",
+      "Christmas Eve (2026)",
+      "official"
+     ],
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2026-12-26",
+      "Boxing Day",
+      "official"
+     ],
+     [
+      "2026-12-31",
+      "New Year's Eve (2026)",
+      "official"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "official"
+     ],
+     [
+      "2027-03-26",
+      "Good Friday",
+      "official"
+     ],
+     [
+      "2027-03-29",
+      "Easter Monday",
+      "official"
+     ],
+     [
+      "2027-05-01",
+      "International Workers’ Day",
+      "official"
+     ]
+    ],
+    "n_festivi": 9,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_LSE": {
+   "http": 200,
+   "ok": true,
+   "byte": 1036,
+   "riassunto": {
+    "nome": "London Exchange",
+    "fuso": "Europe/London",
+    "aperta_ora": false,
+    "orari": {
+     "Open": "08:00:00",
+     "Close": "16:30:00",
+     "OpenUTC": "08:00:00",
+     "CloseUTC": "16:30:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2026-12-26",
+      "Boxing Day",
+      "bank"
+     ],
+     [
+      "2026-12-28",
+      "Boxing Day (substitute day)",
+      "bank"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "bank"
+     ],
+     [
+      "2027-03-26",
+      "Good Friday",
+      "official"
+     ],
+     [
+      "2027-03-29",
+      "Easter Monday",
+      "bank"
+     ],
+     [
+      "2027-05-03",
+      "May Day Bank Holiday",
+      "bank"
+     ]
+    ],
+    "n_festivi": 9,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_TO": {
+   "http": 200,
+   "ok": true,
+   "byte": 1017,
+   "riassunto": {
+    "nome": "Toronto Exchange",
+    "fuso": "America/Toronto",
+    "aperta_ora": true,
+    "orari": {
+     "Open": "09:30:00",
+     "Close": "16:00:00",
+     "OpenUTC": "14:30:00",
+     "CloseUTC": "21:00:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2026-12-28",
+      "Boxing Day",
+      "official"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "official"
+     ],
+     [
+      "2027-02-15",
+      "Family Day",
+      "official"
+     ],
+     [
+      "2027-03-26",
+      "Good Friday",
+      "official"
+     ]
+    ],
+    "n_festivi": 9,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_AU": {
+   "http": 200,
+   "ok": true,
+   "byte": 1061,
+   "riassunto": {
+    "nome": "Australian Securities Exchange",
+    "fuso": "Australia/Sydney",
+    "aperta_ora": false,
+    "orari": {
+     "Open": "09:50:00",
+     "Close": "16:12:00",
+     "OpenUTC": "22:50:00",
+     "CloseUTC": "05:12:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2026-12-26",
+      "Boxing Day",
+      "official"
+     ],
+     [
+      "2026-12-28",
+      "Boxing Day Holiday",
+      "official"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "official"
+     ],
+     [
+      "2027-01-26",
+      "Australia Day",
+      "official"
+     ],
+     [
+      "2027-03-26",
+      "Good Friday",
+      "official"
+     ],
+     [
+      "2027-03-29",
+      "Easter Monday",
+      "official"
+     ],
+     [
+      "2027-04-25",
+      "ANZAC Day",
+      "official"
+     ]
+    ],
+    "n_festivi": 9,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_PA": {
+   "http": 200,
+   "ok": true,
+   "byte": 850,
+   "riassunto": {
+    "nome": "Euronext Paris",
+    "fuso": "Europe/Paris",
+    "aperta_ora": false,
+    "orari": {
+     "Open": "09:00:00",
+     "Close": "17:30:00",
+     "OpenUTC": "08:00:00",
+     "CloseUTC": "16:30:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "official"
+     ],
+     [
+      "2027-03-29",
+      "Easter Monday",
+      "official"
+     ],
+     [
+      "2027-05-01",
+      "International Workers’ Day",
+      "official"
+     ],
+     [
+      "2027-05-08",
+      "Victory in Europe Day",
+      "official"
+     ]
+    ],
+    "n_festivi": 6,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_AS": {
+   "http": 200,
+   "ok": true,
+   "byte": 843,
+   "riassunto": {
+    "nome": "Euronext Amsterdam",
+    "fuso": "Europe/Amsterdam",
+    "aperta_ora": false,
+    "orari": {
+     "Open": "09:00:00",
+     "Close": "17:40:00",
+     "OpenUTC": "08:00:00",
+     "CloseUTC": "16:40:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2026-12-26",
+      "Boxing Day",
+      "official"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "official"
+     ],
+     [
+      "2027-03-26",
+      "Good Friday",
+      "official"
+     ],
+     [
+      "2027-03-29",
+      "Easter Monday",
+      "official"
+     ],
+     [
+      "2027-05-01",
+      "International Workers’ Day",
+      "official"
+     ]
+    ],
+    "n_festivi": 6,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_MC": {
+   "http": 200,
+   "ok": true,
+   "byte": 1061,
+   "riassunto": {
+    "nome": "Madrid Exchange",
+    "fuso": "Europe/Rome",
+    "aperta_ora": false,
+    "orari": {
+     "Open": "09:00:00",
+     "Close": "17:30:00",
+     "OpenUTC": "08:00:00",
+     "CloseUTC": "16:30:00",
+     "WorkingDays": "Mon,Tue,Wed,Thu,Fri"
+    },
+    "festivi_prossimi": [
+     [
+      "2026-12-06",
+      "constitutionDay",
+      "official"
+     ],
+     [
+      "2026-12-08",
+      "Immaculate Conception",
+      "official"
+     ],
+     [
+      "2026-12-25",
+      "Christmas Day",
+      "official"
+     ],
+     [
+      "2027-01-01",
+      "New Year’s Day",
+      "official"
+     ],
+     [
+      "2027-03-26",
+      "Good Friday",
+      "official"
+     ],
+     [
+      "2027-05-01",
+      "International Workers’ Day",
+      "official"
+     ]
+    ],
+    "n_festivi": 9,
+    "chiavi": [
+     "ActiveTickers",
+     "Code",
+     "Country",
+     "Currency",
+     "ExchangeEarlyCloseDays",
+     "ExchangeHolidays",
+     "Name",
+     "OperatingMIC",
+     "PreviousDayUpdatedTickers",
+     "Timezone",
+     "TradingHours",
+     "UpdatedTickers",
+     "isOpen"
+    ]
+   }
+  },
+  "orari_MI": {
+   "http": 404,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "5m_AAPL.US": {
+   "http": 200,
+   "ok": true,
+   "byte": 12524,
+   "riassunto": {
+    "barre": 79,
+    "prima": "2026-11-09 14:30:00",
+    "ultima": "2026-11-09 21:00:00",
+    "campi": [
+     "close",
+     "datetime",
+     "gmtoffset",
+     "high",
+     "low",
+     "open",
+     "timestamp",
+     "volume"
+    ],
+    "ultima_riga": {
+     "timestamp": 1794258000,
+     "gmtoffset": 0,
+     "datetime": "2026-11-09 21:00:00",
+     "open": 350.690002,
+     "high": 350.690002,
+     "low": 350.690002,
+     "close": 350.690002,
+     "volume": null
+    }
+   }
+  },
+  "5m_SAP.XETRA": {
+   "http": 200,
+   "ok": true,
+   "byte": 31749,
+   "riassunto": {
+    "barre": 206,
+    "prima": "2026-11-09 08:00:00",
+    "ultima": "2026-11-10 16:30:00",
+    "campi": [
+     "close",
+     "datetime",
+     "gmtoffset",
+     "high",
+     "low",
+     "open",
+     "timestamp",
+     "volume"
+    ],
+    "ultima_riga": {
+     "timestamp": 1794328200,
+     "gmtoffset": 0,
+     "datetime": "2026-11-10 16:30:00",
+     "open": 209.949996,
+     "high": 209.949996,
+     "low": 209.949996,
+     "close": 209.949996,
+     "volume": null
+    }
+   }
+  },
+  "5m_SHEL.LSE": {
+   "http": 200,
+   "ok": true,
+   "byte": 29063,
+   "riassunto": {
+    "barre": 206,
+    "prima": "2026-11-09 08:00:00",
+    "ultima": "2026-11-10 16:30:00",
+    "campi": [
+     "close",
+     "datetime",
+     "gmtoffset",
+     "high",
+     "low",
+     "open",
+     "timestamp",
+     "volume"
+    ],
+    "ultima_riga": {
+     "timestamp": 1794328200,
+     "gmtoffset": 0,
+     "datetime": "2026-11-10 16:30:00",
+     "open": 3624.5,
+     "high": 3624.5,
+     "low": 3624.5,
+     "close": 3624.5,
+     "volume": null
+    }
+   }
+  },
+  "5m_RY.TO": {
+   "http": 200,
+   "ok": true,
+   "byte": 12407,
+   "riassunto": {
+    "barre": 79,
+    "prima": "2026-11-09 14:30:00",
+    "ultima": "2026-11-09 21:00:00",
+    "campi": [
+     "close",
+     "datetime",
+     "gmtoffset",
+     "high",
+     "low",
+     "open",
+     "timestamp",
+     "volume"
+    ],
+    "ultima_riga": {
+     "timestamp": 1794258000,
+     "gmtoffset": 0,
+     "datetime": "2026-11-09 21:00:00",
+     "open": 288.320007,
+     "high": 288.320007,
+     "low": 288.320007,
+     "close": 288.320007,
+     "volume": null
+    }
+   }
+  },
+  "5m_BHP.AU": {
+   "http": 200,
+   "ok": true,
+   "byte": 22606,
+   "riassunto": {
+    "barre": 150,
+    "prima": "2026-11-08 23:00:00",
+    "ultima": "2026-11-10 05:10:00",
+    "campi": [
+     "close",
+     "datetime",
+     "gmtoffset",
+     "high",
+     "low",
+     "open",
+     "timestamp",
+     "volume"
+    ],
+    "ultima_riga": {
+     "timestamp": 1794287400,
+     "gmtoffset": 0,
+     "datetime": "2026-11-10 05:10:00",
+     "open": 59.869998,
+     "high": 59.869998,
+     "low": 59.869998,
+     "close": 59.869998,
+     "volume": 2280322
+    }
+   }
+  },
+  "5m_ASML.AS": {
+   "http": 200,
+   "ok": true,
+   "byte": 32236,
+   "riassunto": {
+    "barre": 206,
+    "prima": "2026-11-09 08:00:00",
+    "ultima": "2026-11-10 16:30:00",
+    "campi": [
+     "close",
+     "datetime",
+     "gmtoffset",
+     "high",
+     "low",
+     "open",
+     "timestamp",
+     "volume"
+    ],
+    "ultima_riga": {
+     "timestamp": 1794328200,
+     "gmtoffset": 0,
+     "datetime": "2026-11-10 16:30:00",
+     "open": 1361,
+     "high": 1361,
+     "low": 1361,
+     "close": 1361,
+     "volume": null
+    }
+   }
+  },
+  "1m_AAPL.US": {
+   "http": 200,
+   "ok": true,
+   "byte": 38718,
+   "riassunto": {
+    "barre": 271,
+    "prima": "2026-11-09 20:28:00",
+    "ultima": "2026-11-10 00:59:00",
+    "campi": [
+     "close",
+     "datetime",
+     "gmtoffset",
+     "high",
+     "low",
+     "open",
+     "timestamp",
+     "volume"
+    ],
+    "ultima_riga": {
+     "timestamp": 1794272340,
+     "gmtoffset": 0,
+     "datetime": "2026-11-10 00:59:00",
+     "open": 350.5737,
+     "high": 350.58,
+     "low": 350.33,
+     "close": 350.49,
+     "volume": 286
+    }
+   }
+  },
+  "rt_SHEL.LSE": {
+   "http": 200,
+   "ok": true,
+   "byte": 180,
+   "riassunto": {
+    "code": "SHEL.LSE",
+    "timestamp": 1794328560,
+    "close": 3624.5,
+    "previousClose": 3701,
+    "change_p": -2.067
+   }
+  },
+  "rt_RY.TO": {
+   "http": 200,
+   "ok": true,
+   "byte": 180,
+   "riassunto": {
+    "code": "RY.TO",
+    "timestamp": 1794340860,
+    "close": 288.03,
+    "previousClose": 288.32,
+    "change_p": -0.1006
+   }
+  },
+  "rt_BHP.AU": {
+   "http": 200,
+   "ok": true,
+   "byte": 176,
+   "riassunto": {
+    "code": "BHP.AU",
+    "timestamp": 1794290340,
+    "close": 59.87,
+    "previousClose": 59.2,
+    "change_p": 1.1318
+   }
+  },
+  "bulk_LSE": {
+   "http": 200,
+   "ok": true,
+   "byte": 995446,
+   "riassunto": {
+    "titoli": 6523,
+    "date": [
+     "2026-11-10"
+    ],
+    "esempio": {
+     "code": "AAZ",
+     "close": 382.5,
+     "adjusted_close": 382.5
+    }
+   }
+  },
+  "bulk_TO": {
+   "http": 200,
+   "ok": true,
+   "byte": 391922,
+   "riassunto": {
+    "titoli": 2597,
+    "date": [
+     "2026-11-09"
+    ],
+    "esempio": {
+     "code": "RVX",
+     "close": 0.08,
+     "adjusted_close": 0.08
+    }
+   }
+  },
+  "bulk_AU": {
+   "http": 200,
+   "ok": true,
+   "byte": 293859,
+   "riassunto": {
+    "titoli": 1952,
+    "date": [
+     "2026-11-10"
+    ],
+    "esempio": {
+     "code": "SOR",
+     "close": 0.035,
+     "adjusted_close": 0.035
+    }
+   }
+  },
+  "bulk_US_simboli": {
+   "http": 200,
+   "ok": true,
+   "byte": 644,
+   "riassunto": [
+    {
+     "code": "AAPL",
+     "date": "2026-11-09",
+     "close": 350.69,
+     "adjusted_close": 350.69
+    },
+    {
+     "code": "MSFT",
+     "date": "2026-11-09",
+     "close": 545.18,
+     "adjusted_close": 545.18
+    },
+    {
+     "code": "EXPD",
+     "date": "2026-11-09",
+     "close": 189.59,
+     "adjusted_close": 189.59
+    }
+   ]
+  },
+  "bulk_split_US": {
+   "http": 200,
+   "ok": true,
+   "byte": 817,
+   "riassunto": {
+    "n": 10,
+    "esempi": [
+     {
+      "code": "ADGM",
+      "exchange": "US",
+      "date": "2026-11-09",
+      "split": "1.000000/30.000000"
+     },
+     {
+      "code": "ALPS",
+      "exchange": "US",
+      "date": "2026-11-09",
+      "split": "1.000000/5.000000"
+     },
+     {
+      "code": "ARAY",
+      "exchange": "US",
+      "date": "2026-11-09",
+      "split": "1.000000/40.000000"
+     }
+    ]
+   }
+  },
+  "bulk_div_US": {
+   "http": 200,
+   "ok": true,
+   "byte": 21275,
+   "riassunto": {
+    "n": 96,
+    "esempi": [
+     {
+      "code": "AAPW",
+      "exchange": "US",
+      "date": "2026-11-09",
+      "dividend": "0.19900",
+      "currency": "USD",
+      "declarationDate": "2026-11-06",
+      "recordDate": "2026-11-09",
+      "paymentDate": "2026-11-10",
+      "period": null,
+      "unadjustedValue": "0.1990000000"
+     },
+     {
+      "code": "AKAAF",
+      "exchange": "US",
+      "date": "2026-11-09",
+      "dividend": "3.07090",
+      "currency": "USD",
+      "declarationDate": "2026-11-04",
+      "recordDate": "2026-11-09",
+      "paymentDate": "2026-11-17",
+      "period": "Semiannual",
+      "unadjustedValue": "3.0709000000"
+     }
+    ]
+   }
+  },
+  "calendario_split": {
+   "http": 403,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "delistati_LSE": {
+   "http": 200,
+   "ok": true,
+   "byte": 582453,
+   "riassunto": {
+    "totale": 4138,
+    "trovati": [
+     "BEZ",
+     "PHNX",
+     "SDR"
+    ]
+   }
+  },
+  "delistati_XETRA": {
+   "http": 200,
+   "ok": true,
+   "byte": 270534,
+   "riassunto": {
+    "totale": 1781,
+    "trovati": []
+   }
+  },
+  "delistati_TO": {
+   "http": 200,
+   "ok": true,
+   "byte": 244719,
+   "riassunto": {
+    "totale": 1701,
+    "trovati": []
+   }
+  },
+  "delistati_AU": {
+   "http": 200,
+   "ok": true,
+   "byte": 302142,
+   "riassunto": {
+    "totale": 2087,
+    "trovati": []
+   }
+  },
+  "split_NVDA": {
+   "http": 200,
+   "ok": true,
+   "byte": 104,
+   "riassunto": [
+    {
+     "date": "2021-07-20",
+     "split": "4.000000/1.000000"
+    },
+    {
+     "date": "2024-06-10",
+     "split": "10.000000/1.000000"
+    }
+   ]
+  },
+  "sentiment": {
+   "http": 200,
+   "ok": true,
+   "byte": 757,
+   "riassunto": {
+    "AAPL.US": [
+     {
+      "date": "2026-11-10",
+      "count": 55,
+      "normalized": 0.9296
+     },
+     {
+      "date": "2026-11-09",
+      "count": 55,
+      "normalized": 0.9025
+     }
+    ],
+    "SHEL.LSE": [
+     {
+      "date": "2026-11-10",
+      "count": 1,
+      "normalized": 0.997
+     },
+     {
+      "date": "2026-11-09",
+      "count": 1,
+      "normalized": 0.998
+     }
+    ]
+   }
+  },
+  "insider": {
+   "http": 403,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "cap_storica": {
+   "http": 403,
+   "ok": false,
+   "byte": 0,
+   "riassunto": null
+  },
+  "screener": {
+   "http": 200,
+   "ok": true,
+   "byte": 766,
+   "riassunto": {
+    "data": [
+     {
+      "code": "PQ9",
+      "name": "PT Bank Mandiri (Persero) Tbk",
+      "last_day_data_date": "2026-11-09",
+      "adjusted_close": 0.173,
+      "refund_1d": 0.003,
+      "refund_1d_p": 1.76,
+      "refund_5d": 0.001,
+      "refund_5d_p": 0.58,
+      "exchange": "F",
+      "currency_symbol": "€",
+      "market_capitalization": 16146665472,
+      "earnings_share": 0.03,
+      "dividend_yield": 0,
+      "sector": "Financial Services",
+      "industry": "Banks - Regional",
+      "avgvol_1d": 0,
+      "avgvol_200d": 26744.57
+     },
+     {
+      "code": "DCO",
+      "name": "Deere & Company",
+      "last_day_data_date": "2026-11-09",
+      "adjusted_close": 619.6,
+      "refund_1d": 16.8,
+      "refund_1d_p": 2.79,
+      "refund_5d": 28.8,
+      "refund_5d_p": 4.87,
+      "exchange": "DU",
+      "currency_symbol": "€",
+      "market_capitalization": null,
+      "earnings_share": 15.45,
+      "dividend_yield": null,
+      "sector": "Other",
+      "industry": "Other",
+      "avgvol_1d": 0,
+      "avgvol_200d": 0.85
+     }
+    ]
+   }
+  },
+  "notizie_tag": {
+   "http": 200,
+   "ok": true,
+   "byte": 5713,
+   "riassunto": [
+    "Polymarket says annualized revenue has topped $1.8 billion",
+    "Berkshire Hathaway more than doubles buybacks in third quarter as earnings decline"
+   ]
+  },
+  "piano_dopo": {
+   "http": 200,
+   "ok": true,
+   "byte": 304,
+   "riassunto": {
+    "apiRequests": 7703,
+    "dailyRateLimit": 100000
+   }
+  }
+ }
+}
