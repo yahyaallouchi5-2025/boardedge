@@ -109,7 +109,12 @@ try{(function(){const el=$("azioni");if(!el)return;
    ${v.map(i=>i=="…"?`<span>&hellip;</span>`:`<button data-pg="${i}" class="${i==p?"on":""}" ${i==p?'aria-current="page"':""}>${i}</button>`).join("")}
    <button data-pg="${p+1}" ${p>=n?"disabled":""} aria-label="Pagina successiva">&rsaquo;</button><em>${(p-1)*PAG+1}&ndash;${Math.min(tot,p*PAG)} di ${tot}</em></nav>`;}
  // punteggio 0-100 come barra + numero (verde forte sopra 75)
- const forza=v=>v==null?"n/d":`<span class="azpt${v>=75?" alto":v<40?" basso":""}" title="Punteggio ${v} su 100"><span class="azptb"><i style="width:${v}%"></i></span><b>${v}</b></span>`;
+ // v7.28 cella della forza: barra + numero + etichetta Forte/Neutro/Debole (scala unica, forzaLiv in 01_base.js)
+ const forza=v=>{const l=forzaLiv(v);if(!l)return '<span class="flat">n/d</span>';
+  return `<span class="azpt fz${l[0]}" title="Forza ${v} su 100: ${l[1]}"><span class="azptb"><i style="width:${v}%"></i></span><span class="azptv"><b>${v}</b><small>${l[1]}</small></span></span>`;};
+ // blocco della forza nella scheda del titolo: etichetta, punteggio, posizione in classifica e (i)
+ function forzaTesta(t){const l=forzaLiv(t.pt);if(!l)return "";const n=ST.dati.titoli.length;
+  return `<div class="azfz fz${l[0]}"><span class="azfzl">${l[1]}</span><span class="azfzn"><b>${t.pt}</b>/100${t.rk?` &middot; ${t.rk.toLocaleString("it-IT")}&ordm; di ${n.toLocaleString("it-IT")}`:""}</span><details class="info"><summary title="Cosa misura" aria-label="Cosa misura">i</summary><div><b>Forza 0-100</b>: confronta il titolo con tutti gli altri dell'Azionario su rendimento a 12 mesi (30%) e a 3 mesi (20%), distanza dalla media a 200 giorni (15%) e stagionalit&agrave; del mese (35%). 50 = nella media.<br><b>Forte</b> da 65 (circa 1 titolo su 5), <b>Debole</b> sotto 35, <b>Neutro</b> in mezzo. Misura il comportamento recente del prezzo, non il valore dell'azienda: non &egrave; un consiglio di acquisto o vendita.</div></details></div>`;}
  const MESI=["gennaio","febbraio","marzo","aprile","maggio","giugno","luglio","agosto","settembre","ottobre","novembre","dicembre"];
 
  // --- v6.78 PDF DELL'AZIONARIO (generatore in 01b_pdf.js): quello che si vede con i filtri attivi (listino, settore,
@@ -120,7 +125,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   const x=a[k],y=b[k];if(x==null)return 1;if(y==null)return -1;return ST.dir*(x-y);});}
  function pdfAz(){const E=window.ebPdf,d0=ST.dati;if(!E||!d0)return;const C=E.C,mese=MESI[new Date().getMonth()],Mz=mese[0].toUpperCase()+mese.slice(1);
   const base=filtrati(false),righe=ordinati(filtrati(true)),T="Azionario per settore";
-  const NOMI_ORD={rk:"posizione",n:"nome",pt:"punteggio",sd:"Smart Discount",p:"prezzo",v1g:"1 giorno",v1m:"1 mese",v3m:"3 mesi",vytd:"da gennaio",v1a:"1 anno",st_pos:"stagionalità",t200:"media 200 giorni"};
+  const NOMI_ORD={rk:"posizione",n:"nome",pt:"forza",sd:"Smart Discount",p:"prezzo",v1g:"1 giorno",v1m:"1 mese",v3m:"3 mesi",vytd:"da gennaio",v1a:"1 anno",st_pos:"stagionalità",t200:"media 200 giorni"};
   const filtri=[ST.list!="tutti"?"Listino: "+nomeList(ST.list):"Tutti i listini",ST.set!="tutti"?"Settore: "+nomeSet(ST.set):"Tutti i settori",
    ST.cerca?`Ricerca: «${ST.cerca.trim()}»`:"",`ordinati per ${NOMI_ORD[ST.ord]||ST.ord} (${ST.dir>0?"crescente":"decrescente"})`].filter(Boolean).join(" · ");
   const d=E.Doc({land:true});d.pagina();const {M,PW}=d,LW=PW-2*M;
@@ -149,7 +154,7 @@ try{(function(){const el=$("azioni");if(!el)return;
      d.testo(x+cw-8,yy+11.5,q.sopra+"%",{s:8,a:"r"});yy+=rh;});});
    y+=17+meta*rh;}
   // classifica: tutte le righe filtrate, intestazione ripetuta a ogni pagina
-  const COL=[["#",22,"r"],["Titolo",150,"l"],["Ticker",58,"l"],["Punteggio",66,"l"],["Smart Disc.",50,"r"],["Prezzo",64,"r"],["1G",40,"r"],["1M",40,"r"],["3M",40,"r"],
+  const COL=[["#",22,"r"],["Titolo",150,"l"],["Ticker",58,"l"],["Forza",66,"l"],["Smart Disc.",50,"r"],["Prezzo",64,"r"],["1G",40,"r"],["1M",40,"r"],["3M",40,"r"],
    ["Da gen.",44,"r"],["1 anno",44,"r"],[Mz,58,"r"],["vs 200g",46,"r"],["12 mesi",0,"l"]];
   const fisso=COL.reduce((u,c)=>u+c[1],0);COL[COL.length-1][1]=LW-fisso;const xs=[];let xx=M;COL.forEach(c=>{xs.push(xx);xx+=c[1];});
   const ax=(i)=>COL[i][2]=="r"?xs[i]+COL[i][1]-5:xs[i]+5;
@@ -159,7 +164,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   righe.forEach((t,j)=>{const y0=y;y=d.serve(y,RH,T);if(y<y0)testaT();if(j%2)d.rett(M,y,LW,RH,{f:C.soft});const b=y+10.6;
    d.testo(ax(0),b,String(t.rk??""),{s:7.6,c:C.mute,a:"r"});d.testo(ax(1),b,d.taglia(t.n,COL[1][1]-10,7.8,true),{s:7.8,b:true});
    d.testo(ax(2),b,d.taglia(t.t,COL[2][1]-8,7.4),{s:7.4,c:C.mute});
-   if(t.pt!=null){const bx=xs[3]+5,bl=COL[3][1]-30,cc=t.pt>=75?C.up:t.pt<40?C.mute:C.acc;d.rett(bx,y+5.5,bl,4.5,{f:"#e3e8ef",r:2});d.rett(bx,y+5.5,Math.max(1,bl*t.pt/100),4.5,{f:cc,r:2});
+   if(t.pt!=null){const bx=xs[3]+5,bl=COL[3][1]-30,cc=t.pt>=FORZA_SOGLIE[0]?C.up:t.pt<FORZA_SOGLIE[1]?C.down:C.acc;d.rett(bx,y+5.5,bl,4.5,{f:"#e3e8ef",r:2});d.rett(bx,y+5.5,Math.max(1,bl*t.pt/100),4.5,{f:cc,r:2});
     d.testo(xs[3]+COL[3][1]-5,b,String(t.pt),{s:7.8,b:true,a:"r"});}else d.testo(ax(3),b,"n/d",{s:7.6,c:C.mute});
    d.testo(ax(4),b,t.sd==null?"n/d":String(t.sd),{s:7.8,a:"r",c:t.sd==null?C.mute:t.sd>=60?C.up:t.sd<40?C.down:C.ink,b:t.sd!=null&&t.sd>=80});
    d.testo(ax(5),b,prz(t.p,t.val),{s:7.8,a:"r"});
@@ -169,15 +174,15 @@ try{(function(){const el=$("azioni");if(!el)return;
    const sp=t.sp;if(sp&&sp.length>1){const gx=xs[13]+5,gw=COL[13][1]-10;d.poli(sp.map((v,i)=>[gx+i/(sp.length-1)*gw,y+RH-3-v/99*(RH-6)]),{s:(t.v1a||0)>=0?C.up:C.down,lw:.8});}
    y+=RH;});
   if(!righe.length)d.testo(M+LW/2,y+20,"Nessun titolo con questi filtri.",{s:9,c:C.mute,a:"c"});
-  y=d.serve(y,40,T);y+=d.paragrafo(M,y+16,`Punteggio 0-100 ricalcolato ogni sera: forza degli ultimi 12 e 3 mesi, posizione rispetto alla media a 200 giorni e stagionalità di ${mese}. Smart Discount 0-100: quanto il titolo è scontato rispetto alla sua storia. Colonna ${Mz}: anni positivi e rendimento medio del mese.`,LW,{s:7.6,c:C.mute});
+  y=d.serve(y,40,T);y+=d.paragrafo(M,y+16,`Forza 0-100 ricalcolata ogni sera: rendimento degli ultimi 12 e 3 mesi, posizione rispetto alla media a 200 giorni e stagionalità di ${mese}. Forte da 65, Debole sotto 35, Neutro in mezzo. Smart Discount 0-100: quanto il titolo è scontato rispetto alla sua storia. Colonna ${Mz}: anni positivi e rendimento medio del mese.`,LW,{s:7.6,c:C.mute});
   d.salva(E.nomeFile("Azionario"+(ST.list!="tutti"?" "+nomeList(ST.list):"")+(ST.set!="tutti"?" "+nomeSet(ST.set):"")),T+" - BoardEdge",(n,tot)=>E.piede(d,n,tot,"Azionario BoardEdge"));}
 
  function disegna(){const d=ST.dati,base=filtrati(false),righe=filtrati(true),mese=MESI[new Date().getMonth()];
-  const COL=[["rk","#",1],["n","Titolo",0],["pt","Punteggio",0],["sd","Smart Discount",1],["p","Prezzo",1],["v1g","1G",1],["v1m","1M",1],["v3m","3M",1,"azh"],["vytd","Da gennaio",1,"azh azh4"],["v1a","1 anno",1],["dy","Div.",1,"azh"],["st_pos",mese[0].toUpperCase()+mese.slice(1),1,"azh"],["t200","Trend",1,"azh azh3"],["sp","Ultimo anno",0,"azh2"]];
+  const COL=[["rk","#",1],["n","Titolo",0],["pt","Forza",0],["sd","Smart Discount",1],["p","Prezzo",1],["v1g","1G",1],["v1m","1M",1],["v3m","3M",1,"azh"],["vytd","Da gennaio",1,"azh azh4"],["v1a","1 anno",1],["dy","Div.",1,"azh"],["st_pos",mese[0].toUpperCase()+mese.slice(1),1,"azh"],["t200","Trend",1,"azh azh3"],["sp","Ultimo anno",0,"azh2"]];
   const ord=ordinati(righe);
   const np=Math.max(1,Math.ceil(ord.length/PAG));if(ST.pag>np)ST.pag=np;
   const vis=ord.slice((ST.pag-1)*PAG,ST.pag*PAG);
-  el.innerHTML=`<h2>Azionario per settore</h2><div class="sub azsub">${d.titoli.length.toLocaleString("it-IT")} titoli &middot; 11 settori &middot; in classifica per punteggio <details class="info"><summary title="Come funziona" aria-label="Informazioni">i</summary><div><b>Punteggio 0-100</b>, ricalcolato ogni sera confrontando tutti i titoli: forza degli ultimi 12 e 3 mesi, trend (prezzo rispetto alla media a 200 giorni) e stagionalit&agrave; di ${mese}. Pi&ugrave; alto = pi&ugrave; forte.<br><b>Uso</b>: tocca un settore per filtrare, un titolo per grafico, bilancio e stagionalit&agrave;. Tocca le colonne per ordinare.<br>Titoli di Stati Uniti, Europa, Giappone, Hong Kong, Cina e India. Dettagli nella Guida.</div></details></div>
+  el.innerHTML=`<h2>Azionario per settore</h2><div class="sub azsub">${d.titoli.length.toLocaleString("it-IT")} titoli &middot; 11 settori &middot; in classifica per forza <details class="info"><summary title="Come funziona" aria-label="Informazioni">i</summary><div><b>Forza 0-100</b>, ricalcolata ogni sera confrontando tutti i titoli: forza degli ultimi 12 e 3 mesi, trend (prezzo rispetto alla media a 200 giorni) e stagionalit&agrave; di ${mese}. <b>Forte</b> da 65, <b>Debole</b> sotto 35, <b>Neutro</b> in mezzo (50 = nella media).<br><b>Uso</b>: tocca un settore per filtrare, un titolo per grafico, bilancio e stagionalit&agrave;. Tocca le colonne per ordinare.<br>Titoli di Stati Uniti, Europa, Giappone, Hong Kong, Cina e India. Dettagli nella Guida.</div></details></div>
    <div class="azbar"><span class="azdata"><i></i>Dati al <b>${gg(d.aggiornato)}</b></span><span class="azmkw" data-mk>${mercatiHTML()}</span>
     <div class="azcw"><label class="azcerca"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg><input type="search" placeholder="Cerca titolo o ticker" value="${esc(ST.cerca)}" aria-label="Cerca titolo o ticker" autocomplete="off" autocapitalize="off" spellcheck="false" role="combobox" aria-expanded="false" aria-controls="azsg"></label><div class="azsg" id="azsg" role="listbox" hidden></div></div>
     <div class="filters azlist">${[["tutti","Tutti"]].concat(d.listini.map(l=>[l.id,l.nome])).map(x=>`<button data-l="${x[0]}" class="${ST.list==x[0]?"on":""}">${x[1]}</button>`).join("")}</div></div>
@@ -258,7 +263,7 @@ try{(function(){const el=$("azioni");if(!el)return;
    <div class="azbarra"><button class="azx" aria-label="Torna all'elenco dei titoli"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Indietro</button>
     <span class="azbt"><b>${esc(t.n)}</b><small>${esc(t.t)}</small></span></div>
    <div class="azwrap">
-   <div class="aztesta"><span class="small azsez">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).join(", ")} &middot; ${esc(borsa(t.t))}<span class="azisin"></span></span><h3>${esc(t.n)} <small>${esc(t.t)}</small></h3>${(()=>{const p=t.dq&&ST.dati.titoli.find(x=>x.t==t.dq);   // v7.24 seconda quotazione: rimando alla principale
+   <div class="aztesta"><span class="small azsez">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).join(", ")} &middot; ${esc(borsa(t.t))}<span class="azisin"></span></span><h3>${esc(t.n)} <small>${esc(t.t)}</small></h3>${forzaTesta(t)}${(()=>{const p=t.dq&&ST.dati.titoli.find(x=>x.t==t.dq);   // v7.24 seconda quotazione: rimando alla principale
      return p?`<button type="button" class="azdqv" data-t="${esc(p.t)}">Seconda quotazione: la principale &egrave; <b>${esc(p.n)} &middot; ${esc(p.t)}</b><span aria-hidden="true">&rarr;</span></button>`:"";})()}${evAvviso(t)}
     <div class="azprz" data-lv="${esc(t.t)}" data-k="h">${testaPrezzo(t)}</div></div>
    <div class="azcorpo">${sk("100%",230,"border-radius:14px")}<div class="azmini">${Array(6).fill(`<div>${sk("60%",11)}${sk("70%",18)}</div>`).join("")}</div>${sk("100%",150,"border-radius:14px;margin-top:18px")}</div></div></div>`;
