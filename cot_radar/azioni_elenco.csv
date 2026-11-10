@@ -1,6 +1,7 @@
 # azioni_elenco.csv - titoli della scheda Azionario: ticker Yahoo;nome;settore (GICS);listini
 # Composizioni: S&P 500, Nasdaq-100, FTSE MIB, DAX, Euro Stoxx 50, Nikkei 225 (Nikkei Inc.), Hang Seng,
-# SSE 50, Nifty 50 (Wikipedia). Settori asiatici ricondotti al GICS. Da aggiornare a ogni ribilanciamento.
+# SSE 50, Nifty 50, FTSE 100 (senza i fondi d'investimento), S&P/TSX 60, S&P/ASX 50 (senza ETF e societa' USA
+# quotate anche a Sydney) (Wikipedia, novembre 2026). Settori asiatici ricondotti al GICS. Da aggiornare a ogni ribilanciamento.
 ticker;nome;settore;listini
 0027.HK;Galaxy Entertainment;cdis;hsi
 0175.HK;Geely Automobile;cdis;hsi
@@ -1038,3 +1039,200 @@ TRN.MI;Terna;util;mib
 VST;Vistra Corp.;util;sp500
 WEC;WEC Energy Group;util;sp500
 XEL;Xcel Energy;util;ndx,sp500
+III.L;3i Group;fin;ftse100
+ABDN.L;Aberdeen Group;fin;ftse100
+ADM.L;Admiral Group;fin;ftse100
+AAF.L;Airtel Africa;tlc;ftse100
+AAL.L;Anglo American;mat;ftse100
+ANTO.L;Antofagasta;mat;ftse100
+ABF.L;Associated British Foods;cstap;ftse100
+AZN.L;AstraZeneca;salute;ftse100
+AUTO.L;Auto Trader Group;tlc;ftse100
+AV.L;Aviva;fin;ftse100
+BAB.L;Babcock International;ind;ftse100
+BA.L;BAE Systems;ind;ftse100
+BARC.L;Barclays;fin;ftse100
+BTRW.L;Barratt Redrow;cdis;ftse100
+BEZ.L;Beazley;fin;ftse100
+BP.L;BP;ener;ftse100
+BATS.L;British American Tobacco;cstap;ftse100
+BLND.L;British Land;imm;ftse100
+BT-A.L;BT Group;tlc;ftse100
+BNZL.L;Bunzl;ind;ftse100
+BRBY.L;Burberry Group;cdis;ftse100
+CNA.L;Centrica;util;ftse100
+CCH.L;Coca-Cola HBC;cstap;ftse100
+CPG.L;Compass Group;cdis;ftse100
+CCC.L;Computacenter;tech;ftse100
+CTEC.L;Convatec;salute;ftse100
+CRDA.L;Croda International;mat;ftse100
+DCC.L;DCC;ind;ftse100
+DGE.L;Diageo;cstap;ftse100
+DPLM.L;Diploma;ind;ftse100
+EZJ.L;easyJet;ind;ftse100
+EDV.L;Endeavour Mining;mat;ftse100
+EXPN.L;Experian;ind;ftse100
+FRES.L;Fresnillo;mat;ftse100
+GAW.L;Games Workshop;cdis;ftse100
+GLEN.L;Glencore;mat;ftse100
+GSK.L;GSK;salute;ftse100
+HLN.L;Haleon;cstap;ftse100
+HLMA.L;Halma;tech;ftse100
+HSX.L;Hiscox;fin;ftse100
+HWDN.L;Howden Joinery;ind;ftse100
+HSBA.L;HSBC;fin;ftse100
+ICG.L;Intermediate Capital Group;fin;ftse100
+IGG.L;IG Group;fin;ftse100
+IHG.L;InterContinental Hotels Group;cdis;ftse100
+IMI.L;IMI;ind;ftse100
+IMB.L;Imperial Brands;cstap;ftse100
+INF.L;Informa;tlc;ftse100
+IAG.L;International Airlines Group;ind;ftse100
+ITRK.L;Intertek;ind;ftse100
+INVP.L;Investec;fin;ftse100
+ITH.L;Ithaca Energy;ener;ftse100
+JD.L;JD Sports Fashion;cdis;ftse100
+BGEO.L;Lion Finance Group;fin;ftse100
+KGF.L;Kingfisher;cdis;ftse100
+LAND.L;Land Securities;imm;ftse100
+LGEN.L;Legal & General;fin;ftse100
+LLOY.L;Lloyds Banking Group;fin;ftse100
+LMP.L;LondonMetric Property;imm;ftse100
+LSEG.L;London Stock Exchange Group;fin;ftse100
+MNG.L;M&G;fin;ftse100
+MKS.L;Marks & Spencer;cstap;ftse100
+MRO.L;Melrose Industries;ind;ftse100
+MTLN.L;Metlen Energy & Metals;ind;ftse100
+NG.L;National Grid;util;ftse100
+NWG.L;NatWest Group;fin;ftse100
+NXT.L;Next;cdis;ftse100
+PSON.L;Pearson;cdis;ftse100
+PRU.L;Prudential;fin;ftse100
+RKT.L;Reckitt Benckiser;cstap;ftse100
+REL.L;RELX;ind;ftse100
+RTO.L;Rentokil Initial;ind;ftse100
+RIO.L;Rio Tinto;mat;ftse100
+RR.L;Rolls-Royce Holdings;ind;ftse100
+SGE.L;Sage Group;tech;ftse100
+SBRY.L;J Sainsbury;cstap;ftse100
+SDR.L;Schroders;fin;ftse100
+SGRO.L;Segro;imm;ftse100
+SVT.L;Severn Trent;util;ftse100
+SHEL.L;Shell;ener;ftse100
+SMIN.L;Smiths Group;ind;ftse100
+SN.L;Smith & Nephew;salute;ftse100
+SPX.L;Spirax Group;ind;ftse100
+SSE.L;SSE;util;ftse100
+STAN.L;Standard Chartered;fin;ftse100
+SDLF.L;Standard Life;fin;ftse100
+STJ.L;St. James's Place;fin;ftse100
+TSCO.L;Tesco;cstap;ftse100
+BBOX.L;Tritax Big Box REIT;imm;ftse100
+ULVR.L;Unilever;cstap;ftse100
+UU.L;United Utilities;util;ftse100
+VOD.L;Vodafone Group;tlc;ftse100
+WEIR.L;Weir Group;ind;ftse100
+WTB.L;Whitbread;cdis;ftse100
+AEM.TO;Agnico Eagle Mines;mat;tsx60
+ATD.TO;Alimentation Couche-Tard;cstap;tsx60
+BMO.TO;Bank of Montreal;fin;tsx60
+BNS.TO;Bank of Nova Scotia;fin;tsx60
+ABX.TO;Barrick Mining;mat;tsx60
+BCE.TO;BCE;tlc;tsx60
+BAM.TO;Brookfield Asset Management;fin;tsx60
+BN.TO;Brookfield Corporation;fin;tsx60
+BIP-UN.TO;Brookfield Infrastructure Partners;util;tsx60
+CAE.TO;CAE;ind;tsx60
+CCO.TO;Cameco;ener;tsx60
+CM.TO;CIBC;fin;tsx60
+CNR.TO;Canadian National Railway;ind;tsx60
+CNQ.TO;Canadian Natural Resources;ener;tsx60
+CP.TO;Canadian Pacific Kansas City;ind;tsx60
+CTC-A.TO;Canadian Tire;cdis;tsx60
+CCL-B.TO;CCL Industries;mat;tsx60
+CLS.TO;Celestica;tech;tsx60
+CVE.TO;Cenovus Energy;ener;tsx60
+GIB-A.TO;CGI;tech;tsx60
+CSU.TO;Constellation Software;tech;tsx60
+DOL.TO;Dollarama;cstap;tsx60
+EMA.TO;Emera;util;tsx60
+ENB.TO;Enbridge;ener;tsx60
+FFH.TO;Fairfax Financial;fin;tsx60
+FM.TO;First Quantum Minerals;mat;tsx60
+FSV.TO;FirstService;imm;tsx60
+FTS.TO;Fortis;util;tsx60
+FNV.TO;Franco-Nevada;mat;tsx60
+WN.TO;George Weston;cstap;tsx60
+GIL.TO;Gildan Activewear;cdis;tsx60
+H.TO;Hydro One;util;tsx60
+IMO.TO;Imperial Oil;ener;tsx60
+IFC.TO;Intact Financial;fin;tsx60
+K.TO;Kinross Gold;mat;tsx60
+L.TO;Loblaw Companies;cstap;tsx60
+MG.TO;Magna International;cdis;tsx60
+MFC.TO;Manulife Financial;fin;tsx60
+MRU.TO;Metro;cstap;tsx60
+NA.TO;National Bank of Canada;fin;tsx60
+NTR.TO;Nutrien;mat;tsx60
+OTEX.TO;Open Text;tech;tsx60
+PPL.TO;Pembina Pipeline;ener;tsx60
+POW.TO;Power Corporation of Canada;fin;tsx60
+QSR.TO;Restaurant Brands International;cdis;tsx60
+RCI-B.TO;Rogers Communications;tlc;tsx60
+RY.TO;Royal Bank of Canada;fin;tsx60
+SAP.TO;Saputo;cstap;tsx60
+SHOP.TO;Shopify;tech;tsx60
+SLF.TO;Sun Life Financial;fin;tsx60
+SU.TO;Suncor Energy;ener;tsx60
+TRP.TO;TC Energy;ener;tsx60
+TECK-B.TO;Teck Resources;mat;tsx60
+T.TO;Telus;tlc;tsx60
+TRI.TO;Thomson Reuters;ind;tsx60
+TD.TO;Toronto-Dominion Bank;fin;tsx60
+TOU.TO;Tourmaline Oil;ener;tsx60
+WCN.TO;Waste Connections;ind;tsx60
+WPM.TO;Wheaton Precious Metals;mat;tsx60
+WSP.TO;WSP Global;ind;tsx60
+ALL.AX;Aristocrat Leisure;cdis;asx50
+ANZ.AX;ANZ Group;fin;asx50
+BHP.AX;BHP Group;mat;asx50
+BXB.AX;Brambles;ind;asx50
+CAR.AX;CAR Group;tlc;asx50
+CBA.AX;Commonwealth Bank;fin;asx50
+COH.AX;Cochlear;salute;asx50
+COL.AX;Coles Group;cstap;asx50
+CPU.AX;Computershare;tech;asx50
+CSL.AX;CSL;salute;asx50
+EVN.AX;Evolution Mining;mat;asx50
+FMG.AX;Fortescue;mat;asx50
+FPH.AX;Fisher & Paykel Healthcare;salute;asx50
+GMG.AX;Goodman Group;imm;asx50
+IAG.AX;Insurance Australia Group;fin;asx50
+JBH.AX;JB Hi-Fi;cdis;asx50
+JHX.AX;James Hardie;mat;asx50
+LYC.AX;Lynas Rare Earths;mat;asx50
+MPL.AX;Medibank;fin;asx50
+MQG.AX;Macquarie Group;fin;asx50
+NAB.AX;National Australia Bank;fin;asx50
+NST.AX;Northern Star Resources;mat;asx50
+ORG.AX;Origin Energy;util;asx50
+PME.AX;Pro Medicus;salute;asx50
+QAN.AX;Qantas;ind;asx50
+QBE.AX;QBE Insurance;fin;asx50
+REA.AX;REA Group;tlc;asx50
+RIO.AX;Rio Tinto;mat;asx50
+S32.AX;South32;mat;asx50
+SCG.AX;Scentre Group;imm;asx50
+SGH.AX;Seven Group Holdings;ind;asx50
+SGP.AX;Stockland;imm;asx50
+SIG.AX;Sigma Healthcare;salute;asx50
+SOL.AX;Soul Patts;fin;asx50
+STO.AX;Santos;ener;asx50
+SUN.AX;Suncorp;fin;asx50
+TCL.AX;Transurban;ind;asx50
+TLS.AX;Telstra;tlc;asx50
+WBC.AX;Westpac;fin;asx50
+WES.AX;Wesfarmers;cdis;asx50
+WDS.AX;Woodside Energy;ener;asx50
+WOW.AX;Woolworths;cstap;asx50
+XRO.AX;Xero;tech;asx50
