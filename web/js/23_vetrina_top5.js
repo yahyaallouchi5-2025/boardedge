@@ -19,7 +19,8 @@ try{(function(){const el=$("topaz");if(!el)return;
  const fermo=window.matchMedia&&matchMedia("(prefers-reduced-motion: reduce)").matches;
  // scheletro mentre arriva il file
  el.innerHTML=`<div class="card tz tzsk"><i class="sk" style="width:180px;height:14px"></i><i class="sk" style="width:55%;height:28px;margin-top:12px"></i><i class="sk" style="width:100%;height:120px;margin-top:16px;border-radius:14px"></i></div>`;
- fetch("../azioni/top.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(d=>{window.__top=d;disegna(d);
+ fetch("../azioni/top.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(d=>{window.__top=d;disegna(d);try{window.dispatchEvent(new Event("eb-top"));}catch(e){}   /* v7.29 avvisa "Cosa fare oggi" */
+ 
    if(d.anomalia)ebManutenzione({scheda:"sig",codice:d.anomalia.codice,quando:d.anomalia.quando,dal:d.aggiornato});})
   .catch(e=>{console.error("[BoardEdge] vetrina azioni non caricata:",e);el.innerHTML="";});
 
