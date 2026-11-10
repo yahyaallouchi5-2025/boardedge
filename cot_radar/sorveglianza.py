@@ -51,16 +51,19 @@ def soglia_ore(adesso, base):
     return base
 
 
-def borsa_aperta(adesso):
-    """True tra le 08:00 e le 20:30 UTC dei giorni feriali (Europa + Wall Street, con margine)."""
-    return adesso.weekday() < 5 and (8, 0) <= (adesso.hour, adesso.minute) <= (20, 30)
+def borsa_aperta(adesso, cal=None):
+    """True se Xetra o Wall Street sono aperte da almeno 45 minuti (v7.25: con le festivita' del calendario, cosi'
+    Natale o Thanksgiving non danno falsi allarmi sui prezzi live)."""
+    from . import orari_borse as O
+    prima = adesso - timedelta(minutes=45)
+    return any(O.aperta(b, adesso, cal) and O.aperta(b, prima, cal) for b in ("XETRA", "US"))
 
 
 def _ore(adesso, quando):
     return (adesso - quando).total_seconds() / 3600
 
 
-def problemi(adesso, stato=None, indice=None, live=None, giri=None):
+def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None):
     """Lista di frasi (in italiano) con cio' che non va. Vuota = tutto regolare.
     stato = stato.json del sito; indice = azioni/indice.json; live = live.json; giri = {nome: (conclusione, url)}."""
     out = []
@@ -85,7 +88,7 @@ def problemi(adesso, stato=None, indice=None, live=None, giri=None):
     except (TypeError, KeyError, ValueError):
         out.append("azioni/indice.json non leggibile.")
     # 3) prezzi live (solo a borsa aperta)
-    if borsa_aperta(adesso):
+    if borsa_aperta(adesso, cal):
         try:
             m = (adesso.timestamp() - float(live["quando"])) / 60
             if m > MIN_LIVE:
@@ -178,7 +181,8 @@ def main(argv):
     indice = _prova(lambda: _json(SITO + "azioni/indice.json?t=%d" % adesso.timestamp()))
     live = _prova(lambda: _json(LIVE))
     giri = giri_workflow(token) if token else {}
-    prob = problemi(adesso, stato, indice, live, giri)
+    from . import orari_borse
+    prob = problemi(adesso, stato, indice, live, giri, orari_borse.leggi_remoto())
     print("\n".join(prob) if prob else "Tutto regolare.")
     if "--prova" not in argv and token:
         avvisa(prob, adesso, token, env)

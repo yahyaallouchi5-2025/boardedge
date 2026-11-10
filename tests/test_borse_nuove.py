@@ -61,16 +61,16 @@ class EconomieBorsa(unittest.TestCase):
 class OrariLive(unittest.TestCase):
     def test_sydney(self):
         from datetime import datetime, timezone
-        self.assertTrue(live.aperta("AU", datetime(2026, 11, 10, 1, 0, tzinfo=timezone.utc)))    # 12:00 a Sydney
-        self.assertFalse(live.aperta("AU", datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)))
+        self.assertTrue(live.aperta("AU", datetime(2026, 11, 10, 1, 0, tzinfo=timezone.utc), cal={}))    # 12:00 a Sydney
+        self.assertFalse(live.aperta("AU", datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc), cal={}))
 
 
 class CicloLive(unittest.TestCase):
     def test_qualche_borsa_aperta(self):
         from datetime import datetime, timezone
-        self.assertTrue(live.qualche_borsa_aperta(datetime(2026, 11, 10, 15, 0, tzinfo=timezone.utc)))    # Europa + USA
-        self.assertTrue(live.qualche_borsa_aperta(datetime(2026, 11, 11, 1, 0, tzinfo=timezone.utc)))     # Sydney
-        self.assertFalse(live.qualche_borsa_aperta(datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc)))   # sabato
+        self.assertTrue(live.qualche_borsa_aperta(datetime(2026, 11, 10, 15, 0, tzinfo=timezone.utc), cal={}))    # Europa + USA
+        self.assertTrue(live.qualche_borsa_aperta(datetime(2026, 11, 11, 1, 0, tzinfo=timezone.utc), cal={}))     # Sydney
+        self.assertFalse(live.qualche_borsa_aperta(datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc), cal={}))   # sabato
 
 
 if __name__ == "__main__":

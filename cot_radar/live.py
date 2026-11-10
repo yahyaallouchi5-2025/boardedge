@@ -72,12 +72,29 @@ ORARI = {"US": ("America/New_York", "09:30", "16:20"), "EU": ("Europe/Berlin", "
 RAW_AZ = "https://raw.githubusercontent.com/{repo}/live/live_az.json"
 
 
-def aperta(borsa, adesso=None):
-    """True se la borsa ("US" o "EU") e' aperta adesso (giorni feriali, festivi esclusi solo dal fatto che EODHD non
-    da' prezzi nuovi: il valore resta quello del giorno prima)."""
+# v7.25 FESTIVITA': per ogni gruppo di ORARI la borsa di riferimento nel calendario (orari_borse.py, da EODHD)
+CAL_BORSA = {"US": "US", "EU": "XETRA", "TO": "TO", "AU": "AU"}
+_CAL = {}
+
+
+def calendario():
+    """calendario.json pubblicato (una lettura per processo: il ciclo del workflow riparte ogni 15 minuti)."""
+    if "c" not in _CAL:
+        from . import orari_borse
+        _CAL["c"] = orari_borse.leggi_remoto()
+    return _CAL["c"]
+
+
+def aperta(borsa, adesso=None, cal=None):
+    """True se la borsa ("US", "EU", "TO", "AU") e' aperta adesso: giorno feriale, NON festivo (v7.25, dal calendario
+    di EODHD) e dentro l'orario (+20 minuti per il ritardo dei prezzi)."""
     fuso, da, a = ORARI[borsa]
     loc = (adesso or datetime.now(timezone.utc)).astimezone(ZoneInfo(fuso))
-    return loc.weekday() < 5 and da <= loc.strftime("%H:%M") <= a
+    if loc.weekday() >= 5 or not (da <= loc.strftime("%H:%M") <= a):
+        return False
+    from . import orari_borse
+    cal = calendario() if cal is None else cal
+    return not orari_borse.festivo(CAL_BORSA[borsa], loc.strftime("%Y-%m-%d"), cal)
 
 
 def azioni_live(prima=None, adesso=None):
@@ -116,9 +133,9 @@ def _prima_az():
         return None
 
 
-def qualche_borsa_aperta(adesso=None):
+def qualche_borsa_aperta(adesso=None, cal=None):
     """v7.24 True se almeno una borsa di ORARI e' aperta (il ciclo del workflow scarica solo allora)."""
-    return any(aperta(b, adesso) for b in ORARI)
+    return any(aperta(b, adesso, cal) for b in ORARI)
 
 
 def main(argv):

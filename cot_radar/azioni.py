@@ -786,6 +786,11 @@ def main(argv):
     sel = sel if sel in AREE else "tutte"
     tutti = [x["t"] for x in (titoli or elenco())] + [i[0] for i in INDICI]
     da_fare = tutti if sel == "tutte" else [t for t in tutti if area(t) == sel]
+    try:                                       # v7.25 orari e festivita' delle borse (una volta a settimana)
+        from . import orari_borse
+        orari_borse.aggiorna(cartella)
+    except Exception as e:
+        log.warning("calendario borse non aggiornato (%s)", e)
     stato = aggiorna(cartella, da_fare, chiusura=CHIUSURA.get(sel, CHIUSURA_UTC))
     errore_giro = bool(stato.get("anomalia"))
     # STATO PER AREA: un giro riuscito toglie solo l'anomalia della SUA area; il popup/striscia resta finche' un'area
