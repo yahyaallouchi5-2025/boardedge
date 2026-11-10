@@ -398,6 +398,7 @@ h1.ghiaccio{color:#eef6ff;text-shadow:0 0 18px rgba(185,225,255,.32),0 0 2px rgb
  border:1.5px solid var(--acc);background:transparent;color:var(--acc);font:italic 700 13px Georgia,"Times New Roman",serif;cursor:pointer;padding:0;line-height:1}
 .info:hover,.info[aria-expanded="true"]{background:var(--acc);color:#04211e}
 .info:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+details.info:hover>summary{color:#04211e}   /* v7.27 la (i) piena al passaggio: la lettera resta leggibile */
 p.sub.infotesto{display:none}
 p.sub.infotesto.aperta{display:block;background:var(--card2);border:1px solid var(--line);border-left:3px solid var(--acc);border-radius:12px;padding:12px 16px;color:var(--ink2);margin:10px 0 22px}
 h2+p.sub.infotesto:not(.aperta)+*{margin-top:14px}
@@ -2044,6 +2045,14 @@ b.qe-esp{color:var(--b)}b.qe-rec{color:var(--acc)}b.qe-sta{color:var(--s)}b.qe-s
 .azdqv b{color:var(--ink);font-weight:700}.azdqv span{transition:transform .2s}
 .azdqv:hover{border-color:color-mix(in srgb,var(--acc) 50%,var(--line));color:var(--ink)}.azdqv:hover span{transform:translateX(3px)}
 .azdqv:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+/* v7.27 stato del titolo: delistato (rosso), prezzi fermi (ambra), frazionamento (accento) */
+.azevc.dl{color:var(--s);border-color:color-mix(in srgb,var(--s) 55%,transparent)}
+.azevc.fermo{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 55%,transparent)}
+.azev{--ec:var(--acc);display:flex;align-items:center;gap:10px;margin:2px 0 10px;padding:8px 10px 8px 12px;border-radius:10px;border:1px solid color-mix(in srgb,var(--ec) 45%,var(--line));background:color-mix(in srgb,var(--ec) 8%,var(--card));font-size:13px;line-height:1.45;color:var(--ink2);max-width:640px}
+.azev.dl{--ec:var(--s)}.azev.fermo{--ec:var(--warn)}
+.azev>i{flex:none;width:8px;height:8px;border-radius:50%;background:var(--ec)}
+.azev>span{flex:1;min-width:0}.azev b{color:var(--ink);font-weight:700}
+.azev .info{flex:none;margin-left:auto}.azev .info div{left:auto;right:0}
 /* v7.22c stato dei mercati: rosso lampeggiante chiusi, verde aperti */
 .azmkw{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
 .azmk{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:700;letter-spacing:.2px;padding:4px 10px;border-radius:99px;white-space:nowrap}
