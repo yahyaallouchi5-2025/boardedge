@@ -821,6 +821,12 @@ def main(argv):
         # (le 5 azioni scelte devono decidere con TUTTI i prezzi del giorno, come prima).
         print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in stato.items()}, ensure_ascii=False))
         return 1 if errore_giro else 0
+    # v7.26 grafici intraday "5 giorni" della scheda del titolo (intraday.py): una volta al giorno, mai bloccante
+    try:
+        from . import intraday
+        intraday.aggiorna(cartella, el=titoli)
+    except Exception as e:
+        log.warning("intraday non aggiornato (%s)", e)
     # quota "Azioni scelte" dei portafogli modello (satellite.py): mai bloccante per la scheda Azionario
     try:
         from . import satellite

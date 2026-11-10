@@ -120,13 +120,13 @@ def azioni_live(prima=None, adesso=None):
     return {"quando": int(time.time()), "ritardo_min": 15, "p": p}
 
 
-def _prima_az():
-    """live_az.json del giro prima (dal ramo "live"), per tenere i titoli delle borse gia' chiuse."""
+def _prima_az(nome="live_az.json"):
+    """live_az.json (o oggi_az.json) del giro prima, dal ramo "live": titoli delle borse gia' chiuse e serie di oggi."""
     repo = os.environ.get("GITHUB_REPOSITORY")
     if not repo:
         return None
     try:
-        req = urllib.request.Request(RAW_AZ.format(repo=repo), headers={"User-Agent": "cot-radar/live"})
+        req = urllib.request.Request(RAW_AZ.format(repo=repo).replace("live_az.json", nome), headers={"User-Agent": "cot-radar/live"})
         with urllib.request.urlopen(req, timeout=20) as r:
             return json.loads(r.read().decode("utf-8"))
     except Exception:
@@ -160,6 +160,16 @@ def main(argv):
         with open(os.path.join(out, "live_az.json"), "w", encoding="utf-8") as f:
             json.dump(az, f, separators=(",", ":"))
         print("live azioni:", len(az["p"]), "titoli")
+        # v7.26 serie "Oggi" per il grafico della scheda: un punto per giro, file piccolo per titolo (oggi/<T>.json)
+        from . import intraday
+        from . import azioni as A
+        serie = intraday.serie_oggi(_prima_az("oggi_az.json"), az["p"])
+        with open(os.path.join(out, "oggi_az.json"), "w", encoding="utf-8") as f:
+            json.dump(serie, f, separators=(",", ":"))
+        os.makedirs(os.path.join(out, "oggi"), exist_ok=True)
+        for t, punti in serie.items():
+            with open(os.path.join(out, "oggi", A._nome_file(t) + ".json"), "w", encoding="utf-8") as f:
+                json.dump(punti, f, separators=(",", ":"))
     except Exception as e:
         log.warning("live: titoli dell'Azionario non aggiornati (%s)", e)
     print("live:", len(dati["ue"]), "ETF in euro,", len(dati["usa"]), "USA, cambio", bool(dati["eurusd"]),
