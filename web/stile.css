@@ -214,7 +214,8 @@ table.compatta th,table.compatta td{padding:9px 10px}
 .info{position:relative}.info summary{list-style:none;width:22px;height:22px;border-radius:50%;border:1px solid var(--line);color:var(--mute);
  display:flex;align-items:center;justify-content:center;font:italic 700 13px Georgia,serif;cursor:pointer}
 .info summary::-webkit-details-marker{display:none}.info[open] summary,.info summary:hover{border-color:var(--acc);color:var(--acc)}
-.info div{position:absolute;z-index:6;top:30px;left:0;width:min(420px,80vw);padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);font-size:13.5px;color:var(--ink2);line-height:1.5}
+.info div{position:absolute;z-index:6;top:30px;left:0;width:min(420px,80vw);padding:12px 14px;border-radius:12px;background:var(--card);border:1px solid var(--line);box-shadow:var(--shadow);font-size:13.5px;color:var(--ink2);line-height:1.5;
+ font-family:system-ui,-apple-system,"Segoe UI",sans-serif;font-style:normal;font-weight:400;letter-spacing:0;text-transform:none}   /* v7.25: il testo non eredita il corsivo della (i) */
 .evgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px;margin-top:14px}
 .evc{border-radius:14px;padding:12px 14px;border:1px solid color-mix(in srgb,var(--bc) 45%,transparent);background:color-mix(in srgb,var(--bc) 12%,var(--card));--bc:var(--c1)}
 .evc.banca{--bc:var(--warn)}.evc.oggi{--bc:var(--s);box-shadow:0 0 18px color-mix(in srgb,var(--s) 25%,transparent)}
@@ -1764,6 +1765,8 @@ a.blhome{text-decoration:none;color:inherit;cursor:pointer}
 /* v7.1 PREZZI INTRADAY: pallino che pulsa (prezzi con ritardo di borsa) e riga "oggi" nel mese in corso */
 .plive{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:var(--mute);white-space:nowrap}
 .plive i{width:7px;height:7px;border-radius:50%;background:var(--mute)}
+.pacq-st{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}.pacq-st .small{color:var(--mute)}   /* v7.25 borsa chiusa */
+@media (max-width:640px){.pacq-t{position:relative;padding-right:34px}.pacq-t .pacq-i{position:absolute;top:0;right:0;margin:0}.pacq-st{width:100%}}
 .plive.on{color:var(--acc)}.plive.on i{background:var(--acc);box-shadow:0 0 8px var(--acc);animation:plive 2s ease-in-out infinite}
 @keyframes plive{50%{opacity:.35}}
 @media (prefers-reduced-motion:reduce){.plive.on i{animation:none}}
