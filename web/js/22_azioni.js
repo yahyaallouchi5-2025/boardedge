@@ -190,7 +190,7 @@ try{(function(){const el=$("azioni");if(!el)return;
    <div class="azclt"><h3 class="vft azcl">${ST.set=="tutti"?"Classifica":esc(nomeSet(ST.set))} <span class="small">${righe.length} titoli${ST.cerca?" per &laquo;"+esc(ST.cerca)+"&raquo;":""}</span></h3>
     <button type="button" class="aztrf${ST.soloSu?" on":""}" aria-pressed="${!!ST.soloSu}" title="Mostra solo i titoli in trend rialzista">${trIcon(1)}Solo trend rialzista</button>${window.ebPdf?ebPdf.bottone():""}</div>
    <div class="tablewrap"><table class="aztab"><tr>${COL.map(c=>`<th class="${c[2]?"num":""} ${c[3]||""}${c[0]!="sp"?" azo":""}${ST.ord==c[0]?" on":""}" ${c[0]!="sp"?`data-o="${c[0]}"`:""}${c[0]=="sd"?` title="SMART DISCOUNT 0-100: quanto il titolo e' scontato oggi rispetto alla sua storia e se in passato comprare a quello sconto e' andato meglio che comprare a caso"`:""}${c[0]=="st_pos"?` title="Stagionalit&agrave; di ${mese}: quota di anni positivi e rendimento medio del mese"`:""}${c[0]=="t200"?` title="Distanza dalla media a 200 giorni: positivo = trend rialzista"`:""}${c[0]=="pt"?` title="Punteggio 0-100: forza 12 e 3 mesi, trend e stagionalit&agrave; del mese"`:""}>${c[1]}${ST.ord==c[0]?(ST.dir>0?" &uarr;":" &darr;"):""}</th>`).join("")}</tr>
-    ${vis.map(t=>`<tr class="clic" data-t="${esc(t.t)}" tabindex="0"><td class="num azrk">${t.rk}</td><td class="aznome"><b>${esc(t.n)}${trIcon(t.tr)}</b><span>${esc(t.t)} &middot; ${t.l.map(nomeList).join(", ")}</span></td>
+    ${vis.map(t=>`<tr class="clic" data-t="${esc(t.t)}" tabindex="0"><td class="num azrk">${t.rk}</td><td class="aznome"><b>${esc(t.n)}${trIcon(t.tr)}</b><span>${esc(t.t)} &middot; ${t.l.map(nomeList).join(", ")}${t.dq?` <em class="azdq" title="Seconda quotazione della stessa societ&agrave; (principale: ${esc(t.dq)})">2&ordf; quot.</em>`:""}</span></td>
      <td>${forza(t.pt)}</td><td class="num">${sdCella(t)}</td><td class="num" data-lv="${esc(t.t)}">${prezzoCella(t)}</td><td class="num" data-lv="${esc(t.t)}" data-k="g">${varCella(t)}</td><td class="num">${pc(t.v1m)}</td><td class="num azh">${pc(t.v3m)}</td><td class="num azh azh4">${pc(t.vytd)}</td>
      <td class="num">${pc(t.v1a)}</td><td class="num azh">${t.dy?`<b class="azdy">${fx(t.dy,1)}%</b>`:'<span class="flat">&ndash;</span>'}</td><td class="num azh azst">${t.st_pos==null?'<span class="flat">n/d</span>':`<b>${t.st_pos}%</b> ${pc(t.st_media)}`}</td><td class="num azh azh3">${pc(t.t200)}</td><td class="azh2">${spark(t.sp,(t.v1a||0)>=0?"su":"giu")}</td></tr>`).join("")}
     ${!righe.length?`<tr><td colspan="14" class="small" style="text-align:center;padding:28px">Nessun titolo con questi filtri.</td></tr>`:""}</table></div>
@@ -211,7 +211,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   const mostra=()=>{const k=nz(inp.value.trim());if(!k){chiudiSg();return;}lis=trova(k);sel=-1;
    sg.innerHTML=lis.length?lis.map((t,i)=>`<div class="azsr" role="option" data-i="${i}"><span class="n">${evid(t.n,k)}<span class="t">${esc(t.t)}</span></span>
      <span class="p">${prezzo(t.p,t.val)}<small class="${t.v1g>0?"up":t.v1g<0?"down":"flat"}">${t.v1g==null?"":(t.v1g>0?"+":"")+fx(t.v1g,2)+"%"}</small></span>
-     <span class="d">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).map(esc).join(", ")} &middot; ${esc(borsa(t.t))}</span></div>`).join("")
+     <span class="d">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).map(esc).join(", ")} &middot; ${esc(borsa(t.t))}${t.dq?` <em class="azdq">2&ordf; quot.</em>`:""}</span></div>`).join("")
      +(tot>lis.length?`<div class="azsr azpiu" role="option" data-i="tutti">Mostra tutti i ${tot} risultati in tabella</div>`:""):`<div class="aznulla">Nessun titolo trovato per &laquo;${esc(inp.value.trim())}&raquo;.</div>`;
    sg.hidden=false;inp.setAttribute("aria-expanded","true");};
   const scegli=i=>{if(i=="tutti"){chiudiSg();ST.cerca=inp.value;ST.pag=1;disegna();return;}
@@ -256,10 +256,12 @@ try{(function(){const el=$("azioni");if(!el)return;
    <div class="azbarra"><button class="azx" aria-label="Torna all'elenco dei titoli"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>Indietro</button>
     <span class="azbt"><b>${esc(t.n)}</b><small>${esc(t.t)}</small></span></div>
    <div class="azwrap">
-   <div class="aztesta"><span class="small azsez">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).join(", ")} &middot; ${esc(borsa(t.t))}<span class="azisin"></span></span><h3>${esc(t.n)} <small>${esc(t.t)}</small></h3>
+   <div class="aztesta"><span class="small azsez">${esc(nomeSet(t.s))} &middot; ${t.l.map(nomeList).join(", ")} &middot; ${esc(borsa(t.t))}<span class="azisin"></span></span><h3>${esc(t.n)} <small>${esc(t.t)}</small></h3>${(()=>{const p=t.dq&&ST.dati.titoli.find(x=>x.t==t.dq);   // v7.24 seconda quotazione: rimando alla principale
+     return p?`<button type="button" class="azdqv" data-t="${esc(p.t)}">Seconda quotazione: la principale &egrave; <b>${esc(p.n)} &middot; ${esc(p.t)}</b><span aria-hidden="true">&rarr;</span></button>`:"";})()}
     <div class="azprz" data-lv="${esc(t.t)}" data-k="h">${testaPrezzo(t)}</div></div>
    <div class="azcorpo">${sk("100%",230,"border-radius:14px")}<div class="azmini">${Array(6).fill(`<div>${sk("60%",11)}${sk("70%",18)}</div>`).join("")}</div>${sk("100%",150,"border-radius:14px;margin-top:18px")}</div></div></div>`;
   ov.scrollTop=0;leggiLive();
+  const dqv=ov.querySelector(".azdqv");if(dqv)dqv.onclick=()=>apri(dqv.dataset.t);
   requestAnimationFrame(()=>ov.classList.add("on"));ov.querySelector(".azx").focus({preventScroll:true});
   try{window.ebStat&&ebStat.ev("azione",{ticker:tk});}catch(e){}
   fetch(BASE+"titoli/"+encodeURIComponent(tk.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})

@@ -52,7 +52,7 @@ try{(function(){const el=$("topaz");if(!el)return;
    <div class="tzdx">${anello(t.pt)}<div class="tzgraf">${spark(t.sp)}<span class="small">ultimo anno</span></div>
     <button class="tzapri" data-t="${esc(t.t)}">Apri grafico e stagionalit&agrave; <span aria-hidden="true">&rarr;</span></button></div></article>`;
   el.innerHTML=`<div class="card tz" tabindex="0" aria-roledescription="carosello" aria-label="Le azioni pi&ugrave; forti di oggi">
-   <div class="tztesta"><div><span class="tzchip"><i></i>Selezione di oggi</span><h3>Le ${T.length} azioni pi&ugrave; forti</h3>
+   <div class="tztesta"><div><span class="tzchip"><i></i>Selezione di oggi</span><h3>Le ${T.length} azioni pi&ugrave; forti <details class="info tzinf"><summary title="Da dove vengono" aria-label="Da dove vengono">i</summary><div>Solo titoli che si comprano davvero in euro su Scalable: <b>Wall Street ed Europa continentale</b>. Londra (imposta di bollo dello 0,5% in acquisto), Toronto, Sydney e Asia restano nell'Azionario per l'analisi ma non entrano qui n&eacute; nei portafogli. Le seconde quotazioni della stessa societ&agrave; (es. ASML ad Amsterdam e al Nasdaq) contano una volta sola.</div></details></h3>
     <span class="small">Una per settore, solo lato acquisto &middot; dati al ${gg(d.aggiornato)}</span></div>
     <div class="tzcom"><button class="tzfr" data-v="-1" aria-label="Precedente">&lsaquo;</button><div class="tzdots">${T.map((t,i)=>`<button class="${i?"":"on"}" data-i="${i}" aria-label="${esc(t.n)}"><i></i></button>`).join("")}</div><button class="tzfr" data-v="1" aria-label="Successiva">&rsaquo;</button>
      <button class="tzvedi">Classifica completa</button></div></div>
