@@ -33,9 +33,12 @@ TENTATIVI = 3
 # Shanghai .SS, Shenzhen .SZ, India .NS/.BO) resta a Yahoo: EODHD non lo copre nel nostro piano.
 BORSE = {".DE": "XETRA", ".F": "F", ".PA": "PA", ".AS": "AS", ".BR": "BR", ".MC": "MC", ".LS": "LS",
          ".HE": "HE", ".VI": "VI", ".IR": "IR", ".L": "LSE", ".SW": "SW", ".CO": "CO", ".ST": "ST",
-         ".OL": "OL", ".TO": "TO"}
+         ".OL": "OL", ".TO": "TO", ".AX": "AU"}
+# v7.23 Londra (.L) resta a Yahoo: EODHD da' i prezzi in pence senza dire la valuta (e alcuni titoli sono in dollari),
+# Yahoo invece indica "GBp" e azioni.scarica converte in sterline. Niente dividendi e prezzi live per Londra.
+SOLO_YAHOO = (".L",)
 VALUTA = {"US": "USD", "XETRA": "EUR", "F": "EUR", "PA": "EUR", "AS": "EUR", "BR": "EUR", "MC": "EUR",
-          "LS": "EUR", "HE": "EUR", "VI": "EUR", "IR": "EUR"}
+          "LS": "EUR", "HE": "EUR", "VI": "EUR", "IR": "EUR", "TO": "CAD", "AU": "AUD"}
 # Indici: nome Yahoo -> nome EODHD (borsa INDX). Se uno non risponde, si usa Yahoo (paracadute).
 INDICI = {"^GSPC": "GSPC.INDX", "^NDX": "NDX.INDX", "^GDAXI": "GDAXI.INDX", "^STOXX50E": "STOXX50E.INDX",
           "^N225": "N225.INDX", "^HSI": "HSI.INDX", "^NSEI": "NSEI.INDX", "FTSEMIB.MI": "FTSEMIB.INDX"}
@@ -62,6 +65,8 @@ def simbolo(t):
         return t + ".CC"
     if "." not in t:                               # titoli ed ETF USA (BRK-B, BF-B con il trattino come su EODHD)
         return t + ".US"
+    if t.endswith(SOLO_YAHOO):
+        return None
     for suf, borsa in BORSE.items():
         if t.endswith(suf):
             return t[: -len(suf)] + "." + borsa

@@ -44,7 +44,8 @@ PAUSA = 0.2                     # secondi tra le richieste a Wikipedia
 BORSE = {"": ("nasdaq", "new york stock exchange", "nyse"), "MI": ("borsa italiana", "milan", "italian"),
          "DE": ("frankfurt", "xetra"), "PA": ("paris",), "AS": ("amsterdam",), "MC": ("madrid", "spanish"),
          "BR": ("brussels",), "HE": ("helsinki",), "T": ("tokyo",), "HK": ("hong kong",),
-         "SS": ("shanghai",), "SZ": ("shenzhen",), "NS": ("national stock exchange of india", "bombay")}
+         "SS": ("shanghai",), "SZ": ("shenzhen",), "NS": ("national stock exchange of india", "bombay"),
+         "L": ("london",), "TO": ("toronto",), "AX": ("australian securities exchange", "australian stock exchange")}
 
 
 def _ua():
@@ -69,7 +70,8 @@ def ticker_borsa(t):
     base, _, suf = t.partition(".")
     if suf == "HK":
         base = base.lstrip("0") or "0"
-    return (base.replace("-", ".") if not suf else base), suf
+    # v7.23 classi di azioni a Londra e Toronto: Yahoo BT-A.L, RCI-B.TO -> su Wikidata BT.A, RCI.B
+    return (base.replace("-", ".") if suf in ("", "L", "TO") else base), suf
 
 
 def varianti(t):
@@ -80,7 +82,7 @@ def varianti(t):
     altri = {tk}
     if suf == "HK":
         altri |= {base, tk.zfill(4)}
-    elif not suf:
+    elif suf in ("", "L", "TO"):
         altri.add(base)
     return sorted(altri)
 
@@ -122,7 +124,8 @@ def trova_item(lotto):
 # v6.73 RICERCA PER NOME (quando il ticker non e' su Wikidata): si accetta un risultato SOLO se e' un'azienda
 # quotata (borsa P414 o ISIN P946) e, se Wikidata indica il paese, e' lo stesso della borsa del titolo.
 PAESE = {"": {"Q30"}, "MI": {"Q38"}, "DE": {"Q183"}, "PA": {"Q142"}, "AS": {"Q55"}, "MC": {"Q29"}, "BR": {"Q31"},
-         "HE": {"Q33"}, "T": {"Q17"}, "HK": {"Q148", "Q8646"}, "SS": {"Q148"}, "SZ": {"Q148"}, "NS": {"Q668"}}
+         "HE": {"Q33"}, "T": {"Q17"}, "HK": {"Q148", "Q8646"}, "SS": {"Q148"}, "SZ": {"Q148"}, "NS": {"Q668"},
+         "L": {"Q145"}, "TO": {"Q16"}, "AX": {"Q408"}}
 CERCA = "https://www.wikidata.org/w/api.php?action=wbsearchentities&format=json&type=item&limit=5&language=en&search="
 FORME = r"[,.]?\s+(inc|incorporated|corp|corporation|co|company|ltd|limited|plc|s\.?p\.?a|ag|sa|se|nv|n\.v|holdings? co|group co)\.?$"
 
@@ -241,7 +244,8 @@ def per_nome(titoli):
 
 # ISIN: prefisso del paese atteso per ogni borsa (Hong Kong: molte societa' sono registrate alle Cayman o Bermuda)
 PREFISSO_ISIN = {"": ("US",), "MI": ("IT",), "DE": ("DE",), "PA": ("FR",), "AS": ("NL",), "MC": ("ES",), "BR": ("BE",),
-                 "HE": ("FI",), "T": ("JP",), "HK": ("HK", "KY", "BM", "CN"), "SS": ("CN",), "SZ": ("CN",), "NS": ("IN",)}
+                 "HE": ("FI",), "T": ("JP",), "HK": ("HK", "KY", "BM", "CN"), "SS": ("CN",), "SZ": ("CN",), "NS": ("IN",),
+                 "L": ("GB", "JE", "GG", "IE", "IM"), "TO": ("CA",), "AX": ("AU", "NZ")}
 
 
 def scegli_isin(lista, t):

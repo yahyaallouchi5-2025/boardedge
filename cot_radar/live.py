@@ -66,7 +66,8 @@ def calcola(prima=None):
 
 
 # borse aperte (ora locale) per i titoli dell'Azionario: (fuso, apertura, chiusura + ritardo dei prezzi)
-ORARI = {"US": ("America/New_York", "09:30", "16:20"), "EU": ("Europe/Berlin", "09:00", "17:50")}
+ORARI = {"US": ("America/New_York", "09:30", "16:20"), "EU": ("Europe/Berlin", "09:00", "17:50"),
+         "TO": ("America/Toronto", "09:30", "16:20"), "AU": ("Australia/Sydney", "10:00", "16:20")}   # v7.23
 RAW_AZ = "https://raw.githubusercontent.com/{repo}/live/live_az.json"
 
 
@@ -87,7 +88,7 @@ def azioni_live(prima=None, adesso=None):
         s = eodhd.simbolo(x["t"])
         if not s or s.endswith(".INDX"):
             continue
-        borsa = "US" if s.endswith(".US") else "EU"
+        borsa = s.rsplit(".", 1)[1] if s.endswith((".US", ".TO", ".AU")) else "EU"
         if aperta(borsa, adesso):
             simboli[s] = x["t"]
     rt = tempo_reale(list(simboli)) if simboli else {}

@@ -78,7 +78,8 @@ def rendimento(cartella, t, prezzo, valuta=None):
         return None
     if valuta and d.get("valuta") and d["valuta"] != valuta:
         return None
-    return round(d.get("u12", 0) / prezzo * 100, 2)
+    r = round(d.get("u12", 0) / prezzo * 100, 2)
+    return r if r <= 25 else None                     # v7.23 oltre il 25% e' quasi sempre un errore di unita' (pence)
 
 
 def aggiorna(cartella, el=None, oggi=None):

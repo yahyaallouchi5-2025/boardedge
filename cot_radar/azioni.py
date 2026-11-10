@@ -63,9 +63,11 @@ CHIUSURA_UTC = "21:00"         # dopo quest'ora (UTC) i prezzi del giorno sono d
 # CHIUSURA = ora UTC dopo la quale i prezzi del giorno di quell'area sono definitivi (giro ripetuto = niente richieste).
 AREE = ("asia", "europa", "usa")
 CHIUSURA = {"asia": "10:00", "europa": "16:35", "usa": CHIUSURA_UTC}
-SUFFISSI_ASIA = (".T", ".HK", ".SS", ".SZ", ".NS", ".BO")
-INDICI_AREA = {"^N225": "asia", "^HSI": "asia", "^NSEI": "asia", "000001.SS": "asia",
-               "FTSEMIB.MI": "europa", "^GDAXI": "europa", "^STOXX50E": "europa"}
+# v7.23 Sydney (.AX, chiude alle 06:00 UTC) va col giro asiatico, Londra (.L) con l'europeo, Toronto (.TO) con gli USA
+SUFFISSI_ASIA = (".T", ".HK", ".SS", ".SZ", ".NS", ".BO", ".AX")
+SUFFISSI_USA = (".TO",)
+INDICI_AREA = {"^N225": "asia", "^HSI": "asia", "^NSEI": "asia", "000001.SS": "asia", "^AXJO": "asia",
+               "FTSEMIB.MI": "europa", "^GDAXI": "europa", "^STOXX50E": "europa", "^FTSE": "europa"}
 # DOWNLOAD INCREMENTALE: ogni giorno solo gli ultimi 5 giorni (risposta leggera) aggiunti alla copia. Lo storico di 2 anni
 # si riscarica intero una volta a settimana per titolo (stesso giorno dello storico mensile) o se la copia non torna:
 # i prezzi sono RETTIFICATI, quindi un dividendo o uno split cambia anche i giorni passati -> giorni in comune diversi
@@ -80,10 +82,12 @@ SETTORI = [  # id, nome, ETF di riferimento USA (SPDR)
     ("util", "Servizi pubblici", "XLU"), ("imm", "Immobiliare", "XLRE"),
 ]
 LISTINI = {"sp500": "S&P 500", "ndx": "Nasdaq-100", "mib": "FTSE MIB", "dax": "DAX 40", "sx5e": "Euro Stoxx 50",
-           "n225": "Nikkei 225", "hsi": "Hang Seng", "sse50": "SSE 50 Cina", "nifty": "Nifty 50 India"}
+           "n225": "Nikkei 225", "hsi": "Hang Seng", "sse50": "SSE 50 Cina", "nifty": "Nifty 50 India",
+           "ftse100": "FTSE 100", "tsx60": "TSX 60 Canada", "asx50": "ASX 50 Australia"}     # v7.23: 3 nuove borse
 INDICI = [("^GSPC", "S&P 500", "sp500"), ("^NDX", "Nasdaq-100", "ndx"), ("FTSEMIB.MI", "FTSE MIB", "mib"),
           ("^GDAXI", "DAX 40", "dax"), ("^STOXX50E", "Euro Stoxx 50", "sx5e"), ("^N225", "Nikkei 225", "n225"),
-          ("^HSI", "Hang Seng", "hsi"), ("000001.SS", "Shanghai Composite", "sse50"), ("^NSEI", "Nifty 50", "nifty")]
+          ("^HSI", "Hang Seng", "hsi"), ("000001.SS", "Shanghai Composite", "sse50"), ("^NSEI", "Nifty 50", "nifty"),
+          ("^FTSE", "FTSE 100", "ftse100"), ("^GSPTSE", "S&P/TSX Composite", "tsx60"), ("^AXJO", "S&P/ASX 200", "asx50")]
 
 # PUNTEGGIO di ogni titolo (0-100), ricalcolato ogni sera: media pesata dei PERCENTILI tra tutti i titoli
 # (cosi' valute e mercati diversi sono confrontabili). Forza = momento + trend + stagionalita' del mese in corso.
@@ -164,8 +168,11 @@ def scarica(ticker, intervallo="1d", periodo="2y", timeout=20, tentativi=TENTATI
             if pts and intervallo == "1mo" and not mensile_ok(pts):
                 log.warning("Yahoo %s: storico mensile non mensile (granularita' %s)", ticker, m.get("dataGranularity"))
                 pts = None
+            valuta = m.get("currency")
+            if pts and valuta in ("GBp", "GBX"):        # v7.23 Londra quota in pence: si passa a sterline (/100)
+                pts, valuta = [(d, round(v / 100, 4)) for d, v in pts], "GBP"
             if pts:
-                return {"nome": m.get("longName") or m.get("shortName"), "valuta": m.get("currency"),
+                return {"nome": m.get("longName") or m.get("shortName"), "valuta": valuta,
                         "borsa": m.get("fullExchangeName") or m.get("exchangeName")}, pts
             # Risposta arrivata ma inutilizzabile: per lo storico MENSILE e' sempre la stessa (titolo quotato da poco o con
             # buchi), quindi riprovare e' solo tempo perso -> ci si ferma subito e aggiorna() usa i prezzi giornalieri.
@@ -251,7 +258,7 @@ def area(t):
     """Area di borsa del ticker Yahoo: 'asia', 'europa' o 'usa' (decide in quale dei tre giri si aggiorna)."""
     if t in INDICI_AREA:
         return INDICI_AREA[t]
-    if t.startswith("^") or "." not in t:
+    if t.startswith("^") or "." not in t or t.endswith(SUFFISSI_USA):
         return "usa"                                   # indici USA e titoli USA (BRK-B, BF-B: trattino, nessun punto)
     return "asia" if t.endswith(SUFFISSI_ASIA) else "europa"
 
@@ -623,7 +630,8 @@ def ampiezza(righe):
 # Regno Unito, Australia e Canada non hanno titoli nell'Azionario: la Dashboard mostra solo i loro dati economici.
 ECONOMIE_BORSA = {"usa": (("",), ("^GSPC", "^NDX")),
                   "eur": (("MI", "DE", "PA", "AS", "MC", "BR", "HE"), ("^STOXX50E", "^GDAXI", "FTSEMIB.MI")),
-                  "jpn": (("T",), ("^N225",))}
+                  "jpn": (("T",), ("^N225",)),
+                  "gbr": (("L",), ("^FTSE",)), "can": (("TO",), ("^GSPTSE",)), "aus": (("AX",), ("^AXJO",))}
 
 
 def economie_borsa(righe, indici):
