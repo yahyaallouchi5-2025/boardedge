@@ -15,10 +15,10 @@ try{(function(){const el=$("azioni");if(!el)return;
  const salva=()=>{try{localStorage.setItem("ebAzioni2",JSON.stringify({list:ST.list,ord:ST.ord,dir:ST.dir,soloSu:ST.soloSu}));}catch(e){}};
  const gg=d=>d?d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(0,4):"";
  const pc=(v,d=1)=>v==null?'<span class="flat">n/d</span>':`<span class="${v>0?"up":v<0?"down":"flat"}">${v>0?"+":""}${fx(v,d)}%</span>`;
- const SIMB={USD:"$",EUR:"€",GBP:"£",CHF:"CHF ",JPY:"¥",HKD:"HK$",CNY:"CN¥",INR:"₹"};
+ const SIMB={USD:"$",EUR:"€",GBP:"£",CHF:"CHF ",JPY:"¥",HKD:"HK$",CNY:"CN¥",INR:"₹",CAD:"C$",AUD:"A$"};
  const prezzo=(v,val)=>v==null?"n/d":(SIMB[val]||"")+Number(v).toLocaleString("it-IT",{minimumFractionDigits:2,maximumFractionDigits:2});
  // dove e' quotato il titolo, dal suffisso del ticker di Yahoo (senza suffisso = Stati Uniti)
- const BORSE={MI:"Borsa italiana (Milano)",DE:"Borsa tedesca (Xetra)",PA:"Borsa di Parigi",AS:"Borsa di Amsterdam",MC:"Borsa di Madrid",BR:"Borsa di Bruxelles",HE:"Borsa di Helsinki",T:"Borsa di Tokyo",HK:"Borsa di Hong Kong",SS:"Borsa di Shanghai",SZ:"Borsa di Shenzhen",NS:"Borsa indiana (NSE)"};
+ const BORSE={MI:"Borsa italiana (Milano)",DE:"Borsa tedesca (Xetra)",PA:"Borsa di Parigi",AS:"Borsa di Amsterdam",MC:"Borsa di Madrid",BR:"Borsa di Bruxelles",HE:"Borsa di Helsinki",T:"Borsa di Tokyo",HK:"Borsa di Hong Kong",SS:"Borsa di Shanghai",SZ:"Borsa di Shenzhen",NS:"Borsa indiana (NSE)",L:"Borsa di Londra",TO:"Borsa di Toronto",AX:"Borsa australiana (Sydney)"};
  const borsa=tk=>{const m=String(tk).match(/\.([A-Z]+)$/);return m?(BORSE[m[1]]||"Borsa estera"):"Borsa USA";};
  const nomeSet=id=>((ST.dati&&ST.dati.settori.find(s=>s.id==id))||{}).nome||id;
  const nomeList=id=>((ST.dati&&ST.dati.listini.find(s=>s.id==id))||{}).nome||id;
@@ -73,7 +73,7 @@ try{(function(){const el=$("azioni");if(!el)return;
 
  // --- v7.22c STATO DEI MERCATI (rosso lampeggiante = chiusi, verde = aperti). Orari ufficiali in ora locale della borsa;
  //     le festivita' non sono note al sito: in quei giorni il badge puo' dire "aperta" ma i prezzi restano fermi.
- const ORARI_B=[["USA","America/New_York","09:30","16:00"],["Europa","Europe/Berlin","09:00","17:30"]];
+ const ORARI_B=[["USA e Canada","America/New_York","09:30","16:00"],["Europa","Europe/Berlin","09:00","17:30"],["Australia","Australia/Sydney","10:00","16:00"]];
  function oraIn(fuso,d){const x={};new Intl.DateTimeFormat("en-GB",{timeZone:fuso,weekday:"short",hour:"2-digit",minute:"2-digit",hourCycle:"h23"})
    .formatToParts(d).forEach(q=>x[q.type]=q.value);return {fer:!["Sat","Sun"].includes(x.weekday),hm:x.hour+":"+x.minute};}
  const borsaAperta=(b,d)=>{const o=oraIn(b[1],d);return o.fer&&o.hm>=b[2]&&o.hm<b[3];};
@@ -82,9 +82,9 @@ try{(function(){const el=$("azioni");if(!el)return;
  const oraIt=t=>t.toLocaleString("it-IT",{timeZone:"Europe/Rome",weekday:"short",day:"numeric",month:"numeric",hour:"2-digit",minute:"2-digit"});
  function mercatiHTML(){const ora=new Date(),aperte=ORARI_B.filter(b=>borsaAperta(b,ora));
   const prox=ORARI_B.filter(b=>!aperte.includes(b)).map(b=>[b[0],prossimaApertura(b,ora)]).filter(x=>x[1]).sort((a,b)=>a[1]-b[1]);
-  const orari=`Orari in ora italiana: Europa 9:00-17:30, USA 15:30-22:00 (con l'ora legale sfasata, a fine marzo e fine ottobre, gli USA aprono un'ora prima).`;
-  const info=`<details class="info"><summary title="Stato dei mercati" aria-label="Informazioni">i</summary><div>${aperte.length?`<b>Borsa ${aperte.map(b=>b[0]).join(" ed ")} aperta</b>: i prezzi accanto ai titoli si aggiornano da soli con circa 15 minuti di ritardo (punto verde).`:`<b>Mercati chiusi</b>: accanto ai titoli c'&egrave; il prezzo di chiusura dell'ultima seduta.`}${prox.length?` Prossima apertura: ${prox.map(x=>`<b>${x[0]}</b> ${oraIt(x[1])}`).join(", ")}.`:""}<br>${orari} Nei giorni festivi la borsa resta chiusa anche in orario di apertura. Un ordine inviato a mercato chiuso viene eseguito all'apertura, al prezzo di quel momento: pu&ograve; essere diverso dall'ultima chiusura.</div></details>`;
-  return aperte.length?`<span class="azmk on"><i></i>${aperte.map(b=>b[0]).join(" + ")} aperta${aperte.length>1?"e":""}</span>${info}`
+  const orari=`Orari in ora italiana: Europa e Londra 9:00-17:30, USA e Canada 15:30-22:00, Australia 0:00-6:00 circa (con l'ora legale sfasata le aperture si spostano di un'ora). Prezzi live solo dove la fonte li fornisce: Londra mostra la chiusura del giorno.`;
+  const info=`<details class="info"><summary title="Stato dei mercati" aria-label="Informazioni">i</summary><div>${aperte.length?`<b>Mercati aperti (${aperte.map(b=>b[0]).join(", ")})</b>: i prezzi accanto ai titoli si aggiornano da soli con circa 15 minuti di ritardo (punto verde).`:`<b>Mercati chiusi</b>: accanto ai titoli c'&egrave; il prezzo di chiusura dell'ultima seduta.`}${prox.length?` Prossima apertura: ${prox.map(x=>`<b>${x[0]}</b> ${oraIt(x[1])}`).join(", ")}.`:""}<br>${orari} Nei giorni festivi la borsa resta chiusa anche in orario di apertura. Un ordine inviato a mercato chiuso viene eseguito all'apertura, al prezzo di quel momento: pu&ograve; essere diverso dall'ultima chiusura.</div></details>`;
+  return aperte.length?`<span class="azmk on"><i></i>Aperti: ${aperte.map(b=>b[0]).join(" + ")}</span>${info}`
    :`<span class="azmk off"><i></i>Mercati chiusi${prox.length?` &middot; apre ${prox[0][0]} ${oraIt(prox[0][1])}`:""}</span>${info}`;}
  function aggiornaMercati(){document.querySelectorAll("[data-mk]").forEach(c=>{if(c.querySelector("details[open]"))return;const h=mercatiHTML();if(c.innerHTML!==h)c.innerHTML=h;});}
  setInterval(aggiornaMercati,60000);
