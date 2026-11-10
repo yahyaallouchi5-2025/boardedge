@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.12"]   # la versione minima supportata e una recente
+        python-version: ["3.12", "3.13"]   # v7.24: il 3.9 non esiste piu sui server Ubuntu 26.04 di GitHub
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
