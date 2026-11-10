@@ -1,6 +1,6 @@
 # azioni_elenco.csv - titoli della scheda Azionario: ticker Yahoo;nome;settore (GICS);listini
 # Composizioni: S&P 500, Nasdaq-100, FTSE MIB, DAX, Euro Stoxx 50, Nikkei 225 (Nikkei Inc.), Hang Seng,
-# SSE 50, Nifty 50, FTSE 100 (senza i fondi d'investimento), S&P/TSX 60, S&P/ASX 50 (senza ETF e societa' USA
+# SSE 50, Nifty 50, FTSE 100 (senza i fondi d'investimento); Beazley e Schroders tolte (acquisite, ottobre 2026), S&P/TSX 60, S&P/ASX 50 (senza ETF e societa' USA
 # quotate anche a Sydney) (Wikipedia, novembre 2026). Settori asiatici ricondotti al GICS. Da aggiornare a ogni ribilanciamento.
 ticker;nome;settore;listini
 0027.HK;Galaxy Entertainment;cdis;hsi
@@ -1053,7 +1053,6 @@ BAB.L;Babcock International;ind;ftse100
 BA.L;BAE Systems;ind;ftse100
 BARC.L;Barclays;fin;ftse100
 BTRW.L;Barratt Redrow;cdis;ftse100
-BEZ.L;Beazley;fin;ftse100
 BP.L;BP;ener;ftse100
 BATS.L;British American Tobacco;cstap;ftse100
 BLND.L;British Land;imm;ftse100
@@ -1115,7 +1114,6 @@ RIO.L;Rio Tinto;mat;ftse100
 RR.L;Rolls-Royce Holdings;ind;ftse100
 SGE.L;Sage Group;tech;ftse100
 SBRY.L;J Sainsbury;cstap;ftse100
-SDR.L;Schroders;fin;ftse100
 SGRO.L;Segro;imm;ftse100
 SVT.L;Severn Trent;util;ftse100
 SHEL.L;Shell;ener;ftse100

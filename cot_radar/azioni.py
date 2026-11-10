@@ -94,6 +94,25 @@ INDICI = [("^GSPC", "S&P 500", "sp500"), ("^NDX", "Nasdaq-100", "ndx"), ("FTSEMI
 PESI = {"v1a": 0.30, "v3m": 0.20, "t200": 0.15, "st_media": 0.20, "st_pos": 0.15}
 MESI_IT = ["gennaio", "febbraio", "marzo", "aprile", "maggio", "giugno", "luglio", "agosto", "settembre", "ottobre",
            "novembre", "dicembre"]
+# v7.24 ACQUISTABILI: titoli che un privato compra davvero in euro su Scalable Capital (USA ed Europa continentale).
+# Gli altri restano nell'Azionario (classifica, ciambelle dei paesi) ma NON entrano nella vetrina della Dashboard ne'
+# nelle 5 azioni dei portafogli (satellite.py usa la stessa regola: una sola fonte).
+#   India, Cina continentale: chiuse ai privati europei; Tokyo, Hong Kong: di solito assenti su Scalable (v6.90);
+#   Toronto, Sydney: liquidita' in euro scarsa o assenti, le grandi canadesi sono gia' a Wall Street;
+#   Londra: sui titoli britannici si paga l'imposta di bollo dello 0,5% in acquisto; cosi' lo storico simulato dei
+#   portafogli resta sullo stesso universo di prima (cambiano solo le seconde quotazioni, prima ammesse).
+NON_ACQUISTABILI = (".NS", ".BO", ".SS", ".SZ", ".T", ".HK", ".AX", ".TO", ".L")
+# v7.24 SECONDE QUOTAZIONI della stessa societa' (o altra classe di azioni): restano in tabella con il rimando alla
+# principale, ma non entrano in vetrina/portafogli (eviterebbero doppioni). {seconda: principale}
+DOPPIE = {"ASML.AS": "ASML", "SHOP.TO": "SHOP", "TRI.TO": "TRI", "0005.HK": "HSBA.L", "RIO.AX": "RIO.L",
+          "GOOG": "GOOGL", "FOX": "FOXA", "NWS": "NWSA"}
+
+
+def acquistabile(t):
+    """True se il titolo puo' entrare nella vetrina e nelle 5 azioni dei portafogli (vedi NON_ACQUISTABILI)."""
+    return not t.endswith(NON_ACQUISTABILI) and t not in DOPPIE
+
+
 TOP_N = 5                      # titoli nella vetrina della Dashboard (al massimo 1 per settore)
 SCONTO_N = 3                   # v6.66: titoli "in sconto" sotto la vetrina (settori diversi da quelli della vetrina)
 MIN_ANNI_STAG = 8              # anni minimi di storico mensile perche' la stagionalita' conti
@@ -567,6 +586,8 @@ def pubblica(cartella, stato=None, titoli=None):
         righe.append(dict({"t": x["t"], "n": rec.get("nome") or x["nome"], "s": x["s"], "l": x["l"],
                            "val": rec.get("valuta"), "st_media": mese and mese["media"], "st_pos": mese and mese["pos"],
                            "st_n": mese and mese["n"]}, **r))
+        if x["t"] in DOPPIE:                   # v7.24 seconda quotazione: la tabella rimanda alla principale
+            righe[-1]["dq"] = DOPPIE[x["t"]]
         try:                                   # v7.22 rendimento da dividendo (ultimi 12 mesi) al prezzo di oggi
             from . import dividendi
             righe[-1]["dy"] = dividendi.rendimento(cartella, x["t"], r.get("p"), rec.get("valuta"))
@@ -679,7 +700,7 @@ def vetrina(righe, n=TOP_N):
     """I titoli piu' forti di oggi per la Dashboard: punteggio alto E condizioni tutte favorevoli
     (sopra la media a 200 giorni, 3 e 12 mesi positivi, mese in corso storicamente positivo in almeno il 60% degli
     anni con almeno 8 anni di storia, non piu' del 15% sotto il massimo a 52 settimane). Al massimo 1 per settore."""
-    ok = [r for r in righe if (r.get("t200") or -1) > 0 and (r.get("v3m") or -1) > 0 and (r.get("v1a") or -1) > 0
+    ok = [r for r in righe if acquistabile(r["t"]) and (r.get("t200") or -1) > 0 and (r.get("v3m") or -1) > 0 and (r.get("v1a") or -1) > 0
           and (r.get("st_media") or -1) > 0 and (r.get("st_pos") or 0) >= 60 and (r.get("st_n") or 0) >= MIN_ANNI_STAG
           and (r.get("dmax") or -100) > -15]
     out, settori = [], set()
@@ -703,7 +724,7 @@ def in_sconto(righe, top, n=SCONTO_N):
       - in passato comprare a questo sconto e' andato almeno come comprare a caso (qualita' >= 50);
       - settori diversi tra loro e da quelli della vetrina (diversificazione); ordine per punteggio di sconto."""
     usati = {r["s"] for r in top}
-    ok = [r for r in righe if (r.get("sd") or 0) >= 60 and -35 <= (r.get("sdo") or 0) <= -10
+    ok = [r for r in righe if acquistabile(r["t"]) and (r.get("sd") or 0) >= 60 and -35 <= (r.get("sdo") or 0) <= -10
           and (r.get("v1a") or -1) > 0 and (r.get("sdq") or 0) >= 50]
     out = []
     for r in sorted(ok, key=lambda x: (-x["sd"], -(x.get("pt") or 0))):
@@ -780,6 +801,15 @@ def main(argv):
             aree[a]["anomalia"] = freschezza(cartella, [t for t in tutti if area(t) == a], CHIUSURA.get(a, CHIUSURA_UTC))
     stato["area"], stato["aree"] = sel, aree
     stato["anomalia"] = next((v["anomalia"] for v in aree.values() if v.get("anomalia")), None)
+    if sel in ("usa", "tutte"):
+        # v7.22 dividendi di ogni titolo (EODHD, una volta a settimana per titolo): mai bloccante.
+        # v7.24 PRIMA di pubblica(): cosi' la colonna "Div." usa i dividendi appena scaricati (prima arrivava un giorno dopo)
+        try:
+            from . import dividendi
+            dividendi.aggiorna(cartella, el=titoli)
+        except Exception:
+            import traceback
+            log.error("dividendi dei titoli non aggiornati:\n%s", traceback.format_exc())
     pubblica(cartella, stato, titoli)
     if sel not in ("usa", "tutte"):
         # giri Asia/Europa: solo prezzi e scheda. 5 azioni scelte, bilanci SEC e profili restano al giro USA della sera
@@ -821,13 +851,6 @@ def main(argv):
     except Exception:
         import traceback
         log.error("notizie dei titoli non aggiornate:\n%s", traceback.format_exc())
-    # v7.22 dividendi di ogni titolo (EODHD, una volta a settimana per titolo): mai bloccante
-    try:
-        from . import dividendi
-        dividendi.aggiorna(cartella, el=titoli)
-    except Exception:
-        import traceback
-        log.error("dividendi dei titoli non aggiornati:\n%s", traceback.format_exc())
     print(json.dumps({k: (v if not isinstance(v, list) else len(v)) for k, v in stato.items()}, ensure_ascii=False))
     return 1 if errore_giro else 0
 

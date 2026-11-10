@@ -50,7 +50,7 @@ SFIDANTE_N = 10
 # con ISIN quotati in euro, e le azioni giapponesi/di Hong Kong di solito non ci sono (es. Baycurrent, novembre 2026).
 # Se il migliore non e' acquistabile si passa al candidato successivo che supera gli stessi filtri, anche di un
 # altro settore (sempre al massimo 1 titolo per settore).
-NON_UE = (".NS", ".BO", ".SS", ".SZ", ".T", ".HK")
+NON_UE = A.NON_ACQUISTABILI     # v7.24: regola unica in azioni.py (anche Toronto, Sydney, Londra e seconde quotazioni)
 # v6.90 SOSTITUZIONI nei mesi gia' registrati PRIMA della regola nuova (il registro non si riscrive mai): i titoli non
 # acquistabili sono sostituiti dal candidato acquistabile che la regola v6.90 avrebbe scelto alla stessa data, con
 # il prezzo di chiusura del giorno di registrazione (stessa partenza degli altri titoli del mese).
@@ -132,7 +132,7 @@ def carica(cartella, titoli=None):
     """[Titolo] dalle copie grezze (cartella/grezzi/<T>.json). Senza storico mensile valido il titolo e' escluso."""
     out = []
     for x in titoli if titoli is not None else A.elenco():
-        if x["t"].endswith(NON_UE):
+        if not A.acquistabile(x["t"]):
             continue
         rec = A._leggi(os.path.join(cartella, "grezzi", A._nome_file(x["t"]) + ".json"))
         s = serie_mensile(rec) if rec else None
