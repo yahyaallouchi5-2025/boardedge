@@ -672,7 +672,18 @@ h3.vft+p.sub.infotesto.aperta{text-transform:none;letter-spacing:0;font-size:14p
 .azptb{display:block;width:56px;height:6px;border-radius:9px;background:var(--soft);overflow:hidden}
 .azptb i{display:block;height:100%;border-radius:9px;background:linear-gradient(90deg,var(--acc),var(--b))}
 .azpt b{font-variant-numeric:tabular-nums;font-size:13.5px;min-width:22px}
-.azpt.alto b{color:var(--b)}.azpt.basso b{color:var(--mute)}
+/* v7.28 scala unica della forza: Forte (verde), Neutro (accento), Debole (rosso tenue) */
+.azpt{--fz:var(--acc)}.azpt.fzf{--fz:var(--b)}.azpt.fzd{--fz:var(--s)}
+.azpt .azptb i{background:var(--fz)}
+.azptv{display:flex;flex-direction:column;line-height:1.05}
+.azptv small{font-size:10px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--fz);margin-top:2px}
+.azpt.fzf b{color:var(--b)}
+.azfz{--fz:var(--acc);display:inline-flex;align-items:center;gap:10px;margin:0 0 10px;padding:5px 6px 5px 5px;border-radius:99px;border:1px solid color-mix(in srgb,var(--fz) 45%,var(--line));background:color-mix(in srgb,var(--fz) 8%,var(--card))}
+.azfz.fzf{--fz:var(--b)}.azfz.fzd{--fz:var(--s)}
+.azfzl{padding:3px 11px;border-radius:99px;background:var(--fz);color:#04211e;font-size:12px;font-weight:800;letter-spacing:.4px;text-transform:uppercase}
+.azfzn{font-size:13px;color:var(--mute);font-variant-numeric:tabular-nums}.azfzn b{color:var(--ink);font-size:15px}
+.azfz .info summary{width:20px;height:20px;font-size:12px}
+.tzring{--fz:var(--b)}.tzring.fzn{--fz:var(--acc)}.tzring.fzd{--fz:var(--s)}
 .azst b{color:var(--ink2);font-weight:700;margin-right:4px}
 .azpag{display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin:18px 0 6px}
 .azpag button{min-width:38px;height:38px;padding:0 10px;border-radius:10px;border:1px solid var(--line);background:var(--card);color:var(--ink);font:600 14px system-ui;cursor:pointer;transition:background .15s,border-color .15s,transform .15s}
@@ -720,9 +731,9 @@ h3.vft+p.sub.infotesto.aperta{text-transform:none;letter-spacing:0;font-size:14p
 .tzperche i.ok::after{content:"";position:absolute;left:6px;top:3px;width:4px;height:8px;border:solid var(--b);border-width:0 2px 2px 0;transform:rotate(45deg)}
 .tzdx{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:10px 14px;align-items:center;min-width:300px}
 .tzring{position:relative;width:76px;height:76px}.tzring svg{width:100%;height:100%}
-.tzring .f{fill:none;stroke:var(--soft);stroke-width:7}.tzring .a{fill:none;stroke:var(--b);stroke-width:7;stroke-linecap:round;transition:stroke-dasharray .6s}
+.tzring .f{fill:none;stroke:var(--soft);stroke-width:7}.tzring .a{fill:none;stroke:var(--fz);stroke-width:7;stroke-linecap:round;transition:stroke-dasharray .6s}
 .tzring b{position:absolute;inset:0;display:grid;place-items:center;font-size:22px;padding-bottom:10px}
-.tzring small{position:absolute;left:0;right:0;bottom:17px;text-align:center;font-size:10px;color:var(--mute);text-transform:uppercase;letter-spacing:.5px}
+.tzring small{position:absolute;left:0;right:0;bottom:17px;text-align:center;font-size:10px;color:var(--fz);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
 .tzgraf{display:flex;flex-direction:column;align-items:flex-end;color:var(--b)}
 .tzsp{width:100%;height:60px}.tzsp polyline{fill:none;stroke:currentColor;stroke-width:2;vector-effect:non-scaling-stroke}
 .tzapri{grid-column:1/-1;justify-self:stretch;padding:11px 16px;border-radius:12px;border:0;cursor:pointer;font:700 14px system-ui;color:#04211e;

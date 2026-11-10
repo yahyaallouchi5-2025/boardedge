@@ -39,6 +39,11 @@ function mtag(cot,mac){if(mac==null)return`<span class="tag">mercato: n/d</span>
  if(Math.abs(cot)<10)return`<span class="tag">mercato ${mac>0?'rialzista':'ribassista'}</span>`;
  return (mac>0)==(cot>0)?`<span class="tag ok">Mercato conferma</span>`:`<span class="tag ko">Mercato contro</span>`;}
 const split=(cot,mac)=>`<div class="split"><div>COT (${Math.round((1-M.mw)*100)}%)<b>${fmt(cot)}</b></div><div>Mercato (${Math.round(M.mw*100)}%)<b>${mac==null?'n/d':fmt(mac)}</b></div></div>`;
+/* v7.28 SCALA UNICA 0-100 della forza (punteggio dell'Azionario, vetrina, PDF): stesse soglie e stessi colori ovunque.
+   Forte da 65 in su, Debole sotto 35, Neutro in mezzo (soglie simmetriche attorno a 50 = titolo nella media).
+   Restituisce [classe CSS, etichetta] oppure null se il dato manca. DEBUG: forzaLiv(70) -> ["f","Forte"] */
+const FORZA_SOGLIE=[65,35];
+const forzaLiv=v=>v==null||isNaN(v)?null:v>=FORZA_SOGLIE[0]?["f","Forte"]:v>=FORZA_SOGLIE[1]?["n","Neutro"]:["d","Debole"];
 /* ANELLO del punteggio: il numero e' l'intensita' (0-100, senza segno), il colore la direzione
    (verde = acquisto, rosso = vendita, grigio = neutro). L'arco pieno = punteggio 100. */
 const anello=s=>{const v=Math.min(100,Math.abs(Math.round(s||0))),r=24,c=2*Math.PI*r,

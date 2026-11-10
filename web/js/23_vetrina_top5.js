@@ -26,7 +26,7 @@ try{(function(){const el=$("topaz");if(!el)return;
  function spark(sp){if(!sp||sp.length<2)return "";const W=220,H=60;
   const p=sp.map((v,i)=>`${(i/(sp.length-1)*W).toFixed(1)},${(H-3-v/99*(H-6)).toFixed(1)}`).join(" ");
   return `<svg class="tzsp" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none" aria-hidden="true"><defs><linearGradient id="tzg" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".3"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient></defs><polygon points="0,${H} ${p} ${W},${H}" fill="url(#tzg)"/><polyline points="${p}"/></svg>`;}
- function anello(v){const r=30,c=2*Math.PI*r;return `<div class="tzring" title="Punteggio ${v} su 100"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="${r}" class="f"/><circle cx="38" cy="38" r="${r}" class="a" stroke-dasharray="${(c*v/100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 38 38)"/></svg><b>${v}</b><small>forza</small></div>`;}
+ function anello(v){const r=30,c=2*Math.PI*r,l=forzaLiv(v)||["n","Forza"];return `<div class="tzring fz${l[0]}" title="Forza ${v} su 100: ${l[1]}"><svg viewBox="0 0 76 76"><circle cx="38" cy="38" r="${r}" class="f"/><circle cx="38" cy="38" r="${r}" class="a" stroke-dasharray="${(c*v/100).toFixed(1)} ${c.toFixed(1)}" transform="rotate(-90 38 38)"/></svg><b>${v}</b><small>${l[1]}</small></div>`;}
 
  // v7.22d il riquadro "In sconto" non e' piu' in Dashboard: i titoli scontati si trovano nell'Azionario (ordinando per
  //     Smart Discount). I dati "sconto" restano in top.json.
