@@ -37,7 +37,7 @@ ORE_SITO = 30            # il sito si ricostruisce almeno 2 volte al giorno nei 
 ORE_AZIONI = 30          # tre giri al giorno (Asia, Europa, USA)
 ORE_FINE_SETTIMANA = 64  # venerdi' sera -> lunedi' mattina
 MIN_LIVE = 75            # prezzi live: ogni 15 minuti a borsa aperta (GitHub puo' ritardare)
-WORKFLOW = {"sito.yml": "Sito", "azioni.yml": "Azioni", "prezzi-live.yml": "Prezzi live", "test.yml": "Test"}
+WORKFLOW = {"sito.yml": "Sito", "azioni.yml": "Azioni", "prezzi-live-continuo.yml": "Prezzi live", "test.yml": "Test"}
 ETICHETTA = "sorveglianza"
 UA = {"User-Agent": "cot-radar/sorveglianza"}
 

@@ -3,7 +3,8 @@
 live.py - v7.1 PREZZI INTRADAY (con il ritardo di borsa, ~15-20 minuti) per i Portafogli. Fonte: EODHD real-time.
 
 FLUSSO
-  workflow prezzi-live.yml, ogni 15 minuti nei giorni feriali in orario di borsa (Europa + USA):
+  workflow prezzi-live-continuo.yml (v7.24): 4 partenze al giorno, ognuna un CICLO fino a ~6 ore che ogni 15 minuti,
+  se una borsa e' aperta, scarica e pubblica (prima: un giro ogni 15 minuti, ma GitHub ne avviava pochissimi):
     1) simboli in EURO degli strumenti acquistabili (STRUMENTI_UE: ISIN -> Xetra), ricordati da un giro all'altro;
     2) simboli USA usati dal modello (SPY, QQQ, GLD... + Bitcoin) e il cambio EUR/USD;
     3) UNA richiesta real-time per gruppo (fino a 15 simboli), scrive live.json nel ramo "live" (un solo commit).
@@ -115,7 +116,14 @@ def _prima_az():
         return None
 
 
+def qualche_borsa_aperta(adesso=None):
+    """v7.24 True se almeno una borsa di ORARI e' aperta (il ciclo del workflow scarica solo allora)."""
+    return any(aperta(b, adesso) for b in ORARI)
+
+
 def main(argv):
+    if "--aperta" in argv:                         # v7.24 per il ciclo del workflow: codice 0 = almeno una borsa aperta
+        return 0 if qualche_borsa_aperta() else 1
     if not eodhd.attivo():
         log.warning("live: manca EODHD_API_KEY, niente prezzi intraday")
         return 0

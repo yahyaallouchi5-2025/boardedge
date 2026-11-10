@@ -65,5 +65,13 @@ class OrariLive(unittest.TestCase):
         self.assertFalse(live.aperta("AU", datetime(2026, 11, 10, 12, 0, tzinfo=timezone.utc)))
 
 
+class CicloLive(unittest.TestCase):
+    def test_qualche_borsa_aperta(self):
+        from datetime import datetime, timezone
+        self.assertTrue(live.qualche_borsa_aperta(datetime(2026, 11, 10, 15, 0, tzinfo=timezone.utc)))    # Europa + USA
+        self.assertTrue(live.qualche_borsa_aperta(datetime(2026, 11, 11, 1, 0, tzinfo=timezone.utc)))     # Sydney
+        self.assertFalse(live.qualche_borsa_aperta(datetime(2026, 11, 14, 12, 0, tzinfo=timezone.utc)))   # sabato
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,5 @@
 /* ---------- v7.1 PREZZI INTRADAY (ritardo di borsa ~15-20 minuti) ----------
-   Il workflow prezzi-live.yml scrive ogni 15 minuti (orari di borsa) il file live.json nel ramo "live" con i prezzi
+   Il workflow prezzi-live-continuo.yml (ciclo continuo, v7.24) scrive ogni 15 minuti (orari di borsa) il file live.json nel ramo "live" con i prezzi
    EODHD degli strumenti dei Portafogli. Qui lo si rilegge ogni minuto (solo con la pagina visibile) e si avvisano le
    schede interessate con l'evento "eb-live" (window.ebLive = dati). Le decisioni del modello restano sulle chiusure. */
 try{(function(){
