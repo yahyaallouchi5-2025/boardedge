@@ -2172,17 +2172,37 @@ b.qe-esp{color:var(--b)}b.qe-rec{color:var(--acc)}b.qe-sta{color:var(--s)}b.qe-s
    (16 px tra selettore e barra strumenti, che vanno letti insieme). */
 #port{--pgap:24px}
 .ptop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 var(--pgap)}
-.pcell{display:flex;flex-direction:column;justify-content:center;gap:6px;min-height:96px;padding:16px 18px;border-radius:16px;
- border:1px solid var(--line);background:linear-gradient(180deg,var(--card),var(--card2));min-width:0}
-.pcell>.pdl{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
-.pcell .pdsub{font-size:12.5px;color:var(--mute)}
-.pcell .pdinfo b{font-size:20px}
-.pcell .pdinfo>i{display:none}   /* niente pallino: i testi delle 3 celle partono tutti sullo stesso asse */
-.pcell .pdinfo{gap:0}
-.pcell .pcount{align-self:flex-start;padding:4px;border-width:1px}
-.pcell .pcount .pcd{font-size:17px}
-.pprof-n{font-size:20px;line-height:1.2;color:var(--acc)}.pprof-n.vuoto{color:var(--ink2);font-size:17px}
-.ptest-apri{align-self:flex-start;margin-top:4px;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;
+/* v7.37 ogni cella: 3 righe ad ALTEZZA FISSA uguali per tutte (etichetta | valore | piede), testi in alto:
+   cosi' etichette, valori e piedi delle 3 celle cadono sulla stessa linea orizzontale. */
+.pcell{--rk:16px;--rv:52px;--rf:36px;display:grid;grid-template-rows:var(--rk) var(--rv) var(--rf);row-gap:10px;align-content:start;
+ padding:18px 20px;border-radius:16px;border:1px solid var(--line);background:linear-gradient(180deg,var(--card),var(--card2));min-width:0}
+.pcell>.pdl{font-size:11.5px;line-height:16px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* riga valore: titolo grande + una riga piccola sotto */
+.pcv{display:flex;flex-direction:column;justify-content:center;gap:4px;min-width:0}
+.pcv .pcb{font-size:22px;line-height:1.15;font-weight:800;color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pcv .pcb.acc{color:var(--acc)}
+.pcv small{font-size:12.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* piede: testo + barra, oppure pulsanti; centrato nella sua riga */
+.pcpiede{display:flex;align-items:center;gap:12px;min-width:0}
+.pcpiede-t{font-size:13px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.pcpiede-t b{color:var(--ink)}
+.pcpiede-bar{flex:1;min-width:40px;height:6px;border-radius:99px;background:var(--soft);overflow:hidden}
+.pcpiede-bar i{display:block;height:100%;border-radius:inherit;background:linear-gradient(90deg,color-mix(in srgb,var(--acc) 55%,transparent),var(--acc));box-shadow:0 0 10px color-mix(in srgb,var(--acc) 50%,transparent)}
+/* conto alla rovescia: 4 riquadri che occupano tutta la larghezza (annulla lo stile a pastiglia di .pcount) */
+.pcell .pcount{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:0;border:0;border-radius:0;background:none;box-shadow:none;font-size:inherit}
+.pcell .pcount:hover{box-shadow:none}
+.pcq{display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;border:1px solid color-mix(in srgb,#ffd166 40%,var(--line));
+ background:color-mix(in srgb,#ffd166 7%,var(--card));transition:border-color .2s,box-shadow .2s}
+.pcq b{font:800 20px/1.1 system-ui;color:#fff;font-variant-numeric:tabular-nums}
+.pcq small{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--mute);margin-top:2px}
+.pcount:hover .pcq{border-color:#ffd166;box-shadow:0 0 14px color-mix(in srgb,#ffd166 20%,transparent)}
+.pcell .pcount.ora{display:flex;flex-direction:row;align-items:center;justify-content:flex-start}
+.pcora{display:inline-flex;align-items:center;gap:8px;height:40px;padding:0 18px;border-radius:99px;background:var(--acc);color:#04211e;font:800 16px system-ui;letter-spacing:.06em}
+.pcora .pcdot{width:8px;height:8px;border-radius:50%;background:#04211e;animation:pcdot 1.6s ease-in-out infinite}
+/* pulsante secondario "Azzera" accanto a "Rifai il test" */
+.ptest-reset{height:36px;padding:0 14px;border-radius:99px;border:1px solid var(--line);background:transparent;color:var(--mute);font:700 13px system-ui;cursor:pointer;transition:color .2s,border-color .2s}
+.ptest-reset:hover{color:var(--ink);border-color:var(--ink2)}
+.ptest-reset:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+.ptest-apri{display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;
  border-radius:99px;border:1px solid color-mix(in srgb,var(--acc) 55%,var(--line));background:color-mix(in srgb,var(--acc) 10%,transparent);
  color:var(--acc);font:800 13.5px system-ui;cursor:pointer;white-space:nowrap;transition:background .2s,box-shadow .2s,color .2s}
 .ptest-apri span{transition:transform .2s}
@@ -2216,11 +2236,12 @@ html.ptmod-on{overflow:hidden}
 .ptest-o button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 16%,var(--card));
  box-shadow:0 0 0 1px var(--acc),0 0 28px color-mix(in srgb,var(--acc) 42%,transparent),inset 0 0 18px color-mix(in srgb,var(--acc) 12%,transparent)}
 .ptest-o button.on b{color:#fff}
-@media (max-width:900px){.ptop{grid-template-columns:1fr 1fr}.pcell-prof{grid-column:1/-1}}
+@media (max-width:900px){.ptop{grid-template-columns:1fr 1fr}.pcell-prof{grid-column:1/-1}}  /* tablet: 2 + profilo sotto */
 @media (max-width:640px){
- .ptop{grid-template-columns:1fr 1fr;gap:10px}.pcell{min-height:0;padding:13px 14px;gap:4px}.pcell-prof{grid-column:1/-1}
- .pcell .pdinfo b,.pprof-n{font-size:17px}.pcell .pcount .pcd{font-size:14px}.pcell .pdsub{font-size:12px}
- .ptest-apri{align-self:stretch;justify-content:center;margin-top:8px;height:44px}
+ .ptop{grid-template-columns:1fr;gap:10px}
+ .pcell{--rv:50px;--rf:40px;row-gap:8px;padding:14px 16px}
+ .pcv .pcb{font-size:19px}.pcq b{font-size:18px}
+ .pcpiede .ptest-apri{flex:1;justify-content:center;height:40px}.ptest-reset{height:40px}
  .ptool{flex-direction:column;align-items:stretch}.ptool .pcapbar{justify-content:space-between}
  .ptmod{align-items:flex-end;padding:0}.ptmod-box{width:100%;max-height:92vh;border-radius:22px 22px 0 0}
  .ptmod .ptest{border-radius:22px 22px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom))}.ptmod .ptest h3{font-size:18px}}
