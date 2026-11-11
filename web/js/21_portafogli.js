@@ -294,12 +294,18 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  /* v6.52: ogni rotazione mostra com'e' andato il mese (netto e drawdown) e, aprendo "Dettaglio", ogni mercato con
     peso, rendimento, contributo al totale (punti %) e drawdown; per le Azioni scelte anche i singoli titoli. */
  // v7.38 mese in corso: al posto della scritta "mese in corso" il risultato PROVVISORIO (stessi numeri del riquadro del mese)
- function dettMese(m,cor){if(!m){if(!cor||cor.attesa||cor.r==null)return `<div class="prisul small">mese in corso</div>`;
+ // v7.39 ogni mese chiuso dice da dove viene il numero: "Live" = mese seguito dal vivo (registro chiusure, i suoi
+ //   numeri hanno la precedenza), "Simulato" = calcolato dal modello con le stesse regole e i prezzi reali.
+ function fonteMese(mese,pid){const x=(P.chiusure||[]).find(z=>z.mese==mese&&z.profili&&z.profili[pid]);return x?x.profili[pid]:null;}
+ const tagFonte=live=>live?`<span class="pfonte live" title="Mese seguito dal vivo: rotazione e prezzi registrati in tempo reale">Live</span>`
+  :`<span class="pfonte sim" title="Calcolato dal modello con le stesse regole e i prezzi reali, prima dell'avvio del live (novembre 2026)">Simulato</span>`;
+ function dettMese(m,cor,live){if(m&&live)m=Object.assign({},m,{r:live.r!=null?live.r:m.r,dd:live.dd!=null?live.dd:m.dd});
+  if(!m){if(!cor||cor.attesa||cor.r==null)return `<div class="prisul small">mese in corso</div>`;
    return `<div class="prisul"><span class="pmc-b">Provvisorio</span><span>Risultato <b class="${cor.r>=0?"up":"down"}">${pc(cor.r)}</b></span><span>drawdown <b class="down">${pc(cor.dd)}</b></span>${cor.gg&&cor.tot?`<span>giorno di borsa <b>${cor.gg}</b> di ${cor.tot}</span>`:""}</div>`;}
   const riga=a=>`<tr><td>${esc(a.nome)}${a.titoli&&a.titoli.length?`<div class="ptit">${a.titoli.map(t=>`<span>${esc(t.n)} <em class="${t.r==null?"":t.r>=0?"up":"down"}">${t.r==null?"in corso":pc(t.r)}</em></span>`).join("")}</div>`:""}</td>
    <td class="num">${fx(a.w,0)}%</td>${a.attesa?`<td class="num small" colspan="3" title="I rendimenti delle 5 azioni di questo mese arrivano con il prossimo aggiornamento dell'Azionario">dati in arrivo</td>`:`<td class="num ${a.r>=0?"up":"down"}">${pc(a.r)}</td><td class="num ${a.c>=0?"up":"down"}">${a.c>0?"+":""}${fx(a.c,2)}</td><td class="num down">${pc(a.dd)}</td>`}</tr>`;
   const peg=m.asset.filter(x=>x.c!=null).sort((x,y)=>x.c-y.c)[0];
-  return `<div class="prisul"><span>Risultato <b class="${m.r>=0?"up":"down"}">${pc(m.r)}</b></span><span>drawdown <b class="down">${pc(m.dd)}</b></span></div>
+  return `<div class="prisul">${tagFonte(!!live)}<span>Risultato <b class="${m.r>=0?"up":"down"}">${pc(m.r)}</b></span><span>drawdown <b class="down">${pc(m.dd)}</b></span></div>
    <details class="pdet"><summary>Dettaglio del mese</summary>
     ${peg&&peg.c<0?`<p class="small">Ha pesato di pi&ugrave;: <b>${esc(peg.nome)}</b> (${fx(peg.c,2)} punti sul totale).</p>`:""}
     <div class="tablewrap"><table class="compatta pdett"><tr><th>Mercato</th><th class="num">Peso</th><th class="num">Rend.</th><th class="num">Contributo</th><th class="num">Drawdown</th></tr>${m.asset.map(riga).join("")}</table></div>
@@ -484,7 +490,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const perMese={};(p.mesi_chiusi||[]).forEach(m=>perMese[m.mese]=m);
   return `<div class="prot${tutteRot?" aperta":""}">${p.rotazioni.map((r,i)=>`<div class="protr${i>=3?" pextra":""}"><b>${gg(r.data)}</b><div class="pgrs">
    ${gr("pin","Entrati",r.entrati)}${gr("pout","Usciti",r.usciti)}${gr("pten","Restano",r.tenuti)}${!r.entrati.length&&!r.usciti.length&&!r.tenuti.length?'<div class="small">tutto in liquidit&agrave;</div>':""}</div>
-   <span class="pliq${r.liquidita?"":" zero"}" title="Quota tenuta in liquidit&agrave; in questa rotazione">liquidit&agrave; ${r.liquidita||0}%</span>${r.attesa?`<div class="prisul small"><span class="pmc-b">si esegue all'apertura del ${gg(r.data)}</span></div>`:dettMese(perMese[r.data.slice(0,7)],i==0?p.corrente:null)}</div>`).join("")}
+   <span class="pliq${r.liquidita?"":" zero"}" title="Quota tenuta in liquidit&agrave; in questa rotazione">liquidit&agrave; ${r.liquidita||0}%</span>${r.attesa?`<div class="prisul small"><span class="pmc-b">si esegue all'apertura del ${gg(r.data)}</span></div>`:dettMese(perMese[r.data.slice(0,7)],i==0?p.corrente:null,fonteMese(r.data.slice(0,7),p.id))}</div>`).join("")}
    ${p.rotazioni.length>3?`<button class="ptutte">${tutteRot?"Mostra meno":`Mostra tutte (${p.rotazioni.length})`}</button>`:""}</div>`;}
 
  // --- CONFRONTO DEI 3 PROFILI mese per mese (v6.56): stessi mesi chiusi delle rotazioni, i tre profili affiancati,
@@ -689,7 +695,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    p.rotazioni.slice(0,6).forEach(r=>{const L=[];
     if(r.entrati.length)L.push(["+ "+r.entrati.map(nomeK).join(", "),C.up]);if(r.usciti.length)L.push(["− "+r.usciti.map(nomeK).join(", "),C.down]);
     if(r.tenuti.length)L.push(["= "+r.tenuti.map(nomeK).join(", "),C.ink]);if(!L.length)L.push(["tutto in liquidità",C.mute]);
-    const mm=perMese[r.data.slice(0,7)],ris=r.attesa?`si esegue all'apertura del ${gg(r.data)}`:mm?`Risultato ${pc(mm.r)} · drawdown ${pc(mm.dd)}`:(p.corrente&&!p.corrente.attesa&&p.corrente.r!=null&&r===p.rotazioni[0])?`Provvisorio ${pc(p.corrente.r)} · drawdown ${pc(p.corrente.dd)}`:"mese in corso";
+    const mm=perMese[r.data.slice(0,7)],ris=r.attesa?`si esegue all'apertura del ${gg(r.data)}`:mm?`${fonteMese(r.data.slice(0,7),p.id)?"Live":"Simulato"} · risultato ${pc((fonteMese(r.data.slice(0,7),p.id)||mm).r)} · drawdown ${pc((fonteMese(r.data.slice(0,7),p.id)||mm).dd)}`:(p.corrente&&!p.corrente.attesa&&p.corrente.r!=null&&r===p.rotazioni[0])?`Provvisorio ${pc(p.corrente.r)} · drawdown ${pc(p.corrente.dd)}`:"mese in corso";
     const righe=L.flatMap(l=>d.righe(l[0],LW-70-185,8).map(t2=>[t2,l[1]])),h=Math.max(16,righe.length*11)+10;
     y=d.serve(y,h,T);d.testo(M,y+10,gg(r.data),{s:8.5,b:true});righe.forEach((q,i)=>d.testo(M+70,y+10+i*11,q[0],{s:8,c:q[1]}));
     d.testo(PW-M,y+10,ris,{s:7.6,c:mm?(mm.r>=0?C.up:C.down):C.mute,a:"r",b:!!mm});if(r.liquidita)d.testo(PW-M,y+21,`liquidità ${r.liquidita}%`,{s:7,c:C.mute,a:"r"});
@@ -833,7 +839,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${simulatoreHTML(p)}
    ${crisiHTML(p)}
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
-   ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <span class="pbprof">${esc(p.nome)}</span><details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div><b>Entrati</b>: mercati comprati nella rotazione. <b>Usciti</b>: venduti. <b>Restano</b>: tenuti dal mese prima (con i pesi aggiornati). La riga in alto &egrave; la rotazione in vigore, con il risultato provvisorio del mese; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato. Cambiando profilo cambiano mercati, pesi e liquidit&agrave;.</div></details></h3>${rotazioni(p)}</div>`:""}`;
+   ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <span class="pbprof">${esc(p.nome)}</span><details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div><b>Entrati</b>: mercati comprati nella rotazione. <b>Usciti</b>: venduti. <b>Restano</b>: tenuti dal mese prima (con i pesi aggiornati). La riga in alto &egrave; la rotazione in vigore, con il risultato provvisorio del mese; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato. Cambiando profilo cambiano mercati, pesi e liquidit&agrave;.<br><br><b>Live</b>: mese seguito dal vivo (da novembre 2026). <b>Simulato</b>: mese precedente, calcolato dal modello con le stesse regole e i prezzi reali di quel mese, senza essere stato seguito in tempo reale.</div></details></h3>${rotazioni(p)}</div>`:""}`;
   {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito);}
   {const b=el.querySelector(".ptest-reset");if(b)b.onclick=()=>{test={passo:0};try{localStorage.removeItem("ebTest");}catch(e){}disegna();};}   // v7.37 azzera il profilo   // v7.36 test nel popup
   el.querySelectorAll(".pvista button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{localStorage.setItem("ebPortVista",vista);}catch(e){}ridisegna(".pvista");});

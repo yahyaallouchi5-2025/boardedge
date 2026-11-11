@@ -2296,3 +2296,7 @@ html.ptmod-on{overflow:hidden}
 .pk-f .pmc-bar{flex:1;display:block;height:6px;margin:0;padding:0;border:0;border-radius:99px;background:color-mix(in srgb,var(--line) 80%,transparent);overflow:hidden}
 .pk-f .pmc-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--b));box-shadow:0 0 10px color-mix(in srgb,var(--acc) 45%,transparent)}
 @media (max-width:520px){.pmc-k.pk3>.pk{padding:12px 13px}.pmc-k.pk3 .pk-v{font-size:21px}.pk-h span{font-size:11px}}
+/* v7.39 origine del risultato di un mese chiuso: Live (accento) o Simulato (grigio) */
+.pfonte{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:99px;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;cursor:help}
+.pfonte.live{color:var(--acc);border:1px solid color-mix(in srgb,var(--acc) 55%,var(--line));background:color-mix(in srgb,var(--acc) 10%,transparent)}
+.pfonte.sim{color:var(--mute);border:1px solid var(--line)}
