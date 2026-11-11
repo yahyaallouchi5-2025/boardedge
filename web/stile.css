@@ -2322,3 +2322,17 @@ html.ptmod-on{overflow:hidden}
 @media (max-width:900px){.cd-ind{grid-template-columns:1fr 1fr}}
 @media (max-width:600px){.cd-fasi{gap:5px}.cd-f{padding:7px 3px;min-height:54px}.cd-f b{font-size:10.5px}.cd-da{flex-basis:100%;margin-left:0}
  .qe-st:has(.cd-da){flex-wrap:wrap}.cd-ind .qe-i span{white-space:normal}}
+/* v7.41 QUOTA DI RISCHIO nella composizione: etichetta "rischio X%" in colonna fissa accanto al peso e barra sottile
+   sotto quella del peso (stessa scala 0-100). */
+.phcomp h4{display:flex;align-items:center;gap:8px}
+.phleg{margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;letter-spacing:0;text-transform:none;color:var(--mute)}
+.phleg i{display:inline-block;width:18px;border-radius:99px;background:var(--ink2)}.phleg .lp{height:7px}.phleg .lr{height:3px;margin-left:8px;opacity:.75}
+.phbar.rk{grid-template-columns:minmax(0,1fr) 96px 62px;gap:6px 12px}
+.phbar.rk b{text-align:right}
+.phrk{font-style:normal;font-size:12px;font-weight:600;color:var(--mute);text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+.phrk.su{color:var(--ink)}
+.phbar u{grid-column:1/-1;display:block;height:3px;margin-top:-2px;border-radius:99px;background:color-mix(in srgb,var(--soft) 60%,transparent);text-decoration:none}
+.phbar u s{display:block;height:100%;border-radius:99px;background:var(--ink2);opacity:.7;box-shadow:none;transition:width .4s}
+.phbar:hover u s{opacity:1;box-shadow:none}
+.phrkn{margin:14px 0 0;font-size:13px;color:var(--ink2)}.phrkn b{color:var(--ink)}
+@media (max-width:520px){.phbar.rk{grid-template-columns:minmax(0,1fr) 82px 54px;gap:6px 8px}.phbar.rk span{font-size:14px}.phrk{font-size:11.5px}}
