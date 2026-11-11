@@ -95,7 +95,10 @@ class TreasuryInEuro(unittest.TestCase):
         with mock.patch.dict(os.environ, {"EODHD_API_KEY": "finta"}), mock.patch.object(E, "get", finto):
             self.assertEqual(E.cerca_eur("IE00B3VWN518"), "SXRM.XETRA")
             with mock.patch.dict(E.SIMBOLI_EUR, {"IE00B3VWN518": ("CBU0",)}):
-                self.assertIsNone(E.cerca_eur("IE00B3VWN518"))        # ISIN diverso: scartato
+                with mock.patch.dict(E.XETRA_VERIFICATI, {}, clear=True):
+                    self.assertIsNone(E.cerca_eur("IE00B3VWN518"))    # ISIN diverso: scartato
+                # v7.33 ricerca senza esito: si usa la quotazione Xetra verificata a mano
+                self.assertEqual(E.cerca_eur("IE00B3VWN518"), "SXRM.XETRA")
 
 
 if __name__ == "__main__":

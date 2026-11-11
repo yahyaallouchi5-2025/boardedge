@@ -141,6 +141,10 @@ def scarica_etf(t):
 # ISIN che la ricerca di EODHD non collega alla quotazione in euro: simboli Xetra da provare. Si accettano SOLO se la
 # ricerca per simbolo restituisce lo stesso ISIN (nessun rischio di prezzo di uno strumento sbagliato).
 SIMBOLI_EUR = {"IE00B3VWN518": ("SXRM", "CBU0", "IBTM")}   # iShares $ Treasury Bond 7-10yr UCITS ETF (Acc)
+# v7.33 ultima riserva: quotazioni in euro VERIFICATE A MANO (listino Deutsche Boerse / Xetra) per gli ISIN che la ricerca
+# di EODHD non collega mai. Senza, l'ETF Treasury restava "prezzo n/d" in Acquisto diretto (fino a 5.000 euro non
+# assegnati su 25.000) e il test del profilo segnalava uno scarto dal modello del 13-15% che non era reale.
+XETRA_VERIFICATI = {"IE00B3VWN518": "SXRM.XETRA"}
 
 
 def cerca_eur(isin):
@@ -157,7 +161,7 @@ def cerca_eur(isin):
         trovato = migliore(get("search/" + codice), solo_isin=True)   # stesso ISIN obbligatorio
         if trovato:
             break
-    return trovato
+    return trovato or XETRA_VERIFICATI.get(isin.upper())
 
 
 def ultimo_eur(sym):
