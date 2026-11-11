@@ -700,9 +700,78 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   if(b&&y0!=null)window.scrollTo({top:window.scrollY+b.getBoundingClientRect().top-y0,behavior:"instant"});
   else window.scrollTo({top:sy,behavior:"instant"});
   requestAnimationFrame(()=>{el.style.minHeight="";});}
+
+ // --- v7.33 TEST DEL PROFILO (onboarding, 3 domande). Ogni domanda decide qualcosa con i DATI del modello, niente
+ //     punteggi a sensazione:
+ //   D1 CAPITALE   -> versione compatta sotto P.compatto.sotto e importi in euro delle domande dopo;
+ //   D2 ORIZZONTE  -> finestre storiche del simulatore (p.sim.leve["1.0"][anni]): un profilo e' compatibile se in
+ //                    quella durata e' finito in perdita in non piu' del 5% dei periodi (meno di 2 anni = finestra di 1);
+ //   D3 PERDITA    -> drawdown massimo storico di ogni profilo IN EURO sul capitale scritto: compatibili i profili
+ //                    con un drawdown non piu' ampio di quello accettato.
+ //   Profilo finale = il PIU' PRUDENTE tra i due limiti (regola MiFID). "Non accetto perdite" = solo liquidita'.
+ //   Esito salvato SOLO in questo browser (localStorage "ebTest"). DEBUG: F12 -> Console -> localStorage.ebTest
+ const ORZ=[[1,"Meno di 2 anni","soldi che potrebbero servirti presto"],[3,"Da 2 a 5 anni","un obiettivo a medio termine"],[5,"Oltre 5 anni","risparmio di lungo periodo"]];
+ let test={passo:0};try{const t=JSON.parse(localStorage.getItem("ebTest")||"null");if(t)test=Object.assign({passo:t.esito?4:0},t);}catch(e){}
+ const salvaTest=()=>{try{localStorage.setItem("ebTest",JSON.stringify(test));}catch(e){}};
+ const statT=(p,cap)=>{const c=compatto(cap)&&p.compatto&&p.compatto.stat&&p.compatto.stat.totale;return c||((p.stat_eur||{}).totale)||p.stat.totale;};
+ const simT=(p,anni)=>(((p.sim||{}).leve||{})["1.0"]||{})[String(anni)]||null;
+ function esitoTest(){const prof=P.profili,cap=test.cap;
+  if(test.tol<0)return {liq:true};
+  // limite dell'orizzonte: il profilo piu' rischioso con perdita <= 5% dei periodi in quella durata
+  let lo=-1;prof.forEach((p,i)=>{const s=simT(p,test.anni);if(s&&s.perdita!=null&&s.perdita<=5)lo=i;});
+  const i=Math.min(lo<0?0:lo,test.tol);
+  return {p:prof[i],breve:lo<0,limite:lo<0||lo<test.tol?"orizzonte":test.tol<prof.length-1?"perdita":null};}
+ function testHTML(){const prof=P.profili,cap=test.cap||capitale,nP=3;
+  const info=`<details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div>Tre domande, ognuna legata ai dati del modello: il <b>capitale</b> sceglie la versione (compatta sotto ${eur((P.compatto||{}).sotto||10000)}) e gli importi in euro; l'<b>orizzonte</b> si confronta con tutte le finestre storiche dal 2006 (un profilo &egrave; adatto se in quella durata ha chiuso in perdita al massimo nel 5% dei casi); la <b>perdita accettata</b> con il drawdown massimo storico di ogni profilo. Vale il limite pi&ugrave; prudente.<br><br>Prima di investire tieni da parte un fondo per le emergenze (di solito 3-6 mesi di spese). Il test non conosce la tua situazione completa (debiti, entrate, altri investimenti): &egrave; un aiuto alla scelta, non una consulenza personalizzata. I risultati passati non garantiscono quelli futuri: un drawdown pu&ograve; essere pi&ugrave; ampio di quello storico.</div></details>`;
+  if(test.passo==-1||(test.esito&&test.passo==5))   // test saltato o chiuso: solo una riga
+   return `<div class="ptest mini"><span>${test.esito?`Profilo dal test: <b>${esc((prof.find(x=>x.id==test.esito)||{}).nome||"")}</b>`:"Non sai quale profilo scegliere?"}</span><button type="button" class="ptest-go" data-t="rifai">${test.esito?"Rifai il test":"Fai il test (3 domande)"}</button></div>`;
+  const dots=`<div class="ptest-dots" aria-hidden="true">${[1,2,3].map(n=>`<i class="${Math.max(1,test.passo)>=n?"on":""}"></i>`).join("")}</div>`;
+  const testa=(t)=>`<div class="ptest-t"><span class="ptest-k">Trova il tuo profilo</span>${test.passo<=nP?`<span class="ptest-n">${test.passo||1} di ${nP}</span>`:""}${info}</div>${test.passo<=nP?dots:""}<h3>${t}</h3>`;
+  const piede=`<div class="ptest-b">${test.passo>1&&test.passo<=nP?`<button type="button" class="ptest-ind" data-t="ind">&larr; Indietro</button>`:"<span></span>"}<button type="button" class="ptest-salta" data-t="salta">${test.passo>nP?"Chiudi":"Salta"}</button></div>`;
+  if(test.passo<=1){const ch=[2000,5000,10000,25000];
+   return `<div class="ptest">${testa("Quanto vuoi investire?")}<div class="ptest-o c4">${ch.map(v=>`<button type="button" data-cap="${v}" class="${cap==v?"on":""}">${eur(v)}</button>`).join("")}</div>
+    <label class="ptest-lib">Altro importo <input type="text" inputmode="numeric" value="${ch.includes(cap)?"":cap.toLocaleString("it-IT")}" placeholder="es. 7.500" aria-label="Altro importo in euro"> &euro;<button type="button" class="ptest-ok" data-t="cap">Avanti</button></label>${piede}</div>`;}
+  if(test.passo==2)
+   return `<div class="ptest">${testa("Fra quanto tempo potrebbero servirti questi soldi?")}<div class="ptest-o">${ORZ.map(o=>`<button type="button" data-anni="${o[0]}" class="${test.anni==o[0]?"on":""}"><b>${o[1]}</b><small>${o[2]}</small></button>`).join("")}</div>${piede}</div>`;
+  if(test.passo==3){
+   return `<div class="ptest">${testa(`Il tuo conto da ${eur(cap)} scende in poche settimane. Fino a quale perdita resti investito senza vendere?`)}
+    <div class="ptest-o">${prof.map((p,i)=>{const dd=statT(p,cap).maxdd;return `<button type="button" data-tol="${i}" class="${test.tol==i?"on":""}"><b>&minus;${eur(Math.abs(dd)/100*cap).replace(" €","")} &euro;</b><small>&minus;${fx(Math.abs(dd),1)}%: il drawdown peggiore del profilo ${esc(p.nome)}</small></button>`;}).join("")}
+     <button type="button" data-tol="-1" class="${test.tol==-1?"on":""}"><b>Nessuna perdita</b><small>non accetto che il conto scenda</small></button></div>${piede}</div>`;}
+  // RISULTATO
+  const r=esitoTest();
+  if(r.liq)return `<div class="ptest esito">${testa("Per te: liquidit&agrave;, non un portafoglio")}<p class="ptest-p">Tutti i portafogli hanno avuto periodi in perdita. Se non accetti che il conto scenda, tieni i soldi sul conto o in un ETF monetario come <b>XEON</b> (rende circa il tasso BCE, oscillazioni minime).</p>${piede}</div>`;
+  const p=r.p,st=statT(p,cap),sm=simT(p,test.anni),orz=ORZ.find(o=>o[0]==test.anni);
+  const motivo=r.breve?`Con un orizzonte sotto i 2 anni ogni profilo ha chiuso in perdita in circa 1 anno su 8: per i soldi che ti servono a breve &egrave; pi&ugrave; adatta la liquidit&agrave; (XEON).`
+   :r.limite=="orizzonte"?`Deciso dall'<b>orizzonte</b>: con ${orz[1].toLowerCase()} i profili pi&ugrave; rischiosi hanno chiuso in perdita troppo spesso.`
+   :r.limite=="perdita"?`Deciso dalla <b>perdita che accetti</b>: i profili pi&ugrave; rischiosi hanno avuto drawdown pi&ugrave; ampi.`:`Compatibile sia con il tuo orizzonte sia con la perdita che accetti.`;
+  return `<div class="ptest esito">${testa(`Il profilo adatto a te: <span class="ptest-pr">${esc(p.nome)}</span>`)}
+   <div class="ptest-r">
+    <div><small>Drawdown peggiore</small><b class="down">&minus;${fx(Math.abs(st.maxdd),1)}%</b><span>&minus;${eur(Math.abs(st.maxdd)/100*cap)} su ${eur(cap)}${st.recupero_mesi?` &middot; recuperato in ${st.recupero_mesi} mesi`:""}</span></div>
+    ${sm?`<div><small>Dopo ${test.anni==1?"1 anno":test.anni+" anni"}</small><b>${eur(sm.p5*cap)}</b><span>nel 5% dei casi peggiori &middot; in perdita nel ${fx(sm.perdita,0)}% dei periodi</span></div>`:""}
+    <div><small>Rendimento medio annuo</small><b class="up">${pc(st.cagr)}</b><span>dal ${String(st.dal||"").slice(0,4)}, costi inclusi</span></div></div>
+   <p class="ptest-p">${motivo}${compatto(cap)?` Con ${eur(cap)} si usa la <b>versione compatta</b>.`:""}</p>${avvisoCap(p,cap)}
+   <div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><button type="button" class="ptest-usa" data-t="usa">Usa questo profilo</button></div></div>`;}
+ // avviso se con quel capitale, a quote intere e ai prezzi di oggi, il conto si allontana troppo dal modello
+ function avvisoCap(p,cap){const sc=piano(p,cap).scost;if(sc<=SCOST_OK)return "";
+  const min=minimoCap(p),alt=P.profili.slice(0,P.profili.indexOf(p)).reverse().find(x=>piano(x,cap).scost<=SCOST_OK);
+  return `<p class="ptest-avv"><b>Attenzione al capitale.</b> Con ${eur(cap)}, a quote intere e ai prezzi di oggi, il conto si discosta dal modello del <b>${fx(sc,1)}%</b>: alcune quote costano pi&ugrave; del loro peso e restano sul conto.${min?` Per replicarlo bene servono almeno <b>${eur(min)}</b>.`:""}${alt?` Con questo capitale si replica bene il profilo <b>${esc(alt.nome)}</b>.`:""}</p>`;}
+ function testEventi(){const box=el.querySelector("#ptestbox");if(!box)return;
+  const vai=n=>{test.passo=n;salvaTest();box.innerHTML=testHTML();testEventi();};
+  box.querySelectorAll("[data-cap]").forEach(b=>b.onclick=()=>{test.cap=+b.dataset.cap;vai(2);});
+  box.querySelectorAll("[data-anni]").forEach(b=>b.onclick=()=>{test.anni=+b.dataset.anni;vai(3);});
+  box.querySelectorAll("[data-tol]").forEach(b=>b.onclick=()=>{test.tol=+b.dataset.tol;vai(4);});
+  box.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const t=b.dataset.t;
+   if(t=="cap"){const v=+String(box.querySelector(".ptest-lib input").value).replace(/\D/g,"");if(v>=100){test.cap=v;vai(2);}else box.querySelector(".ptest-lib input").focus();}
+   else if(t=="ind")vai(Math.max(1,test.passo-1));
+   else if(t=="salta"){if(test.passo>3&&test.esito)vai(5);else{test.passo=-1;salvaTest();box.innerHTML=testHTML();testEventi();}}
+   else if(t=="rifai"){test={passo:1,cap:capitale};vai(1);}
+   else if(t=="usa"){const r=esitoTest();if(!r.p)return;test.esito=r.p.id;test.passo=5;salvaTest();
+    sel=r.p.id;capitale=test.cap;try{localStorage.setItem("ebProfilo",sel);localStorage.setItem("ebCapitale",capitale);}catch(e){}ridisegna(".pseg");}});
+  const inp=box.querySelector(".ptest-lib input");if(inp)inp.onkeydown=e=>{if(e.key=="Enter")box.querySelector('[data-t="cap"]').click();};}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
    <div class="pdate">${P.attesa?`<div class="pdinfo pnew"><i></i><div><span class="pdl">Nuova rotazione</span><b>${gg(P.rotazione)}</b><span class="pdsub">decisa sulla chiusura del ${gg(P.decisa_al)}</span></div></div>`:`<div class="pdinfo"><i></i><div><span class="pdl">Rotazione in vigore</span><b>${gg(P.rotazione)}</b></div></div>`}<span class="pcount" data-t="${P.prossima||""}" title="${P.attesa?"Si esegue":"Prossimo ribilanciamento"}: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"} <b class="pcd">${gg(P.prossima)}</b></span></div>
+   <div id="ptestbox">${testHTML()}</div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
    <div class="pvista" role="tablist" aria-label="Sezione della scheda">${VISTE.map(v=>`<button role="tab" aria-selected="${vista==v[0]}" class="${vista==v[0]?"on":""}" data-v="${v[0]}">${v[1]}</button>`).join("")}</div>
    ${vista=="oggi"?`<label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${capitale.toLocaleString("it-IT")}" aria-label="Capitale da investire in euro"> &euro;</label>
