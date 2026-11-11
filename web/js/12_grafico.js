@@ -204,7 +204,7 @@ function avvisoNotizia(spec){const[t,id]=spec.split(":");if(t!="p")return "";con
  return `<span class="badge" style="--bc:var(--ss)" title="${esc("Notizia contraria al segnale: "+(ev.join(", ")||"vedi riepilogo"))}">NOTIZIA CONTRARIA</span>`;}
 function apriGrafico(spec){TV.spec=spec;const info=tvInfo(spec),m=$("tvmodal");disegnaCOT(spec);
  $("tvtitolo").innerHTML=`<span class="pair">${esc(info.nome)}</span> ${info.label?badge(info.label):""} ${avvisoNotizia(spec)} <span class="small">punteggio ${fmt(info.score)}</span>`;
- $("tvsotto").innerHTML=`${esc(info.sotto)}`+   /* simbolo TradingView tolto: si vede gia' nel grafico */(info.inv?` &middot; <b style="color:var(--warn)">grafico quotato al contrario: BUY sul segnale = grafico che SCENDE</b>`:"");
+ $("tvsotto").innerHTML=`${esc(info.sotto)}`+   /* simbolo TradingView tolto: si vede gia' nel grafico */(info.inv?` &middot; <b style="color:var(--warn)">grafico quotato al contrario: posizionamento al RIALZO = grafico che SCENDE</b>`:"");
  $("tvlink").href="https://www.tradingview.com/chart/?symbol="+encodeURIComponent(info.sym||"");
  document.querySelectorAll("#tviv button").forEach(b=>b.classList.toggle("on",b.dataset.iv==TV.iv));
  m.hidden=false;bloccaPagina(true);disegnaTV();}
