@@ -5,9 +5,11 @@ agenda.py - AGENDA DELLE NOTIZIE MACRO (calendario + esito misurato dal mercato)
   - gli avvisi Telegram (avvisi.py): "notizia in arrivo" e "esito della notizia" con i segnali COT esposti.
 
 FLUSSO (una sola strada, ogni dato ha un solo compito):
-  1. CALENDARIO = financecalendar.com (gratuito, uso commerciale con link di attribuzione): data, ora, impatto,
-     dato uscito e precedente. Se non risponde: ultima copia salvata (dati/agenda.json); se manca anche quella,
-     il calendario interno di notizie.py (solo NFP, CPI, Fed, BCE). Mai un buco, mai dati inventati.
+  1. CALENDARIO = financecalendar.com finche' era gratuito; da novembre 2026 chiede un abbonamento (401), quindi
+     v7.31 CALENDARIO GRATUITO: date ufficiali dei dati USA dalla FRED (CPI, PPI, occupazione, vendite al dettaglio,
+     PIL, PCE), riunioni delle banche centrali scritte a mano dai loro calendari ufficiali (BoE, BoJ, BoC, RBA, SNB)
+     e gli eventi principali di notizie.py (NFP, CPI, Fed, BCE). Se financecalendar tornasse a rispondere si usa
+     ancora lui. Mai un buco, mai dati inventati.
   2. ESITO = reazione del MERCATO, da FRED/BCE: di quanto si e' mosso il tasso a 2 anni della valuta nel giorno
      dell'annuncio rispetto a una giornata normale (z-score, vedi notizie.sorpresa_mercato). Misura la vera
      sorpresa (rispetto a quanto era gia' prezzato) senza bisogno del consensus. Disponibile per USD ed EUR;
@@ -96,6 +98,88 @@ def normalizza(e):
             "precedente": e.get("prior"), "attuale": e.get("actual"), "fonte": e.get("source_url")}
 
 
+# v7.31 CALENDARIO GRATUITO. Da novembre 2026 financecalendar chiede un abbonamento (risposta 401): al suo posto
+#   1) DATI USA dalla FRED (stessa chiave FRED_API_KEY che usiamo gia'): date ufficiali di uscita, si aggiornano da sole.
+#      Tutti escono alle 08:30 di New York. Codici release verificati su fred.stlouisfed.org/releases.
+#   2) BANCHE CENTRALI scritte a mano dai calendari ufficiali (pubblicati un anno prima): giorno dell'ANNUNCIO e ora locale.
+#      Bank of Japan: nessun orario fisso (di solito verso mezzogiorno a Tokyo) -> solo il giorno.
+#      Fed e BCE restano in notizie.CALENDARIO (entrano anche nel correttivo del punteggio).
+FRED_RELEASE = {"us-cpi": 10, "us-ppi": 46, "us-nfp": 50, "us-retail-sales": 9, "us-gdp": 53, "us-pce": 54}
+FRED_DATE = "https://api.stlouisfed.org/fred/release/dates"
+BANCHE = {   # codice: (fuso, ora, minuti, date dell'annuncio)  fonti: siti ufficiali di ogni banca, novembre 2026
+    "boe": ("Europe/London", 12, 0, ["2026-12-17", "2027-02-04", "2027-03-18", "2027-04-29", "2027-06-17", "2027-07-29",
+                                      "2027-09-16", "2027-11-04", "2027-12-16"]),
+    "boj": ("Asia/Tokyo", None, None, ["2026-12-18", "2027-01-22", "2027-03-18", "2027-04-28", "2027-06-11",
+                                        "2027-07-22", "2027-09-22", "2027-10-29", "2027-12-17"]),
+    "boc": ("America/Toronto", 9, 45, ["2026-12-09", "2027-01-27", "2027-03-03", "2027-04-28", "2027-06-02",
+                                        "2027-07-21", "2027-09-08", "2027-10-27", "2027-12-08"]),
+    "rba": ("Australia/Sydney", 14, 30, ["2026-12-08", "2027-02-09", "2027-03-23", "2027-05-04", "2027-06-22",
+                                          "2027-08-10", "2027-09-21", "2027-11-02", "2027-12-14"]),
+    "snb": ("Europe/Zurich", 9, 30, ["2026-12-10", "2027-03-18", "2027-06-24", "2027-09-23", "2027-12-16"]),
+}
+
+
+def _evento(codice, giorno, utc):
+    """Evento nel formato interno (stesso di normalizza) per il calendario gratuito."""
+    s = SERIE[codice]
+    return {"id": f"{codice}-{giorno}", "codice": codice, "nome": s[0], "valuta": s[1], "tipo": s[2], "principale": s[3],
+            "impatto": "high", "data": giorno, "utc": utc, "stato": None, "unita": "", "precedente": None,
+            "attuale": None, "fonte": None}
+
+
+def _utc_locale(giorno, ora, minuti, fuso):
+    """Data + ora locale di una borsa/banca -> 'AAAA-MM-GGTHH:MMZ' (con ora legale), None se l'ora non e' fissa."""
+    if ora is None:
+        return None
+    from zoneinfo import ZoneInfo
+    y, m, d = map(int, giorno.split("-"))
+    t = datetime(y, m, d, ora, minuti, tzinfo=ZoneInfo(fuso)).astimezone(ZoneInfo("UTC"))
+    return t.strftime("%Y-%m-%dT%H:%MZ")
+
+
+def banche():
+    """Riunioni delle banche centrali minori (Bank of England, Japan, Canada, RBA, SNB)."""
+    return [_evento(c, g, _utc_locale(g, o, mi, fuso)) for c, (fuso, o, mi, giorni) in BANCHE.items() for g in giorni]
+
+
+def dati_fred(oggi=None, chiave=None, leggi=None):
+    """Date di uscita dei dati USA dalla FRED (passate e future). Lista vuota se manca la chiave o la FRED non risponde.
+    leggi(url) -> testo JSON (sostituibile nei test)."""
+    import os
+    chiave = chiave if chiave is not None else os.environ.get("FRED_API_KEY", "").strip().strip('"').strip("'")
+    if not chiave:
+        return []
+    oggi = oggi or date.today()
+    da, a = (oggi - timedelta(days=DOPO)).isoformat(), (oggi + timedelta(days=ORIZZONTE)).isoformat()
+    if leggi is None:
+        def leggi(url):
+            req = urllib.request.Request(url, headers={"User-Agent": "cot-radar/agenda"})
+            with urllib.request.urlopen(req, timeout=25) as r:
+                return r.read().decode("utf-8")
+    out = []
+    for codice, rid in FRED_RELEASE.items():
+        q = urllib.parse.urlencode({"release_id": rid, "api_key": chiave, "file_type": "json", "sort_order": "asc",
+                                    "include_release_dates_with_no_data": "true", "realtime_start": da, "limit": 200})
+        try:
+            js = json.loads(leggi(f"{FRED_DATE}?{q}"))
+        except (OSError, ValueError) as e:          # mai la chiave nei log: solo il tipo di errore
+            log.warning("FRED date di uscita %s non lette (%s)", codice, type(e).__name__)
+            continue
+        for x in js.get("release_dates") or []:
+            g = str(x.get("date") or "")[:10]
+            if da <= g <= a:
+                out.append(_evento(codice, g, _utc_locale(g, 8, 30, "America/New_York")))
+    return out
+
+
+def gratuito(oggi=None, fred_fn=None):
+    """Calendario senza abbonamenti: dati USA (FRED) + banche centrali + eventi principali scritti a mano.
+    Doppioni (stesso codice e giorno) tolti: la FRED vince sul calendario scritto a mano."""
+    eventi = (fred_fn or dati_fred)(oggi) + banche()
+    presenti = {(e["codice"], e["data"]) for e in eventi}
+    return eventi + [e for e in interno() if (e["codice"], e["data"]) not in presenti]
+
+
 def interno():
     """Calendario di riserva: gli eventi principali scritti a mano in notizie.CALENDARIO."""
     from .notizie import CALENDARIO, _utc
@@ -111,8 +195,8 @@ def interno():
     return out
 
 
-def carica(adesso=None, scarica_fn=scarica, cache=CACHE):
-    """(eventi normalizzati, fonte): financecalendar -> ultima copia salvata -> calendario interno."""
+def carica(adesso=None, scarica_fn=scarica, cache=CACHE, fred_fn=None):
+    """(eventi normalizzati, fonte): financecalendar (se torna a rispondere) -> calendario gratuito + copia salvata."""
     grezzi = scarica_fn()
     if grezzi is not None:
         eventi = [x for x in (normalizza(e) for e in grezzi) if x]
@@ -123,18 +207,17 @@ def carica(adesso=None, scarica_fn=scarica, cache=CACHE):
         except OSError as e:
             log.warning("copia dell'agenda non salvata (%s)", e)
         return eventi, "financecalendar"
+    # v7.31 fonte giu' (da novembre 2026 financecalendar chiede un abbonamento: risposta 401): calendario GRATUITO
+    # (FRED + banche centrali + eventi principali), piu' gli eventi della copia salvata che quello non ha.
+    eventi = gratuito((adesso or datetime.utcnow()).date(), fred_fn)
     try:
         with open(cache, encoding="utf-8") as f:
             copia = json.load(f)
-        # v7.30 fonte giu' (da novembre 2026 financecalendar chiede una chiave API: risposta 401): la copia salvata
-        # invecchia e restano solo eventi passati -> il nastro della Dashboard spariva. Si aggiungono SEMPRE gli eventi
-        # principali del calendario interno (NFP, CPI USA, Fed, BCE) che la copia non ha.
-        presenti = {(e.get("codice"), e.get("data")) for e in copia}
-        copia += [e for e in interno() if (e["codice"], e["data"]) not in presenti]
-        return copia, "financecalendar (copia salvata)"
     except (OSError, ValueError):
-        log.warning("agenda: nessuna copia salvata, uso il calendario interno (solo NFP, CPI, Fed, BCE)")
-        return interno(), "interno"
+        copia = []
+    presenti = {(e["codice"], e["data"]) for e in eventi}
+    eventi += [e for e in copia if (e.get("codice"), e.get("data")) not in presenti]
+    return eventi, "FRED e banche centrali"
 
 
 def esposti(valuta, pairs):
@@ -159,12 +242,12 @@ def verdetto(z, segnale):
     return "conferma" if (1 if z > 0 else -1) * segnale["lato"] == segnale["verso"] else "contrasto"
 
 
-def costruisci(fred, ecb, pairs, adesso=None, scarica_fn=scarica, cache=CACHE):
+def costruisci(fred, ecb, pairs, adesso=None, scarica_fn=scarica, cache=CACHE, fred_fn=None):
     """Agenda completa per la pagina e per gli avvisi: {"fonte", "credito", "eventi": [...]}.
     Per ogni evento gia' uscito di USD/EUR aggiunge la reazione del mercato (z, pb) e il verdetto sui segnali."""
     from .notizie import _serie_tasso, sorpresa_mercato
     adesso = adesso or datetime.utcnow()
-    eventi, fonte = carica(adesso, scarica_fn, cache)
+    eventi, fonte = carica(adesso, scarica_fn, cache, fred_fn)
     oggi = adesso.date()
     # v7.30 se nei prossimi PRIMA giorni non c'e' nessun evento, si prendono i prossimi MIN_FUTURI (entro ORIZZONTE
     # giorni): il nastro "Prossimi eventi" non resta mai vuoto in una settimana tranquilla o con la fonte giu'
