@@ -1257,6 +1257,57 @@ def rischio_mese(g, pesi, mese, fino_a):
             "positivi": sum(x > 0 for x in r), "dd_max": min(x["dd"] for x in anni), "mercati": mercati}
 
 
+RISCHIO_GIORNI = 252            # v7.41 finestra della quota di rischio (circa un anno di borsa)
+
+
+def quote_rischio(g, pesi, fx=None, giorni=RISCHIO_GIORNI, fino=None):
+    """v7.41 QUANTO RISCHIO PORTA OGNI MERCATO (idea di Ray Dalio: bilanciare il rischio, non il capitale).
+    pesi = {chiave: quota 0-1} (CASH compresa: e' liquidita' in euro, rischio zero).
+    Rendimenti giornalieri degli ultimi `giorni` giorni di borsa, in EURO senza copertura se c'e' il cambio fx
+    ({data: dollari per 1 euro}). Quota di rischio di un mercato = peso x covarianza con il portafoglio / varianza
+    del portafoglio: la somma fa 100; puo' essere negativa (il mercato riduce il rischio totale).
+    La quota "Azioni scelte" e' contata come l'S&P 500 (stessa scelta prudente dello storico: il prezzo sintetico
+    delle 5 azioni ha mesi fermi); il rischio vero di 5 titoli e' piu' alto, e la (i) in pagina lo dice.
+    -> {"vol": volatilita' annua % del portafoglio, "giorni": n, "quote": {chiave: %}} oppure None se i dati mancano."""
+    fino = len(g.date) - 1 if fino is None else fino
+    i0 = max(1, fino - giorni + 1)
+    if fino - i0 < 60:
+        return None
+    cambio, ult = [], None                               # cambio di ogni giorno (ultimo noto), per i rendimenti in euro
+    for j in range(i0 - 1, fino + 1):
+        ult = (fx or {}).get(g.date[j], ult)
+        cambio.append(ult)
+
+    def serie(t):
+        out = []
+        for n, j in enumerate(range(i0, fino + 1)):
+            r = g.rend(t, j)
+            if cambio[n] and cambio[n + 1]:
+                r = (1 + r) * cambio[n] / cambio[n + 1] - 1
+            out.append(r)
+        return out
+
+    R = {}
+    for k, w in pesi.items():
+        if k == "CASH" or w <= 0:
+            continue
+        R[k] = serie(_ticker("SP500" if k == "AZ" else k))
+    if not R:
+        return None
+    n = len(next(iter(R.values())))
+    port = [sum(pesi[k] * R[k][j] for k in R) for j in range(n)]
+    mp = sum(port) / n
+    var = sum((x - mp) ** 2 for x in port) / (n - 1)
+    if var <= 0:
+        return None
+    quote = {}
+    for k, s in R.items():
+        mk = sum(s) / n
+        cov = sum((s[j] - mk) * (port[j] - mp) for j in range(n)) / (n - 1)
+        quote[k] = round(pesi[k] * cov / var * 100, 1)
+    return {"vol": round(math.sqrt(var * 252) * 100, 1), "giorni": n, "quote": quote}
+
+
 def dettaglio_mesi(g, piani, giorni, curva, sat=None, n=12):
     """ULTIMI n MESI CHIUSI di un profilo (v6.52), per la sezione "Ultime rotazioni":
     per ogni mese (da una rotazione all'ultimo giorno di borsa prima della successiva) il risultato netto e il
@@ -1631,6 +1682,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                                                           if prof.get("az") else []),
             "ammessi": [{"k": k, "nome": TUTTI[k][2]} for k in prof["ammessi"]],
             "composizione": comp, "esclusi": esclusi,
+            "rischio_quote": quote_rischio(g, pesi, fxp),             # v7.41 quanto rischio porta ogni mercato
             "mese": rischio_mese(g, pesi, mese_rot[5:7], mese_rot),
             "corrente": {"mese": MESI[int(mese_rot[5:7]) - 1], "dal": attesa or g.date[ultimo_rib], "al": g.date[-1],
                          "gg": 0 if attesa else len(g.date) - ultimo_rib, "tot": giorni_feriali(mese_rot),
