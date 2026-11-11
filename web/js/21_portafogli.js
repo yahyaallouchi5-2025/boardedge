@@ -527,16 +527,14 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  function hero(p){const t=p.stat.totale||{},rk=RISK[p.id]||["",""];
   const cl={};p.composizione.forEach(c=>{cl[c.classe]=(cl[c.classe]||0)+c.peso;});
   const te=p.stat_eur&&p.stat_eur.totale,finale=te&&te.totale!=null?10000*(1+te.totale/100):t.totale!=null?10000*(1+t.totale/100):null   /* v6.57: 10.000 EURO -> si usa la curva in euro */,anno=(t.dal||"").slice(0,4);
-  const az=p.composizione.find(c=>c.k=="AZ"),pausa=p.esclusi.find(x=>x.k=="AZ");
   return `<div class="card phero"><div class="phtesta"><h3>${esc(p.nome)}${infoProfilo(p,t)}</h3><div class="phazioni"><span class="prisk ${rk[1]}">Rischio ${rk[0].toLowerCase()}</span>${window.ebPdf?ebPdf.bottone():""}</div></div>
    <div class="phnum"><div><em>Rendimento annuo</em><b class="up">${pc(t.cagr)}</b><span>media dal ${anno}</span></div>
     <div><em>Max drawdown</em><b class="down">${pc(t.maxdd)}</b><span>dal picco al minimo</span></div>
     <div><em>10.000 € nel ${anno}</em><b>${eur(finale)}</b><span>valore di oggi${p.stat_eur&&p.stat_eur.totale?" (in euro)":""}</span></div>
     <div><em>Mesi positivi</em><b>${t.mesi_pos??"n/d"}%</b><span>su tutti i mesi</span></div></div>
    <div class="phcomp"><h4>Composizione del mese <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div><b>Ogni primo giorno di borsa del mese</b> si controlla il trend: un mercato azionario sotto la media a 200 giorni va in pausa nella liquidit&agrave;. Treasury e oro restano sempre come difesa. Si scambia solo se un mercato entra o esce, e a inizio trimestre per riportare i pesi. Durante il mese non si tocca nulla. Dettagli nella <b>Guida</b>.</div></details></h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar"><span>${x[1]}</span><b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;--cb:${CL[x[0]]}"></s></i></div>`).join("")}</div>
-   <div class="phaz"${p.az?"":" hidden"}><h4>Le 5 azioni del mese <span class="small">(${p.az}% del portafoglio${az&&az.titoli&&az.titoli.length?`, ${fx(az.peso_titolo,1)}% ciascuna`:""})</span></h4>
-    ${pausa?`<div class="small">${esc(pausa.motivo)}.</div>`:az&&az.titoli&&az.titoli.length?`<div class="ptit">${az.titoli.map(x=>`<button class="pchip clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">${esc(x.t)} <small>${esc(x.n)}</small></button>`).join("")}</div>`
-     :`<div class="small">I titoli vengono scelti l'ultimo giorno di borsa del mese, dopo la chiusura, e entrano con la rotazione del ${gg(P.prossima)}.</div>`}</div>
+   ${/* v7.35 tolto il riquadro "Le 5 azioni del mese": doppione (i titoli sono gia' nelle righe del portafoglio e in
+       Acquisto diretto, con quote e importi) e rumore nella card principale */""}
 </div>`;}
 
  // --- v6.78 PDF DEL PORTAFOGLIO (generatore in 01b_pdf.js): gli stessi dati della pagina su un foglio chiaro, pensato
