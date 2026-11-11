@@ -2075,6 +2075,9 @@ b.qe-esp{color:var(--b)}b.qe-rec{color:var(--acc)}b.qe-sta{color:var(--s)}b.qe-s
 @keyframes azblink{0%,100%{opacity:1}50%{opacity:.2}}
 .azprz .azmkw{margin-left:6px}
 @media (max-width:640px){.azmk{white-space:normal;font-size:11.5px}}
+/* v7.30 telefono: il fumetto (i) dello stato dei mercati usciva a sinistra dallo schermo -> largo quanto lo schermo
+   (la posizione verticale la mette 01_base.js) */
+@media (max-width:600px){.azmkw .info div{position:fixed;left:16px!important;right:16px!important;width:auto}}
 @media (prefers-reduced-motion:reduce){.azlv i,.azsu,.azgiu,.azmk i{animation:none}}
 .azdy{color:var(--ink);font-weight:700}
 /* scheda del titolo larga come la Dashboard */
@@ -2107,29 +2110,3 @@ b.qe-esp{color:var(--b)}b.qe-rec{color:var(--acc)}b.qe-sta{color:var(--s)}b.qe-s
 @media (max-width:1560px){.aztab .azh2,.aztab .azh4{display:none}}
 .azsez .azisin{display:inline-flex}
 @media (max-width:1560px){.aztab .aznome b{max-width:180px}.aztab th,.aztab td{padding:12px 8px}}
-/* v7.29 COSA FARE OGGI (35_oggi.js): una card in cima alla Dashboard, tre righe (portafogli, mercati, da sapere).
-   Colore della riga: ok = verde (niente da fare / borse aperte), att = ambra (c'e' qualcosa da guardare oggi),
-   chiuso = rosso tenue (borse chiuse), neu = accento (non "info": e' gia' la classe dei fumetti (i)). */
-#oggi:empty{display:none}
-.cfo{margin:0 0 28px;padding:16px 18px 18px;border-radius:18px;border:1px solid var(--line);background:linear-gradient(180deg,var(--card),var(--card2));box-shadow:var(--shadow)}
-.cfot{display:flex;align-items:center;gap:10px;margin:0 2px 12px}
-.cfot h3{margin:0;font-size:15px;font-weight:800;letter-spacing:.1px;text-transform:none;color:var(--ink)}
-.cfod{font-size:12.5px;color:var(--mute)}
-.cfot .info{margin-left:auto}.cfot .info div{left:auto;right:0}
-.cfog{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
-.cfor{--c:var(--acc);position:relative;display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border-radius:14px;text-decoration:none;color:inherit;
- border:1px solid color-mix(in srgb,var(--c) 30%,var(--line));background:color-mix(in srgb,var(--c) 6%,transparent);transition:transform .25s cubic-bezier(.2,.8,.2,1),border-color .25s,background .25s}
-.cfor.ok{--c:var(--b)}.cfor.att{--c:var(--warn)}.cfor.chiuso{--c:var(--s)}.cfor.neu{--c:var(--acc)}
-a.cfor:hover{transform:translateY(-2px);border-color:color-mix(in srgb,var(--c) 65%,var(--line));background:color-mix(in srgb,var(--c) 11%,transparent)}
-a.cfor:focus-visible{outline:2px solid var(--c);outline-offset:2px}
-.cfoi{flex:none;width:32px;height:32px;border-radius:10px;display:grid;place-items:center;color:var(--c);background:color-mix(in srgb,var(--c) 15%,transparent)}
-.cfoi svg{width:17px;height:17px}
-.cfox{display:flex;flex-direction:column;gap:3px;min-width:0;flex:1}
-.cfoc{font-size:10.5px;font-weight:800;letter-spacing:.7px;text-transform:uppercase;color:var(--c)}
-.cfox b{font-size:14.5px;line-height:1.3;color:var(--ink)}
-.cfotx{font-size:12.5px;line-height:1.45;color:var(--mute)}
-.cfova{flex:none;align-self:center;display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:700;color:var(--c);opacity:.85;transition:opacity .2s}
-.cfova span{font-size:17px;line-height:1;transition:transform .25s}
-a.cfor:hover .cfova{opacity:1}a.cfor:hover .cfova span{transform:translateX(3px)}
-@media (max-width:1100px){.cfog{grid-template-columns:1fr}.cfor{align-items:center}}
-@media (max-width:600px){.cfo{padding:14px 14px 15px;margin-bottom:22px}.cfova{display:none}.cfor{padding:12px}.cfox b{font-size:14px}}
