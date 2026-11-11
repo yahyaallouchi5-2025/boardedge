@@ -2258,3 +2258,37 @@ html.ptmod-on{overflow:hidden}
 .pmc-fw .pmc-f{margin:16px 0 24px}
 #port .pmc{margin:0 0 var(--pgap);gap:18px}
 @media (max-width:520px){.pmc-k{grid-template-columns:1fr 1fr}.pmc-k>div:first-child{grid-column:1/-1}}
+/* v7.38 ULTIME ROTAZIONI: riga = data | gruppi | liquidita'. Ogni gruppo ha l'etichetta a parole in una colonna fissa
+   (72 px), cosi' le pastiglie dei mercati partono tutte sullo stesso asse verticale in ogni riga. */
+.protr{grid-template-columns:110px minmax(0,1fr) auto;gap:10px 16px;padding:16px 18px;align-items:center}
+.protr>b{font-size:14px;align-self:start;line-height:28px}
+.pgrs{display:flex;flex-direction:column;gap:8px;min-width:0}
+.pgr{display:grid;grid-template-columns:72px minmax(0,1fr);gap:10px;align-items:start;margin:0}
+.pgl{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:28px;color:var(--mute)}
+.pgr.pin .pgl{color:var(--sb)}.pgr.pout .pgl{color:var(--s)}
+.pgc{display:flex;flex-wrap:wrap;gap:6px}
+.pgc .pchip{display:inline-flex;align-items:center;height:28px;padding:0 10px;border-radius:8px;font-size:12.5px}
+.pliq{align-self:start;display:inline-flex;align-items:center;height:28px;padding:0 12px;border-radius:99px;border:1px solid var(--line);
+ font-size:12.5px;font-weight:700;color:var(--ink2);white-space:nowrap;font-variant-numeric:tabular-nums}
+.pliq.zero{color:var(--mute)}
+/* risultato del mese: separato dai mercati da una riga sottile, allineato alla colonna dei gruppi */
+.protr>.prisul{margin-top:2px;padding-top:12px;border-top:1px dashed var(--line);align-items:center;gap:8px 18px}
+.protr>.prisul .pmc-b{margin:0}
+.vft .pbprof{vertical-align:2px}
+@media (max-width:600px){
+ .protr{grid-template-columns:minmax(0,1fr) auto;padding:14px}
+ .protr>b{grid-column:1}.protr>.pliq{grid-column:2;grid-row:1}
+ .pgrs{grid-column:1/-1}.protr>.prisul,.protr>.pdet{grid-column:1/-1}
+ .pgr{grid-template-columns:64px minmax(0,1fr)}}
+/* v7.38 riquadri del mese (.pk): 3 righe fisse uguali in tutti, valore sempre della stessa misura */
+.pmc-k.pk3>.pk{display:grid;grid-template-rows:18px 30px 18px;row-gap:6px;padding:14px 16px;min-width:0}
+.pk-h{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:0!important;border:0!important;background:none!important;border-radius:0!important}
+.pk-h span{font-size:12px;font-weight:700;letter-spacing:.05em;text-transform:uppercase;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pk-h em{font-style:normal;font-size:11px;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--acc);
+ padding:2px 8px;border-radius:99px;border:1px solid color-mix(in srgb,var(--acc) 45%,var(--line));white-space:nowrap}
+.pmc-k.pk3 .pk-v{font-size:24px;line-height:30px;font-weight:800;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pk-v .pk-di{font-size:14px;font-weight:600;color:var(--mute)}
+.pk-f{display:flex;align-items:center;font-size:12.5px;color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0!important;border:0!important;background:none!important;border-radius:0!important}
+.pk-f .pmc-bar{flex:1;display:block;height:6px;margin:0;padding:0;border:0;border-radius:99px;background:color-mix(in srgb,var(--line) 80%,transparent);overflow:hidden}
+.pk-f .pmc-bar i{display:block;height:100%;border-radius:99px;background:linear-gradient(90deg,var(--acc),var(--b));box-shadow:0 0 10px color-mix(in srgb,var(--acc) 45%,transparent)}
+@media (max-width:520px){.pmc-k.pk3>.pk{padding:12px 13px}.pmc-k.pk3 .pk-v{font-size:21px}.pk-h span{font-size:11px}}
