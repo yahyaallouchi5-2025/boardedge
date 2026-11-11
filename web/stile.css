@@ -2242,7 +2242,8 @@ html.ptmod-on{overflow:hidden}
  .pcell{--rv:50px;--rf:40px;row-gap:8px;padding:14px 16px}
  .pcv .pcb{font-size:19px}.pcq b{font-size:18px}
  .pcpiede .ptest-apri{flex:1;justify-content:center;height:40px}.ptest-reset{height:40px}
- .ptool{flex-direction:column;align-items:stretch}.ptool .pcapbar{justify-content:space-between}
+ .ptool{flex-direction:column;align-items:stretch}.ptool .pcapbar{justify-content:flex-start;padding-right:16px}
+ .ptool .pcapbar input{margin-left:auto;width:140px}   /* telefono: campo a destra con il simbolo euro subito accanto */
  .ptmod{align-items:flex-end;padding:0}.ptmod-box{width:100%;max-height:92vh;border-radius:22px 22px 0 0}
  .ptmod .ptest{border-radius:22px 22px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom))}.ptmod .ptest h3{font-size:18px}}
 /* v7.36 "<mese> in corso": niente pillola vuota (il box live ha [hidden] ma display:flex lo mostrava), 3 riquadri pieni
