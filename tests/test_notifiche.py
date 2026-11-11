@@ -176,5 +176,17 @@ class Settimanale(unittest.TestCase):
         self.assertIsNone(notifiche.leggi_cursore(self.dir))
 
 
+class Parole(unittest.TestCase):
+    """v7.42: nei messaggi le etichette diventano posizionamento, solo come parole intere."""
+
+    def test_etichette_tradotte(self):
+        t = notifiche.in_parole("▼ <b>Petrolio WTI</b>: nuovo segnale <b>STRONG SELL</b>\n▲ EUR/USD: <b>BUY</b> +31.0, era SELL")
+        self.assertEqual(t, "▼ <b>Petrolio WTI</b>: nuovo posizionamento <b>FORTE RIBASSO</b>\n"
+                            "▲ EUR/USD: <b>RIALZO</b> +31.0, era RIBASSO")
+
+    def test_non_tocca_altre_parole(self):
+        self.assertEqual(notifiche.in_parole("BUYBACK di SELLAS, NEUTRO"), "BUYBACK di SELLAS, NEUTRO")
+
+
 if __name__ == "__main__":
     unittest.main()

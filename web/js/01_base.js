@@ -24,7 +24,13 @@ const fx=(n,d=2)=>n==null||isNaN(n)?"n/d":n.toLocaleString("it-IT",{minimumFract
 const sg=(n,d=2)=>n==null||isNaN(n)?"n/d":(n>0?"+":"")+fx(n,d);
 const c2=v=>{const t=v.toFixed(2);return t=="-0.00"?"0.00":t;};const c1=v=>{const t=v.toFixed(1);return t=="-0.0"?"0.0":t;};
 const verb=s=>s>=20?["COMPRANO","up","▲"]:s<=-20?["VENDONO","down","▼"]:["neutri","flat","■"];
-const badge=l=>`<span class="badge" style="--bc:${COL[l]}">${l}</span>`;   // pillola: bordo e testo nel colore del segnale
+// v7.42 ETICHETTE DI POSIZIONAMENTO: nei dati restano BUY/SELL (cosi' regole e registro non cambiano), in pagina si
+//   legge il POSIZIONAMENTO degli speculatori. Motivo (scheda Verifica): dal 1987 questi segnali non hanno mostrato
+//   un vantaggio misurabile (48% di esiti giusti a 4 settimane), quindi sono contesto e non un'indicazione operativa.
+const ETI={"STRONG BUY":"FORTE RIALZO","BUY":"RIALZO","NEUTRO":"NEUTRO","SELL":"RIBASSO","STRONG SELL":"FORTE RIBASSO"};
+const eti=l=>ETI[l]||l;
+const ETI_NOTA="Posizionamento degli speculatori (dati COT): contesto, non un'indicazione operativa";
+const badge=l=>`<span class="badge" style="--bc:${COL[l]}" title="${ETI_NOTA}">${eti(l)}</span>`;   // pillola: bordo e testo nel colore del segnale
 const pos=s=>Math.max(0,Math.min(100,(s+100)/2));
 const nm=k=>(D.assets[k]||{}).name||k;
 const esc=t=>String(t).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));

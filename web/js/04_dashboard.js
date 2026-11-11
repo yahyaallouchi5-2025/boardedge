@@ -26,8 +26,8 @@ try{
  const tot=su+giu||1,ang=r==null?0:Math.max(-1,Math.min(1,r/100))*80;
  const rd=rotA?`${GG[rotA.getDay()]} ${rotA.getDate()} ${MM[rotA.getMonth()]}`:"n/d";
  $("kpis").className="kzg";
- $("kpis").innerHTML=`<a class="kz kz1" href="#cards" data-scorri="cards" title="Vai ai segnali">${testa("seg","Segnali attivi","Quante occasioni vede oggi il radar?")}
-   <div class="kzb"><div class="kzbig">${su+giu}</div>${strong?`<span class="kzchip" title="I segnali più forti">&#9733; ${strong} STRONG</span>`:""}</div>
+ $("kpis").innerHTML=`<a class="kz kz1" href="#cards" data-scorri="cards" title="Vai al posizionamento">${testa("seg","Posizionamento","Dove puntano oggi gli speculatori?")}
+   <div class="kzb"><div class="kzbig">${su+giu}</div>${strong?`<span class="kzchip" title="Posizionamenti più forti">&#9733; ${strong} ${strong==1?"FORTE":"FORTI"}</span>`:""}</div>
    <div class="kzsplit"><i class="su" style="width:${su/tot*100}%"></i><i class="giu" style="width:${giu/tot*100}%"></i></div>
    <div class="kzleg"><span><b class="up">&#9650; ${su}</b> al rialzo</span><span>al ribasso <b class="dn">&#9660; ${giu}</b></span></div></a>
   <a class="kz kz2" href="#mkt" data-vai="mkt" title="Vai al clima di mercato" style="--clima:${rc}">${testa("clima","Clima del mercato","Gli investitori hanno paura o fiducia?")}
@@ -170,7 +170,7 @@ $("sectors").innerHTML=SEC.filter(g=>byS[g]).map(g=>{const l=byS[g],avg=l.reduce
  return `<div class="sec" data-g="${g}" style="--bc:${COL[lab(avg*1.6)]}"><b>${g}</b><span>${fmt(avg)}</span><small>${up} in acquisto &middot; ${dn} in vendita</small></div>`}).join("");
 document.querySelectorAll(".sec").forEach(x=>x.onclick=()=>{go("assets");selS(x.dataset.g);});
 var L5=["STRONG BUY","BUY","NEUTRO","SELL","STRONG SELL"];
-$("summary").innerHTML=L5.map(l=>`<div class="sum" style="--bc:${COL[l]}"><b>${D.pairs.filter(p=>p.label==l).length}</b><small>${l}</small></div>`).join("");
+$("summary").innerHTML=L5.map(l=>`<div class="sum" style="--bc:${COL[l]}"><b>${D.pairs.filter(p=>p.label==l).length}</b><small>${eti(l)}</small></div>`).join("");
 function sideRow(k){const a=D.assets[k]||{score:0};const v=verb(a.score);return `<div class="r"><span>${k} <span class="small">${nm(k)}</span></span><span class="${v[1]}">${v[2]} ${v[0]} (${fmt(a.score)})</span></div>`;}
 function why(p){const b=verb(D.assets[p.base].score)[0],q=verb(D.assets[p.quote].score)[0];
  const dir=p.score>=M.normal?"tende a SALIRE":p.score<=-M.normal?"tende a SCENDERE":"non ha una direzione chiara";
@@ -217,13 +217,13 @@ function trio(p){const n=p.news,cot=p.cot,mac=p.macro,det=[];
  return `<div class="trio">${sm}${ma}${ne}${sa}</div>${det.length?`<div class="det">${det.join(" &middot; ")}</div>`:""}`;}
 function card(p){return `<div class="card clic" data-tv="p:${p.pair}" title="Clic: grafico a candele"><div class="pairhead"><div><span class="pair">${p.pair}</span><div class="sotto">${badge(p.label)}</div></div>${anello(p.score)}</div>${trio(p)}
  <div class="rows">${sideRow(p.base)}${sideRow(p.quote)}</div>
- <div class="tags">${p.div?'<span class="tag div">Divergenza</span>':''}${mtag(p.cot,p.macro)}${p.new?`<span class="tag new">Nuovo (prima ${p.prev})</span>`:''}${ctag(p.comm_acc)}</div>
+ <div class="tags">${p.div?'<span class="tag div">Divergenza</span>':''}${mtag(p.cot,p.macro)}${p.new?`<span class="tag new">Nuovo (prima ${eti(p.prev)})</span>`:''}${ctag(p.comm_acc)}</div>
  <div class="why">${why(p)}</div></div>`;}
 var act=D.pairs.filter(p=>p.label!="NEUTRO");
 $("cards").innerHTML=act.length?act.map(card).join(""):`<div class="card">Nessun segnale attivo sulle valute questa settimana.</div>`;
 function acard(a){const v=verb(a.score),m=a.mkt;return `<div class="card clic" data-tv="a:${a.key}" title="Clic: grafico a candele"><div class="pairhead"><div><span class="pair" style="font-size:19px" title="${esc(a.name)}">${a.name}</span><div class="sotto">${badge(a.label)}</div></div>${anello(a.score)}</div>
  <div class="small" style="margin-top:8px">${a.it?esc(a.it)+" &middot; ":""}${a.group} &middot; ${a.key} &middot; COT Index ${a.idx}/100</div>${split(a.cot,a.macro)}
- <div class="tags">${mtag(a.cot,a.macro)}${a.new?`<span class="tag new">Nuovo (prima ${a.prev_label})</span>`:''}${a.crowded?'<span class="tag ko">affollato</span>':''}${ctag(a.comm_acc)}${stagtag(a.stag,a.score)}</div>
+ <div class="tags">${mtag(a.cot,a.macro)}${a.new?`<span class="tag new">Nuovo (prima ${eti(a.prev_label)})</span>`:''}${a.crowded?'<span class="tag ko">affollato</span>':''}${ctag(a.comm_acc)}${stagtag(a.stag,a.score)}</div>
  <div class="why">Speculatori: <b class="${v[1]}">${v[0]}</b>, ${fmt(a.d_net)} contratti in settimana, ${fmt(a.d_net4)} in 4 settimane.${m?` Mercato: ${m.status.toLowerCase()}.`:''}${NOTE[a.key]||NOTE[a.group]?' '+(NOTE[a.key]||NOTE[a.group]):''}</div></div>`;}
 var oth=Object.values(D.assets).filter(a=>a.group!="Valute"&&a.label!="NEUTRO").sort((x,y)=>Math.abs(y.score)-Math.abs(x.score));
 // v6.72: una griglia per famiglia (stesso ordine dei titoli in pagina); famiglia senza segnali = riga breve

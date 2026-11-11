@@ -205,9 +205,25 @@ def da_avvisare(eventi, cursore, adesso):
 
 
 # ---------- invio ----------
+# v7.42 ETICHETTE DI POSIZIONAMENTO: nei dati e nel registro restano BUY/SELL; nei messaggi (come in pagina) si legge
+# il posizionamento degli speculatori. Motivo: nel backtest dal 1987 i segnali COT non hanno mostrato un vantaggio
+# misurabile, quindi sono contesto e non indicazioni operative. La traduzione avviene all'ultimo passo, prima dell'invio.
+_PAROLE = (("STRONG BUY", "FORTE RIALZO"), ("STRONG SELL", "FORTE RIBASSO"), ("BUY", "RIALZO"), ("SELL", "RIBASSO"),
+           ("nuovo segnale", "nuovo posizionamento"), ("chiuso il segnale", "chiuso il posizionamento"),
+           ("Durata del segnale", "Durata del posizionamento"))
+
+
+def in_parole(testo):
+    """Testo di un messaggio con le etichette di posizionamento al posto di BUY/SELL (solo parole intere)."""
+    import re
+    for vecchia, nuova in _PAROLE:
+        testo = re.sub(r"(?<![A-Za-z])" + re.escape(vecchia) + r"(?![A-Za-z])", nuova, testo)
+    return testo
+
 
 def invia_telegram(token, chat, testo):
     """True se Telegram ha accettato il messaggio. Il token non compare mai nei log."""
+    testo = in_parole(testo)
     dati = urllib.parse.urlencode({"chat_id": chat, "text": testo, "parse_mode": "HTML",
                                    "disable_web_page_preview": "true"}).encode()
     try:
@@ -230,7 +246,7 @@ def invia_email(testi, env):
     if not (utente and password and dest):
         return None
     import re
-    corpo = "\n\n".join(re.sub(r"<[^>]+>", "", t) for t in testi).replace("&amp;", "&").replace("&lt;", "<") \
+    corpo = "\n\n".join(re.sub(r"<[^>]+>", "", in_parole(t)) for t in testi).replace("&amp;", "&").replace("&lt;", "<") \
         .replace("&gt;", ">").replace("&quot;", '"').replace("&#x27;", "'")
     msg = EmailMessage()
     msg["Subject"], msg["From"], msg["To"] = "BoardEdge: aggiornamento segnali", utente, dest
