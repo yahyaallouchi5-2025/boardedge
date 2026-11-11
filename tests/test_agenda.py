@@ -51,8 +51,9 @@ class Agenda(unittest.TestCase):
     def tearDown(self):
         shutil.rmtree(self.dir)
 
-    def costruisci(self, adesso, fred=None, scarica=lambda: GREZZI):
-        return agenda.costruisci(fred or {"DGS2": dgs2()}, {}, PAIRS, adesso=adesso, scarica_fn=scarica, cache=self.cache)
+    def costruisci(self, adesso, fred=None, scarica=lambda: GREZZI, fred_fn=lambda oggi: []):
+        return agenda.costruisci(fred or {"DGS2": dgs2()}, {}, PAIRS, adesso=adesso, scarica_fn=scarica, cache=self.cache,
+                                 fred_fn=fred_fn)
 
     def test_reazione_e_verdetto_sui_segnali_esposti(self):
         a = self.costruisci(datetime(2026, 10, 20, 8, 0))
@@ -65,25 +66,38 @@ class Agenda(unittest.TestCase):
         gb = next(e for e in a["eventi"] if e["codice"] == "gb-cpi")
         self.assertIsNone(gb["z"])                                       # GBP: niente tasso a 2 anni nei nostri dati
 
-    def test_fonte_giu_usa_la_copia_poi_il_calendario_interno(self):
+    def test_fonte_giu_calendario_gratuito_piu_copia(self):
+        # v7.31 financecalendar giu' (401): eventi gratuiti (banche centrali + principali) + eventi passati della copia
         self.costruisci(datetime(2026, 10, 20, 8, 0))                    # salva la copia
         a = self.costruisci(datetime(2026, 10, 20, 8, 0), scarica=lambda: None)
-        self.assertIn("copia salvata", a["fonte"])
-        os.remove(self.cache)
-        a = self.costruisci(datetime(2026, 10, 26, 8, 0), scarica=lambda: None)
-        self.assertEqual(a["fonte"], "interno")
+        self.assertEqual(a["fonte"], "FRED e banche centrali")
         self.assertIn("fomc", [e["codice"] for e in a["eventi"]])
+        os.remove(self.cache)
+        a = self.costruisci(datetime(2026, 12, 7, 8, 0), scarica=lambda: None)   # senza copia
+        cod = [e["codice"] for e in a["eventi"]]
+        for c in ("rba", "boc", "fomc", "snb", "us-cpi"):
+            self.assertIn(c, cod)
 
-    def test_copia_vecchia_completata_con_il_calendario_interno(self):
-        # v7.30 copia salvata solo con eventi passati: si aggiungono quelli futuri del calendario interno
-        self.costruisci(datetime(2026, 10, 20, 8, 0))
-        a = self.costruisci(datetime(2027, 1, 5, 8, 0), scarica=lambda: None)
-        self.assertIn("copia salvata", a["fonte"])
-        self.assertTrue(any(e["data"] >= "2027-01-05" for e in a["eventi"]))
+    def test_dati_usa_dalla_fred_con_ora_di_new_york(self):
+        import json as J
+        risposta = J.dumps({"release_dates": [{"release_id": 10, "date": "2026-12-10"}, {"date": "2027-06-10"}]})
+        ev = agenda.dati_fred(datetime(2026, 12, 1).date(), chiave="x", leggi=lambda url: risposta)
+        cpi = [e for e in ev if e["codice"] == "us-cpi"]
+        self.assertEqual([e["data"] for e in cpi], ["2026-12-10"])       # fuori orizzonte (45 giorni) scartato
+        self.assertEqual(cpi[0]["utc"], "2026-12-10T13:30Z")             # 08:30 New York in inverno = 13:30 UTC
+        self.assertEqual(agenda.dati_fred(chiave=""), [])                 # senza chiave: niente
+
+    def test_fred_vince_sui_doppioni_e_ora_legale_delle_banche(self):
+        fred = lambda oggi: [agenda._evento("us-cpi", "2026-12-10", "2026-12-10T13:30Z")]
+        ev = agenda.gratuito(datetime(2026, 12, 1).date(), fred)
+        self.assertEqual(len([e for e in ev if (e["codice"], e["data"]) == ("us-cpi", "2026-12-10")]), 1)
+        rba = [e for e in ev if e["id"] == "rba-2027-02-09"][0]
+        self.assertEqual(rba["utc"], "2027-02-09T03:30Z")                # 14:30 Sydney con l'ora legale (UTC+11)
+        boj = [e for e in ev if e["codice"] == "boj"][0]
+        self.assertIsNone(boj["utc"])                                    # Bank of Japan: nessun orario fisso
 
     def test_settimana_vuota_mostra_i_prossimi_eventi(self):
-        # v7.30 fonte giu' (401) e copia con soli eventi passati: si vedono i prossimi eventi del calendario interno
-        self.costruisci(datetime(2026, 10, 20, 8, 0))
+        # v7.30 fonte giu' e nessun evento nei prossimi 10 giorni: si vedono comunque i prossimi (entro 45 giorni)
         a = self.costruisci(datetime(2026, 11, 11, 8, 0), scarica=lambda: None)
         futuri = [e for e in a["eventi"] if not e["uscito"]]
         self.assertTrue(futuri)
