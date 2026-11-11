@@ -786,14 +786,28 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     chiudiTest();vista="oggi";disegna();try{if(typeof etichetteInfo=="function")etichetteInfo(el);}catch(e){}
     const h=el.querySelector(".phero");if(h){h.scrollIntoView({behavior:"smooth",block:"start"});h.classList.add("pglow");setTimeout(()=>h.classList.remove("pglow"),1800);}}});
   const inp=box.querySelector(".ptest-lib input");if(inp)inp.onkeydown=e=>{if(e.key=="Enter")box.querySelector('[data-t="cap"]').click();};}
+ // v7.37 BARRA IN ALTO: ogni cella ha 3 righe ad altezza fissa (etichetta 16px | valore 52px | piede 36px, vedi .pcell in stile.css)
+ //   cosi' etichette, valori e piedi delle 3 celle stanno sulla stessa linea. Ogni cella riempie la sua larghezza:
+ //   rotazione = data + barra dei giorni di borsa, ribilanciamento = 4 riquadri del conto alla rovescia, profilo = nome + pulsanti.
+ function testa(){const c=(P.profili[0]||{}).corrente||{},q=(t,v)=>`<span class="pcq"><b>${t}</b><small>${v}</small></span>`;
+  const rot=P.attesa
+   ?`<span class="pdl">Nuova rotazione</span><div class="pcv"><b class="pcb acc">${gg(P.rotazione)}</b><small>decisa sulla chiusura del ${gg(P.decisa_al)}</small></div>
+     <div class="pcpiede"><span class="pcpiede-t">Si applica all'apertura del ${gg(P.prossima)}</span></div>`
+   :`<span class="pdl">Rotazione in vigore</span><div class="pcv"><b class="pcb">${gg(P.rotazione)}</b><small>si ribilancia il primo giorno di borsa del mese</small></div>
+     <div class="pcpiede">${c.gg&&c.tot?`<span class="pcpiede-t">Giorno di borsa <b>${c.gg}</b> di ${c.tot}</span><span class="pcpiede-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></span>`:""}</div>`;
+  const prof=test.esito?(P.profili.find(x=>x.id==test.esito)||{}).nome||"":"";
+  return `<div class="pcell">${rot}</div>
+   <div class="pcell"><span class="pdl">${P.attesa?"Si esegue tra":"Prossimo ribilanciamento"}</span>
+    <div class="pcv pcount" data-t="${P.prossima||""}" title="${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${q("--","giorni")}${q("--","ore")}${q("--","min")}${q("--","sec")}</div>
+    <div class="pcpiede"><span class="pcpiede-t">${giorno(P.prossima)} ${gg(P.prossima)}, ore 9:00</span></div></div>
+   <div class="pcell pcell-prof"><span class="pdl">Il tuo profilo</span>
+    <div class="pcv">${prof?`<b class="pcb acc">${esc(prof)}</b><small>scelto con il test, su ${eur(test.cap||capitale)}</small>`:`<b class="pcb">Non ancora scelto</b><small>3 domande, meno di un minuto</small>`}</div>
+    <div class="pcpiede"><button type="button" class="ptest-apri${prof?"":" nuovo"}">${prof?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button>${prof?`<button type="button" class="ptest-reset" title="Cancella il profilo scelto (solo in questo browser)">Azzera</button>`:""}</div></div>`;}
+ // nome del giorno della settimana ("lunedi'") di una data AAAA-MM-GG
+ function giorno(ymd){try{const [y,m,d]=ymd.split("-").map(Number);return ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][new Date(Date.UTC(y,m-1,d)).getUTCDay()];}catch(e){return "";}}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
-   <div class="ptop">
-    <div class="pcell">${P.attesa?`<div class="pdinfo pnew"><i></i><div><span class="pdl">Nuova rotazione</span><b>${gg(P.rotazione)}</b><span class="pdsub">decisa sulla chiusura del ${gg(P.decisa_al)}</span></div></div>`:`<div class="pdinfo"><i></i><div><span class="pdl">Rotazione in vigore</span><b>${gg(P.rotazione)}</b><span class="pdsub">ribilanciamento il primo giorno di borsa del mese</span></div></div>`}</div>
-    <div class="pcell"><span class="pdl">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"}</span><span class="pcount" data-t="${P.prossima||""}" title="${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)"><b class="pcd">${gg(P.prossima)}</b></span><span class="pdsub">${gg(P.prossima)}, ore 9:00</span></div>
-    <div class="pcell pcell-prof"><span class="pdl">Il tuo profilo</span>${test.esito?`<b class="pprof-n">${esc((P.profili.find(x=>x.id==test.esito)||{}).nome||"")}</b><span class="pdsub">scelto con il test, su ${eur(test.cap||capitale)}</span>`:`<b class="pprof-n vuoto">Non ancora scelto</b><span class="pdsub">3 domande, meno di un minuto</span>`}
-     <button type="button" class="ptest-apri${test.esito?"":" nuovo"}">${test.esito?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button></div>
-   </div>
+   <div class="ptop">${testa()}</div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
    <div class="ptool"><div class="pvista" role="tablist" aria-label="Sezione della scheda">${VISTE.map(v=>`<button role="tab" aria-selected="${vista==v[0]}" class="${vista==v[0]?"on":""}" data-v="${v[0]}">${v[1]}</button>`).join("")}</div>
    ${vista=="oggi"?`<label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${mil(capitale)}" aria-label="Capitale da investire in euro"> &euro;</label>`:""}</div>
@@ -811,7 +825,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${crisiHTML(p)}
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
    ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div>+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato.</div></details></h3>${rotazioni(p)}</div>`:""}`;
-  {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito);}   // v7.36 test nel popup
+  {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito);}
+  {const b=el.querySelector(".ptest-reset");if(b)b.onclick=()=>{test={passo:0};try{localStorage.removeItem("ebTest");}catch(e){}disegna();};}   // v7.37 azzera il profilo   // v7.36 test nel popup
   el.querySelectorAll(".pvista button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{localStorage.setItem("ebPortVista",vista);}catch(e){}ridisegna(".pvista");});
   el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
   // clic su un titolo delle azioni scelte: apre la sua scheda nell'Azionario (azioni.js)
@@ -857,16 +872,15 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const hr=+parti.find(x=>x.type=="hour").value;return new Date(g-((hr-h+24)%24)*3600e3);}
  function conto(){clearInterval(timer);const box=el.querySelector(".pcount");if(!box||!box.dataset.t)return;
   let fine;try{fine=oraRoma(box.dataset.t,9);}catch(e){return;}
-  const out=box.querySelector(".pcd"),z=n=>String(n).padStart(2,"0");
+  const q=[...box.querySelectorAll(".pcq b")],z=n=>String(n).padStart(2,"0");
   const tick=()=>{if(!document.body.contains(box)){clearInterval(timer);return;}
    const ms=fine-Date.now();
-   // v6.81: arrivata l'ora (09:00 di Roma del giorno di rotazione) niente piu' "tra oggi": etichetta IN CORSO
-   if(ms<=0){if(box.firstChild&&box.firstChild.nodeType===3)box.firstChild.textContent="Rotazione ";
-    out.innerHTML='<i class="pcdot"></i>IN CORSO';box.classList.add("ora");
+   // v6.81: arrivata l'ora (09:00 di Roma del giorno di rotazione): al posto dei riquadri la pastiglia IN CORSO
+   if(ms<=0){box.innerHTML='<span class="pcora"><i class="pcdot"></i>IN CORSO</span>';box.classList.add("ora");
     {const lab=box.parentElement&&box.parentElement.querySelector(".pdl");if(lab)lab.textContent="Rotazione";}
     box.title="Rotazione in corso: si esegue oggi all'apertura delle borse europee (09:00 ora italiana)";clearInterval(timer);return;}
-   const t=Math.floor(ms/1000),gi=Math.floor(t/86400),o=Math.floor(t%86400/3600),mi=Math.floor(t%3600/60),se=t%60;
-   out.innerHTML=`${gi?`<u>${gi}</u>g `:""}<u>${z(o)}</u>h <u>${z(mi)}</u>m <u>${z(se)}</u>s`;};
+   const t=Math.floor(ms/1000),v=[Math.floor(t/86400),Math.floor(t%86400/3600),Math.floor(t%3600/60),t%60];
+   v.forEach((n,i)=>{if(q[i])q[i].textContent=z(n);});};
   tick();timer=setInterval(()=>{if(!document.hidden)tick();},1000);}
  // importi in euro senza ridisegnare tutto (il campo resta a fuoco mentre si scrive)
  // v7.1 VARIAZIONE DI OGGI del portafoglio (prezzi Xetra in euro, ritardo di borsa): somma di peso x variazione
