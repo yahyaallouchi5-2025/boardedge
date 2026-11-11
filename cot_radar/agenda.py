@@ -51,6 +51,7 @@ SERIE = {
 MISURABILI = {"USD", "EUR"}                          # valute con il tasso a 2 anni nei nostri dati
 Z_MARCATA = 1.0                                      # |z| sotto questa soglia = reazione nella norma
 PRIMA, DOPO = 10, 8                                  # giorni di agenda: prossimi 10, ultimi 8
+MIN_FUTURI, ORIZZONTE = 4, 45                        # v7.30 settimana senza eventi: i prossimi 4, entro 45 giorni
 
 
 def scarica(da=None, a=None, timeout=25):
@@ -125,13 +126,11 @@ def carica(adesso=None, scarica_fn=scarica, cache=CACHE):
     try:
         with open(cache, encoding="utf-8") as f:
             copia = json.load(f)
-        # v7.30 copia vecchia (fonte giu' da giorni): senza eventi futuri il nastro della Dashboard spariva.
-        # Si aggiungono gli eventi principali del calendario interno (NFP, CPI, Fed, BCE) che la copia non ha.
-        oggi = (adesso or datetime.utcnow()).strftime("%Y-%m-%d")
-        if not any(e.get("data", "") >= oggi for e in copia):
-            log.warning("agenda: la copia salvata non ha eventi futuri, aggiungo il calendario interno")
-            presenti = {(e.get("codice"), e.get("data")) for e in copia}
-            copia += [e for e in interno() if e["data"] >= oggi and (e["codice"], e["data"]) not in presenti]
+        # v7.30 fonte giu' (da novembre 2026 financecalendar chiede una chiave API: risposta 401): la copia salvata
+        # invecchia e restano solo eventi passati -> il nastro della Dashboard spariva. Si aggiungono SEMPRE gli eventi
+        # principali del calendario interno (NFP, CPI USA, Fed, BCE) che la copia non ha.
+        presenti = {(e.get("codice"), e.get("data")) for e in copia}
+        copia += [e for e in interno() if (e["codice"], e["data"]) not in presenti]
         return copia, "financecalendar (copia salvata)"
     except (OSError, ValueError):
         log.warning("agenda: nessuna copia salvata, uso il calendario interno (solo NFP, CPI, Fed, BCE)")
@@ -167,10 +166,16 @@ def costruisci(fred, ecb, pairs, adesso=None, scarica_fn=scarica, cache=CACHE):
     adesso = adesso or datetime.utcnow()
     eventi, fonte = carica(adesso, scarica_fn, cache)
     oggi = adesso.date()
+    # v7.30 se nei prossimi PRIMA giorni non c'e' nessun evento, si prendono i prossimi MIN_FUTURI (entro ORIZZONTE
+    # giorni): il nastro "Prossimi eventi" non resta mai vuoto in una settimana tranquilla o con la fonte giu'
+    futuri = sorted(date.fromisoformat(e["data"]) for e in eventi if e.get("data") and e["data"] >= oggi.isoformat())
+    fino = oggi + timedelta(days=PRIMA)
+    if futuri and futuri[0] > fino:
+        fino = min(futuri[:MIN_FUTURI][-1], oggi + timedelta(days=ORIZZONTE))
     out = []
     for e in eventi:
         d = date.fromisoformat(e["data"])
-        if not (oggi - timedelta(days=DOPO) <= d <= oggi + timedelta(days=PRIMA)):
+        if not (oggi - timedelta(days=DOPO) <= d <= fino):
             continue
         e = dict(e, esposti=esposti(e["valuta"], pairs))
         uscito = (datetime.strptime(e["utc"], "%Y-%m-%dT%H:%MZ") <= adesso) if e["utc"] else d < oggi

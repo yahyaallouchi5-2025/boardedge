@@ -81,6 +81,14 @@ class Agenda(unittest.TestCase):
         self.assertIn("copia salvata", a["fonte"])
         self.assertTrue(any(e["data"] >= "2027-01-05" for e in a["eventi"]))
 
+    def test_settimana_vuota_mostra_i_prossimi_eventi(self):
+        # v7.30 fonte giu' (401) e copia con soli eventi passati: si vedono i prossimi eventi del calendario interno
+        self.costruisci(datetime(2026, 10, 20, 8, 0))
+        a = self.costruisci(datetime(2026, 11, 11, 8, 0), scarica=lambda: None)
+        futuri = [e for e in a["eventi"] if not e["uscito"]]
+        self.assertTrue(futuri)
+        self.assertEqual(futuri[0]["data"], "2026-12-04")                  # NFP di dicembre (23 giorni dopo)
+
     def test_motore_usa_gli_eventi_principali_dell_agenda(self):
         a = self.costruisci(datetime(2026, 10, 20, 8, 0))
         cal = agenda.calendario_motore(a)
