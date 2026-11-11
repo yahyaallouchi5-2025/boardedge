@@ -68,6 +68,19 @@ h3{margin:0;font-size:13px;font-weight:750;color:var(--ink2);text-transform:uppe
 .tag{font-size:12px;border-radius:6px;padding:3px 8px;background:var(--soft);color:var(--mute);font-weight:600}
 .tag.div{background:#2a2350;color:#c8b9ff}.tag.new{background:#3b3010;color:#ffd866}.tag.ok{background:#123a2e;color:#8fe0bd}.tag.ko{background:#3a2b10;color:#f2c46b}
 .why{margin-top:16px;padding-top:14px;border-top:1px dashed var(--line);font-size:14px;color:var(--ink2);line-height:1.55}
+/* v7.36 schede segnali: la riga "Speculatori" sta sempre in fondo, cosi' nelle schede affiancate parte alla stessa altezza */
+.card.clic{display:flex;flex-direction:column}
+.card.clic>.tags{margin-bottom:16px}
+.card.clic>.why{margin-top:auto}
+.card.clic .pairhead>div:first-child{min-width:0}
+.card.clic .pair{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   /* nome su una riga: badge e anello allineati */
+.card.clic .anello{width:62px;height:62px;min-width:62px}
+/* materie prime, indici, tassi, crypto: ogni scheda usa le righe della griglia (subgrid), cosi' titolo, descrizione,
+   riquadri COT/Mercato, etichette e "Speculatori" partono alla stessa altezza in tutte le schede della stessa fila */
+@supports (grid-template-rows:subgrid){
+ .agrid>.card.clic{container-type:normal;display:grid;grid-row:span 5;grid-template-rows:subgrid;row-gap:0;align-content:start}
+ .agrid>.card.clic>.small,.agrid>.card.clic>.tags{align-self:start}
+ .agrid>.card.clic>.why{margin-top:0;align-self:end}}
 .sectors{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:14px}
 .sec{border-radius:14px;padding:14px 16px;color:var(--ink);cursor:pointer;transition:transform .12s;background:color-mix(in srgb,var(--bc) 15%,var(--card));border:1px solid color-mix(in srgb,var(--bc) 45%,transparent)}.sec span{color:var(--bc)}.sec:hover{transform:translateY(-2px)}
 .sec b{display:block;font-size:13px;font-weight:650;opacity:.95}.sec span{display:block;font-size:24px;font-weight:800;margin:4px 0 2px}.sec small{font-size:12px;opacity:.92}
@@ -2152,3 +2165,72 @@ b.qe-esp{color:var(--b)}b.qe-rec{color:var(--acc)}b.qe-sta{color:var(--s)}b.qe-s
  .ptest-o.c4{grid-template-columns:repeat(2,minmax(0,1fr))}.ptest-r b{font-size:18px}}
 .ptest-avv{margin:10px 0 0;padding:10px 12px;border-radius:12px;border:1px solid color-mix(in srgb,var(--warn) 45%,var(--line));
  background:color-mix(in srgb,var(--warn) 9%,transparent);font-size:13px;line-height:1.5;color:var(--ink2)}.ptest-avv b{color:var(--ink)}
+
+/* ===== v7.36 PORTAFOGLI: ORDINE E RESPIRO =====
+   Griglia comune: la barra in alto (.ptop: .pbar e' gia' la barretta dei pesi) (rotazione | ribilanciamento | profilo) usa le STESSE 3 colonne e lo stesso spazio
+   del selettore dei profili sotto, cosi' i bordi sono allineati in verticale. Spazio fisso tra i blocchi: 24 px
+   (16 px tra selettore e barra strumenti, che vanno letti insieme). */
+#port{--pgap:24px}
+.ptop{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:0 0 var(--pgap)}
+.pcell{display:flex;flex-direction:column;justify-content:center;gap:6px;min-height:96px;padding:16px 18px;border-radius:16px;
+ border:1px solid var(--line);background:linear-gradient(180deg,var(--card),var(--card2));min-width:0}
+.pcell>.pdl{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.pcell .pdsub{font-size:12.5px;color:var(--mute)}
+.pcell .pdinfo b{font-size:20px}
+.pcell .pdinfo>i{display:none}   /* niente pallino: i testi delle 3 celle partono tutti sullo stesso asse */
+.pcell .pdinfo{gap:0}
+.pcell .pcount{align-self:flex-start;padding:4px;border-width:1px}
+.pcell .pcount .pcd{font-size:17px}
+.pprof-n{font-size:20px;line-height:1.2;color:var(--acc)}.pprof-n.vuoto{color:var(--ink2);font-size:17px}
+.ptest-apri{align-self:flex-start;margin-top:4px;display:inline-flex;align-items:center;gap:8px;height:36px;padding:0 16px;
+ border-radius:99px;border:1px solid color-mix(in srgb,var(--acc) 55%,var(--line));background:color-mix(in srgb,var(--acc) 10%,transparent);
+ color:var(--acc);font:800 13.5px system-ui;cursor:pointer;white-space:nowrap;transition:background .2s,box-shadow .2s,color .2s}
+.ptest-apri span{transition:transform .2s}
+.ptest-apri:hover{background:var(--acc);color:#04211e;box-shadow:0 0 22px color-mix(in srgb,var(--acc) 45%,transparent)}
+.ptest-apri:hover span{transform:translateX(3px)}
+.ptest-apri.nuovo{background:var(--acc);color:#04211e;box-shadow:0 0 18px color-mix(in srgb,var(--acc) 40%,transparent)}
+.ptest-apri:focus-visible{outline:2px solid var(--acc);outline-offset:3px}
+#port .pseg{margin:0 0 16px}
+.ptool{display:flex;align-items:center;justify-content:space-between;gap:12px 16px;flex-wrap:wrap;margin:0 0 var(--pgap)}
+.ptool .pvista{margin:0}
+.ptool .pcapbar{margin:0;padding:6px 6px 6px 16px;border-radius:14px;min-height:48px}
+.ptool .pcapbar input{height:36px}
+#port .phero{margin-bottom:var(--pgap)}
+#port .pacq,#port .pconto{margin-top:0;margin-bottom:var(--pgap)}
+.phero.pglow{animation:pglow 1.8s ease-out}
+@keyframes pglow{0%{box-shadow:0 0 0 2px var(--acc),0 0 40px color-mix(in srgb,var(--acc) 45%,transparent)}100%{box-shadow:var(--shadow)}}
+/* POPUP del test: sfondo scuro sfocato, finestra centrata (sul telefono: foglio dal basso), pagina sotto ferma */
+html.ptmod-on{overflow:hidden}
+.ptmod{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;padding:24px;
+ background:rgba(3,8,18,.72);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);opacity:0;transition:opacity .2s}
+.ptmod.on{opacity:1}
+.ptmod-box{width:min(720px,100%);max-height:calc(100vh - 48px);overflow:auto;border-radius:22px;transform:translateY(12px) scale(.98);transition:transform .22s cubic-bezier(.2,.8,.2,1)}
+.ptmod.on .ptmod-box{transform:none}
+.ptmod .ptest{padding:24px 26px 20px;box-shadow:0 30px 80px rgba(0,0,0,.55)}
+.ptmod .ptest h3{font-size:20px;margin:16px 0 18px}
+.ptest-x{margin-left:8px;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--mute);font:400 22px/1 system-ui;cursor:pointer;transition:color .2s,border-color .2s}
+.ptest-x:hover{color:var(--ink);border-color:var(--ink2)}
+.ptest-t .info{margin-left:auto}
+/* scelta: retroilluminazione del bordo (piu' forte su quella scelta) */
+.ptest-o button:hover{border-color:color-mix(in srgb,var(--acc) 70%,var(--line));box-shadow:0 0 18px color-mix(in srgb,var(--acc) 18%,transparent)}
+.ptest-o button.on{border-color:var(--acc);background:color-mix(in srgb,var(--acc) 16%,var(--card));
+ box-shadow:0 0 0 1px var(--acc),0 0 28px color-mix(in srgb,var(--acc) 42%,transparent),inset 0 0 18px color-mix(in srgb,var(--acc) 12%,transparent)}
+.ptest-o button.on b{color:#fff}
+@media (max-width:900px){.ptop{grid-template-columns:1fr 1fr}.pcell-prof{grid-column:1/-1}}
+@media (max-width:640px){
+ .ptop{grid-template-columns:1fr 1fr;gap:10px}.pcell{min-height:0;padding:13px 14px;gap:4px}.pcell-prof{grid-column:1/-1}
+ .pcell .pdinfo b,.pprof-n{font-size:17px}.pcell .pcount .pcd{font-size:14px}.pcell .pdsub{font-size:12px}
+ .ptest-apri{align-self:stretch;justify-content:center;margin-top:8px;height:44px}
+ .ptool{flex-direction:column;align-items:stretch}.ptool .pcapbar{justify-content:space-between}
+ .ptmod{align-items:flex-end;padding:0}.ptmod-box{width:100%;max-height:92vh;border-radius:22px 22px 0 0}
+ .ptmod .ptest{border-radius:22px 22px 0 0;padding:20px 16px calc(16px + env(safe-area-inset-bottom))}.ptmod .ptest h3{font-size:18px}}
+/* v7.36 "<mese> in corso": niente pillola vuota (il box live ha [hidden] ma display:flex lo mostrava), 3 riquadri pieni
+   in una riga (giorno con barra, drawdown, % anni positivi) e la barra storica con la sua etichetta */
+.pmc-oggi[hidden]{display:none!important}
+.pmc-k b .pmc-di{font-size:13px;font-weight:600;color:var(--mute)}
+.pmc-k .pmc-bar{height:6px;margin-top:8px}
+.pmc-fw{display:flex;flex-direction:column;gap:2px}
+.pmc-ft{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
+.pmc-fw .pmc-f{margin:16px 0 24px}
+#port .pmc{margin:0 0 var(--pgap);gap:18px}
+@media (max-width:520px){.pmc-k{grid-template-columns:1fr 1fr}.pmc-k>div:first-child{grid-column:1/-1}}
