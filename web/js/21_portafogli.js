@@ -754,26 +754,50 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  function avvisoCap(p,cap){const sc=piano(p,cap).scost;if(sc<=SCOST_OK)return "";
   const min=minimoCap(p),alt=P.profili.slice(0,P.profili.indexOf(p)).reverse().find(x=>piano(x,cap).scost<=SCOST_OK);
   return `<p class="ptest-avv"><b>Attenzione al capitale.</b> Con ${eur(cap)}, a quote intere e ai prezzi di oggi, il conto si discosta dal modello del <b>${fx(sc,1)}%</b>: alcune quote costano pi&ugrave; del loro peso e restano sul conto.${min?` Per replicarlo bene servono almeno <b>${eur(min)}</b>.`:""}${alt?` Con questo capitale si replica bene il profilo <b>${esc(alt.nome)}</b>.`:""}</p>`;}
- function testEventi(){const box=el.querySelector("#ptestbox");if(!box)return;
-  const vai=n=>{test.passo=n;salvaTest();box.innerHTML=testHTML();testEventi();};
-  box.querySelectorAll("[data-cap]").forEach(b=>b.onclick=()=>{test.cap=+b.dataset.cap;vai(2);});
-  box.querySelectorAll("[data-anni]").forEach(b=>b.onclick=()=>{test.anni=+b.dataset.anni;vai(3);});
-  box.querySelectorAll("[data-tol]").forEach(b=>b.onclick=()=>{test.tol=+b.dataset.tol;vai(4);});
+ // --- v7.36 POPUP DEL TEST: si apre dal bottone nella barra in alto ("Trova il tuo profilo" / "Rifai il test"),
+ //     l'utente vede solo il questionario; con "Usa questo profilo" si chiude, si sceglie il profilo e la pagina scorre
+ //     alla sua card (che si illumina un attimo). Esc, clic fuori o X chiudono. La pagina sotto non scorre.
+ let modale=null;
+ function apriTest(nuovo){if(nuovo||!test.passo||test.passo>4||test.passo<1)test={passo:1,cap:test.cap||capitale};salvaTest();
+  chiudiTest();modale=document.createElement("div");modale.className="ptmod";
+  modale.innerHTML=`<div class="ptmod-box" role="dialog" aria-modal="true" aria-labelledby="ptest-tit"><div id="ptestbox">${testHTML()}</div></div>`;
+  document.body.appendChild(modale);document.documentElement.classList.add("ptmod-on");
+  requestAnimationFrame(()=>modale.classList.add("on"));
+  modale.addEventListener("mousedown",e=>{if(e.target===modale)chiudiTest();});
+  testEventi();const f=modale.querySelector(".ptest-o button,.ptest-usa");if(f)f.focus({preventScroll:true});}
+ function chiudiTest(){if(!modale)return;const m=modale;modale=null;m.classList.remove("on");
+  document.documentElement.classList.remove("ptmod-on");setTimeout(()=>m.remove(),220);}
+ document.addEventListener("keydown",e=>{if(e.key=="Escape"&&modale)chiudiTest();});
+ function testEventi(){const box=modale&&modale.querySelector("#ptestbox");if(!box)return;
+  const vai=n=>{test.passo=n;salvaTest();box.innerHTML=testHTML();testEventi();box.scrollTop=0;
+   const f=box.querySelector(".ptest-o button,.ptest-usa");if(f)f.focus({preventScroll:true});};
+  // scelta: il bottone si illumina, poi (180 ms) si passa alla domanda dopo: si vede cosa si e' scelto
+  const scegli=(b,fn)=>{box.querySelectorAll(".ptest-o button").forEach(x=>x.classList.toggle("on",x===b));setTimeout(fn,180);};
+  box.querySelectorAll("[data-cap]").forEach(b=>b.onclick=()=>scegli(b,()=>{test.cap=+b.dataset.cap;vai(2);}));
+  box.querySelectorAll("[data-anni]").forEach(b=>b.onclick=()=>scegli(b,()=>{test.anni=+b.dataset.anni;vai(3);}));
+  box.querySelectorAll("[data-tol]").forEach(b=>b.onclick=()=>scegli(b,()=>{test.tol=+b.dataset.tol;vai(4);}));
   box.querySelectorAll("[data-t]").forEach(b=>b.onclick=()=>{const t=b.dataset.t;
    if(t=="cap"){const v=+String(box.querySelector(".ptest-lib input").value).replace(/\D/g,"");if(v>=100){test.cap=v;vai(2);}else box.querySelector(".ptest-lib input").focus();}
    else if(t=="ind")vai(Math.max(1,test.passo-1));
-   else if(t=="salta"){if(test.passo>3&&test.esito)vai(5);else{test.passo=-1;salvaTest();box.innerHTML=testHTML();testEventi();}}
-   else if(t=="rifai"){test={passo:1,cap:capitale};vai(1);}
+   else if(t=="chiudi")chiudiTest();
+   else if(t=="rifai"){test={passo:1,cap:test.cap||capitale};vai(1);}
    else if(t=="usa"){const r=esitoTest();if(!r.p)return;test.esito=r.p.id;test.passo=5;salvaTest();
-    sel=r.p.id;capitale=test.cap;try{localStorage.setItem("ebProfilo",sel);localStorage.setItem("ebCapitale",capitale);}catch(e){}ridisegna(".pseg");}});
+    sel=r.p.id;capitale=test.cap;try{localStorage.setItem("ebProfilo",sel);localStorage.setItem("ebCapitale",capitale);}catch(e){}
+    chiudiTest();vista="oggi";disegna();try{if(typeof etichetteInfo=="function")etichetteInfo(el);}catch(e){}
+    const h=el.querySelector(".phero");if(h){h.scrollIntoView({behavior:"smooth",block:"start"});h.classList.add("pglow");setTimeout(()=>h.classList.remove("pglow"),1800);}}});
   const inp=box.querySelector(".ptest-lib input");if(inp)inp.onkeydown=e=>{if(e.key=="Enter")box.querySelector('[data-t="cap"]').click();};}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
-   <div class="pdate">${P.attesa?`<div class="pdinfo pnew"><i></i><div><span class="pdl">Nuova rotazione</span><b>${gg(P.rotazione)}</b><span class="pdsub">decisa sulla chiusura del ${gg(P.decisa_al)}</span></div></div>`:`<div class="pdinfo"><i></i><div><span class="pdl">Rotazione in vigore</span><b>${gg(P.rotazione)}</b></div></div>`}<span class="pcount" data-t="${P.prossima||""}" title="${P.attesa?"Si esegue":"Prossimo ribilanciamento"}: ${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"} <b class="pcd">${gg(P.prossima)}</b></span></div>
-   <div id="ptestbox">${testHTML()}</div>
+   <div class="ptop">
+    <div class="pcell">${P.attesa?`<div class="pdinfo pnew"><i></i><div><span class="pdl">Nuova rotazione</span><b>${gg(P.rotazione)}</b><span class="pdsub">decisa sulla chiusura del ${gg(P.decisa_al)}</span></div></div>`:`<div class="pdinfo"><i></i><div><span class="pdl">Rotazione in vigore</span><b>${gg(P.rotazione)}</b><span class="pdsub">ribilanciamento il primo giorno di borsa del mese</span></div></div>`}</div>
+    <div class="pcell"><span class="pdl">${P.attesa?"Si esegue all'apertura tra":"Prossimo ribilanciamento"}</span><span class="pcount" data-t="${P.prossima||""}" title="${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)"><b class="pcd">${gg(P.prossima)}</b></span><span class="pdsub">${gg(P.prossima)}, ore 9:00</span></div>
+    <div class="pcell pcell-prof"><span class="pdl">Il tuo profilo</span>${test.esito?`<b class="pprof-n">${esc((P.profili.find(x=>x.id==test.esito)||{}).nome||"")}</b><span class="pdsub">scelto con il test, su ${eur(test.cap||capitale)}</span>`:`<b class="pprof-n vuoto">Non ancora scelto</b><span class="pdsub">3 domande, meno di un minuto</span>`}
+     <button type="button" class="ptest-apri${test.esito?"":" nuovo"}">${test.esito?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button></div>
+   </div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
-   <div class="pvista" role="tablist" aria-label="Sezione della scheda">${VISTE.map(v=>`<button role="tab" aria-selected="${vista==v[0]}" class="${vista==v[0]?"on":""}" data-v="${v[0]}">${v[1]}</button>`).join("")}</div>
-   ${vista=="oggi"?`<label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${capitale.toLocaleString("it-IT")}" aria-label="Capitale da investire in euro"> &euro;</label>
+   <div class="ptool"><div class="pvista" role="tablist" aria-label="Sezione della scheda">${VISTE.map(v=>`<button role="tab" aria-selected="${vista==v[0]}" class="${vista==v[0]?"on":""}" data-v="${v[0]}">${v[1]}</button>`).join("")}</div>
+   ${vista=="oggi"?`<label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${mil(capitale)}" aria-label="Capitale da investire in euro"> &euro;</label>`:""}</div>
+   ${vista=="oggi"?`
    ${hero(p)}
    ${corso(p)}
    <div class="card pacq" id="pacq">${acquistoHTML(p)}</div>
@@ -787,7 +811,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${crisiHTML(p)}
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
    ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div>+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato.</div></details></h3>${rotazioni(p)}</div>`:""}`;
-  testEventi();
+  {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito);}   // v7.36 test nel popup
   el.querySelectorAll(".pvista button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{localStorage.setItem("ebPortVista",vista);}catch(e){}ridisegna(".pvista");});
   el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
   // clic su un titolo delle azioni scelte: apre la sua scheda nell'Azionario (azioni.js)
@@ -803,7 +827,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    b.classList.add("ok");b.querySelector("code").textContent="Copiato";setTimeout(()=>{b.classList.remove("ok");b.querySelector("code").textContent=b.dataset.isin;},1500);});
   // capitale: ricalcola gli importi in euro mentre si scrive (solo cifre), salvato nel browser
   const ci=el.querySelector(".pcap input");if(ci){ci.oninput=()=>{const v=+ci.value.replace(/\D/g,"");capitale=v||0;
-   aggiornaEuro(p);};ci.onblur=()=>{ci.value=capitale.toLocaleString("it-IT");try{localStorage.setItem("ebCapitale",capitale);}catch(e){}};}
+   aggiornaEuro(p);};ci.onblur=()=>{ci.value=mil(capitale);try{localStorage.setItem("ebCapitale",capitale);}catch(e){}};}
   simEventi(p);
   crEventi(p);
   contoEventi(p);
@@ -839,6 +863,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    // v6.81: arrivata l'ora (09:00 di Roma del giorno di rotazione) niente piu' "tra oggi": etichetta IN CORSO
    if(ms<=0){if(box.firstChild&&box.firstChild.nodeType===3)box.firstChild.textContent="Rotazione ";
     out.innerHTML='<i class="pcdot"></i>IN CORSO';box.classList.add("ora");
+    {const lab=box.parentElement&&box.parentElement.querySelector(".pdl");if(lab)lab.textContent="Rotazione";}
     box.title="Rotazione in corso: si esegue oggi all'apertura delle borse europee (09:00 ora italiana)";clearInterval(timer);return;}
    const t=Math.floor(ms/1000),gi=Math.floor(t/86400),o=Math.floor(t%86400/3600),mi=Math.floor(t%3600/60),se=t%60;
    out.innerHTML=`${gi?`<u>${gi}</u>g `:""}<u>${z(o)}</u>h <u>${z(mi)}</u>m <u>${z(se)}</u>s`;};
