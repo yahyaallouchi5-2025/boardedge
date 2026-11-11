@@ -48,7 +48,7 @@
      I bottoni con data-t restano gli stessi: link diretti (#scheda), go() e statistiche funzionano come prima. -->
 <button data-t="sig" class="on">Dashboard</button><button data-t="port">Portafogli</button><button data-t="azioni">Azionario</button>
 <div class="ngrp" data-g="mercati"><button type="button" class="ngb" aria-haspopup="true" aria-expanded="false">Mercati<span class="ngsel"></span><svg class="ngfr" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="ngm" role="menu"><button data-t="pairs" role="menuitem">Forex</button><button data-t="assets" role="menuitem">Strumenti</button><button data-t="mkt" role="menuitem">Mercato e macro</button></div></div>
-<div class="ngrp" data-g="analisi"><button type="button" class="ngb" aria-haspopup="true" aria-expanded="false">Analisi<span class="ngsel"></span><svg class="ngfr" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="ngm" role="menu"><button data-t="pattern" role="menuitem">Pattern Detector</button><button data-t="stag" role="menuitem">Stagionalit&agrave;</button><button data-t="corr" role="menuitem">Correlazioni</button></div></div>
+<div class="ngrp" data-g="analisi"><button type="button" class="ngb" aria-haspopup="true" aria-expanded="false">Analisi<span class="ngsel"></span><svg class="ngfr" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="ngm" role="menu"><button data-t="stag" role="menuitem">Stagionalit&agrave;</button><button data-t="corr" role="menuitem">Correlazioni</button></div></div>
 <div class="ngrp" data-g="ricerca"><button type="button" class="ngb" aria-haspopup="true" aria-expanded="false">Ricerca<span class="ngsel"></span><svg class="ngfr" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></button><div class="ngm" role="menu"><button data-t="verifica" role="menuitem">Backtest storico</button><button data-t="fore" role="menuitem">Forecaster</button><button data-t="registro" role="menuitem">Registro</button></div></div>
 </nav>
 
@@ -83,7 +83,7 @@
 <div class="tablewrap" style="padding:16px"><table class="heat" id="heat"></table></div></div></section>
 <section id="port"></section>
 <section id="azioni"></section>
-<section id="pattern"></section>
+<!-- v7.44 Pattern Detector tolto: lo studio con 7 filtri tecnici (2001-2026) non mostra vantaggio dopo i costi. Codice in 24_pattern.js -->
 <section id="verifica"></section>
 <section id="fore"></section>
 <section id="stag"></section>
