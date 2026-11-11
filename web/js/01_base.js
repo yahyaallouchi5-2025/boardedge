@@ -30,6 +30,9 @@ const verb=s=>s>=20?["COMPRANO","up","▲"]:s<=-20?["VENDONO","down","▼"]:["ne
 const ETI={"STRONG BUY":"FORTE RIALZO","BUY":"RIALZO","NEUTRO":"NEUTRO","SELL":"RIBASSO","STRONG SELL":"FORTE RIBASSO"};
 const eti=l=>ETI[l]||l;
 const ETI_NOTA="Posizionamento degli speculatori (dati COT): contesto, non un'indicazione operativa";
+// v7.43 AVVISO EDUCATIVO: una riga breve nelle schede con importi, quote o selezioni (Portafogli, Azionario, test del
+//   profilo). Il testo completo sta nelle Note legali; qui solo l'essenziale, sempre visibile.
+const avvisoEdu=()=>`<p class="avedu"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18v.01"/></svg><span><b>Solo a scopo educativo</b>, non &egrave; consulenza finanziaria. Puoi perdere il capitale, anche comprando a contanti senza leva.</span><a href="../legale/#rischi" target="_blank" rel="noopener">Rischi</a></p>`;
 const badge=l=>`<span class="badge" style="--bc:${COL[l]}" title="${ETI_NOTA}">${eti(l)}</span>`;   // pillola: bordo e testo nel colore del segnale
 const pos=s=>Math.max(0,Math.min(100,(s+100)/2));
 const nm=k=>(D.assets[k]||{}).name||k;

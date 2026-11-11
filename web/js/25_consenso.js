@@ -10,7 +10,7 @@
    Il testo completo sta nelle Note legali (/legale/), qui c'e' la sintesi che l'utente deve accettare.
    Nelle statistiche anonime conta come evento "consenso" (accettato / rifiutato). */
 (function(){try{
- const CONSENSO_VERSIONE="2026-10-27";
+ const CONSENSO_VERSIONE="2026-11-12";             // v7.43: rischi anche senza leva, solo scopo educativo
  // Il consenso si ricorda in TRE posti (come fanno i grandi siti), cosi' non viene richiesto a ogni accesso anche
  // se un browser ne cancella uno: archiviazione locale (principale), cookie tecnico di 1 anno (alcuni browser e le
  // app tipo Telegram/Instagram svuotano l'archiviazione locale ma tengono i cookie) e archiviazione di sessione
@@ -32,17 +32,17 @@
  if(salvato())return;
  const TESTO=`
   <h4>1. Che cos'&egrave; BoardEdge</h4>
-  <p>BoardEdge &egrave; uno strumento di <b>informazione, studio e didattica</b> sui mercati finanziari. Mostra dati pubblici (CFTC, FRED, BCE, Yahoo Finance, SEC) elaborati con modelli statistici: segnali COT, punteggi, stagionalit&agrave;, correlazioni, pattern, portafogli modello e selezioni di azioni.</p>
+  <p>BoardEdge &egrave; uno strumento a <b>scopo esclusivamente educativo</b>: informazione, studio e didattica sui mercati finanziari. Mostra dati pubblici (CFTC, FRED, BCE, Yahoo Finance, SEC) elaborati con modelli statistici: posizionamento COT, punteggi, stagionalit&agrave;, correlazioni, pattern, portafogli modello e selezioni di azioni. <b>Non &egrave; un intermediario, non gestisce denaro e non esegue ordini.</b></p>
   <h4>2. Non &egrave; consulenza finanziaria</h4>
-  <p>Nessun contenuto costituisce consulenza in materia di investimenti, raccomandazione personalizzata, sollecitazione o offerta all'acquisto o alla vendita di strumenti finanziari (D.Lgs. 58/1998 &ndash; TUF, direttiva MiFID II). Espressioni come &laquo;BUY&raquo;, &laquo;SELL&raquo;, &laquo;strong BUY&raquo;, &laquo;le 5 azioni pi&ugrave; forti&raquo; o &laquo;portafoglio aggressivo&raquo; sono <b>etichette di un modello</b>, generiche e uguali per tutti: non tengono conto della tua situazione, dei tuoi obiettivi o della tua tolleranza al rischio.</p>
+  <p>Nessun contenuto costituisce consulenza in materia di investimenti, raccomandazione personalizzata, sollecitazione o offerta all'acquisto o alla vendita di strumenti finanziari (D.Lgs. 58/1998 &ndash; TUF, direttiva MiFID II). Espressioni come &laquo;rialzo&raquo;, &laquo;ribasso&raquo;, &laquo;forte&raquo;, &laquo;le 5 azioni pi&ugrave; forti&raquo;, &laquo;portafoglio aggressivo&raquo;, gli importi e le quote calcolati sul capitale che scrivi sono <b>esempi di un modello</b>, generiche e uguali per tutti: non tengono conto della tua situazione, dei tuoi obiettivi o della tua tolleranza al rischio.</p>
   <h4>3. Rischi</h4>
-  <p>Investire comporta il rischio di perdere in parte o del tutto il capitale. Il trading su futures, forex, CFD e criptovalute, soprattutto con leva, pu&ograve; generare perdite <b>superiori al capitale investito</b>.</p>
+  <p>Investire comporta sempre il rischio di <b>perdere in parte o del tutto il capitale</b>, <b>anche comprando a contanti (spot), senza leva</b>: azioni, ETF, obbligazioni, oro, materie prime e criptovalute possono perdere gran parte del loro valore e restare sotto il prezzo d'acquisto per anni. Esempi storici: S&amp;P 500 &minus;57% (2007-2009), Nasdaq &minus;78% (2000-2002), Bitcoin oltre &minus;75% (2021-2022). Le azioni di una singola societ&agrave; possono azzerarsi.</p><p>Con leva, futures, forex, CFD e derivati le perdite possono essere <b>superiori al capitale investito</b>. Gli investimenti in valuta estera hanno anche il rischio di cambio.</p><p>I drawdown mostrati nei portafogli modello sono quelli <b>del passato</b>: in futuro possono essere pi&ugrave; ampi.</p>
   <h4>4. Risultati passati e simulazioni</h4>
   <p>Backtest, statistiche storiche e simulazioni (compreso lo storico delle azioni scelte, calcolato con le aziende presenti oggi negli indici) <b>non garantiscono risultati futuri</b>. Contano come verifica solo i registri live, che non vengono mai modificati.</p>
   <h4>5. Dati</h4>
   <p>I dati arrivano da fonti esterne e possono contenere ritardi, errori o interruzioni. BoardEdge segnala le anomalie che rileva ma non pu&ograve; garantire completezza, esattezza o disponibilit&agrave; continua del servizio.</p>
   <h4>6. Responsabilit&agrave;</h4>
-  <p>Ogni decisione di investimento &egrave; presa da te, in autonomia e sotto la tua esclusiva responsabilit&agrave;. BoardEdge e i suoi autori non rispondono di perdite o danni, diretti o indiretti, derivanti dall'uso delle informazioni pubblicate. Prima di investire valuta di rivolgerti a un consulente finanziario abilitato.</p>
+  <p>Ogni decisione di investimento &egrave; presa da te, in autonomia e sotto la tua esclusiva responsabilit&agrave;. BoardEdge e i suoi autori non rispondono di perdite o danni, diretti o indiretti, derivanti dall'uso delle informazioni pubblicate. Prima di investire rivolgiti a un consulente finanziario abilitato e investi solo denaro che puoi permetterti di perdere.</p>
   <h4>7. Uso dei contenuti</h4>
   <p>I contenuti sono per uso personale. Non &egrave; consentito copiarli, ripubblicarli o rivenderli senza autorizzazione scritta (diritto d'autore e banca dati, L. 633/1941).</p>
   <h4>8. Privacy</h4>

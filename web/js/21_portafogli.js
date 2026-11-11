@@ -771,6 +771,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     ${sm?`<div><small>Dopo ${test.anni==1?"1 anno":test.anni+" anni"}</small><b>${eur(sm.p5*cap)}</b><span>nel 5% dei casi peggiori &middot; in perdita nel ${fx(sm.perdita,0)}% dei periodi</span></div>`:""}
     <div><small>Rendimento medio annuo</small><b class="up">${pc(st.cagr)}</b><span>dal ${String(st.dal||"").slice(0,4)}, costi inclusi</span></div></div>
    <p class="ptest-p">${motivo}${compatto(cap)?` Con ${eur(cap)} si usa la <b>versione compatta</b>.`:""}</p>${avvisoCap(p,cap)}
+   <p class="ptest-edu">Esempio didattico del modello, uguale per tutti: non &egrave; una consulenza personalizzata. Puoi perdere il capitale anche senza leva.</p>
    <div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><button type="button" class="ptest-usa" data-t="usa">Usa questo profilo</button></div></div>`;}
  // avviso se con quel capitale, a quote intere e ai prezzi di oggi, il conto si allontana troppo dal modello
  function avvisoCap(p,cap){const sc=piano(p,cap).scost;if(sc<=SCOST_OK)return "";
@@ -828,7 +829,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  // nome del giorno della settimana ("lunedi'") di una data AAAA-MM-GG
  function giorno(ymd){try{const [y,m,d]=ymd.split("-").map(Number);return ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][new Date(Date.UTC(y,m-1,d)).getUTCDay()];}catch(e){return "";}}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
-  el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
+  el.innerHTML=`${avvisoEdu()}<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
    <div class="ptop">${testa()}</div>
    <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
    <div class="ptool"><div class="pvista" role="tablist" aria-label="Sezione della scheda">${VISTE.map(v=>`<button role="tab" aria-selected="${vista==v[0]}" class="${vista==v[0]?"on":""}" data-v="${v[0]}">${v[1]}</button>`).join("")}</div>

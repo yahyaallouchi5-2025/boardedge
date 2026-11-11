@@ -108,7 +108,7 @@ try{(function(){
   d.testo(PW-M,17,titolo||"",{s:8.5,c:"#a9b8d0",a:"r"});return 52;}
  // piede comune: avviso e numero di pagina
  function piede(d,n,tot,fonte){const {PW,PH,M}=d;d.linea(M,PH-34,PW-M,PH-34,{c:C.line});
-  d.testo(M,PH-22,d.taglia((fonte?fonte+" · ":"")+"Informazione, non consulenza finanziaria. I risultati passati non garantiscono quelli futuri.",PW-2*M-70,7.2),{s:7.2,c:C.mute});
+  d.testo(M,PH-22,d.taglia((fonte?fonte+" · ":"")+"Solo a scopo educativo, non consulenza finanziaria. Si pu\u00f2 perdere il capitale anche senza leva. I risultati passati non garantiscono quelli futuri.",PW-2*M-70,7.2),{s:7.2,c:C.mute});
   d.testo(PW-M,PH-22,`Pagina ${n} di ${tot}`,{s:7.2,c:C.mute,a:"r"});}
  // titolo di sezione con filetto turchese a sinistra; ritorna la y sotto il titolo
  function sezione(d,y,t,sub){d.rett(d.M,y-11,3,14,{f:C.acc});d.testo(d.M+10,y,t,{s:12.5,b:true});
