@@ -770,6 +770,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  // v7.1 VARIAZIONE DI OGGI del portafoglio (prezzi Xetra in euro, ritardo di borsa): somma di peso x variazione
  //     dall'ultima chiusura di ogni ETF; liquidita' = 0. Si mostra solo se la seduta di oggi non e' gia' nella chiusura.
  function liveOggi(p){const box=el.querySelector(".pmc-oggi"),L=window.ebLive,c=p.corrente;if(!box||!L||!L.ue||!c||c.attesa)return;
+  if(box.querySelector("details[open]"))return;                    // v7.30 fumetto aperto: non si ridisegna
   let r=0,w=0,t=0;p.composizione.forEach(x=>{const v=L.ue[x.k]||(x.k=="AZ"&&L.ue.SP500);if(x.k=="CASH")w+=x.peso;
    else if(v&&v.p&&v.prev){r+=x.peso/100*(v.p/v.prev-1)*100;w+=x.peso;t=Math.max(t,v.t||0);}});
   const giorno=t?new Date(t*1000).toISOString().slice(0,10):null;if(!giorno||giorno<=c.al||w<50){box.hidden=true;return;}
@@ -777,7 +778,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   box.hidden=false;box.innerHTML=`<span class="plive on"><i></i>Oggi alle ${ora}</span><b class="${r>=0?"up":"down"}">${pc(r,2)}</b><span>mese stimato <b class="${mese>=0?"up":"down"}">${pc(mese)}</b></span>
    <details class="info"><summary title="Come si calcola" aria-label="Come si calcola">i</summary><div>Variazione di oggi degli ETF in euro su Xetra (ritardo di borsa di circa 15-20 minuti), pesata con la composizione del mese. &Egrave; una stima: il risultato ufficiale del mese usa le chiusure di fine giornata.</div></details>`;}
  window.addEventListener("eb-live",()=>{const p=P.profili.find(x=>x.id==sel);if(!p)return;aggiornaEuro(p);liveOggi(p);
-  const b=el.querySelector("#pconto");if(b&&!contoEdit){b.innerHTML=contoHTML(p);contoEventi(p);}});
+  // v7.30 se l'utente sta leggendo un fumetto (i) del conto non si ridisegna (prima si chiudeva da solo all'arrivo dei prezzi)
+  const b=el.querySelector("#pconto");if(b&&!contoEdit&&!b.querySelector("details[open]")){b.innerHTML=contoHTML(p);contoEventi(p);}});
  function aggiornaEuro(p){const pesi=[];MACRO.forEach(g=>p.composizione.filter(c=>g[1].includes(c.classe)).forEach(c=>pesi.push(c.peso)));
   el.querySelectorAll(".pcomp .peur").forEach((e,i)=>{e.textContent=eur(capitale*(pesi[i]||0)/100);});
   el.querySelectorAll(".paz-p em").forEach(e=>{e.textContent=eur(capitale*(+e.dataset.peso||0)/100);});

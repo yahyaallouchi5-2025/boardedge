@@ -71,6 +71,7 @@ try{(function(){const el=$("azioni");if(!el)return;
  const prezzoCella=t=>{const l=lv(t);return l?`<span class="azlv" title="Prezzo con ~15 min di ritardo, ore ${l.ora}"><i></i>${prezzo(l.p,t.val)}</span>`:prezzo(t.p,t.val);};
  const varCella=t=>{const l=lv(t);return pc(l&&l.g!=null?l.g:t.v1g,2);};
  function aggiornaLive(){document.querySelectorAll("[data-lv]").forEach(c=>{const t=ST.dati&&ST.dati.titoli.find(x=>x.t==c.dataset.lv);if(!t)return;
+   if(c.querySelector("details[open]"))return;      // v7.30 fumetto (i) aperto (stato dei mercati): non si ridisegna, si chiuderebbe
    const nuovo=c.dataset.k=="g"?varCella(t):c.dataset.k=="h"?testaPrezzo(t):prezzoCella(t);
    if(c.innerHTML!==nuovo){const l=lv(t),prima=parseFloat(c.dataset.v||"NaN");c.innerHTML=nuovo;
     if(l&&!isNaN(prima)&&l.p!==prima){c.classList.remove("azsu","azgiu");void c.offsetWidth;c.classList.add(l.p>prima?"azsu":"azgiu");}

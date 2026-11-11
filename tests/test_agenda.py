@@ -74,6 +74,13 @@ class Agenda(unittest.TestCase):
         self.assertEqual(a["fonte"], "interno")
         self.assertIn("fomc", [e["codice"] for e in a["eventi"]])
 
+    def test_copia_vecchia_completata_con_il_calendario_interno(self):
+        # v7.30 copia salvata solo con eventi passati: si aggiungono quelli futuri del calendario interno
+        self.costruisci(datetime(2026, 10, 20, 8, 0))
+        a = self.costruisci(datetime(2027, 1, 5, 8, 0), scarica=lambda: None)
+        self.assertIn("copia salvata", a["fonte"])
+        self.assertTrue(any(e["data"] >= "2027-01-05" for e in a["eventi"]))
+
     def test_motore_usa_gli_eventi_principali_dell_agenda(self):
         a = self.costruisci(datetime(2026, 10, 20, 8, 0))
         cal = agenda.calendario_motore(a)

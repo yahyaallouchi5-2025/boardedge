@@ -67,8 +67,10 @@ try{const VEL=38,SC=(D.agenda&&D.agenda.scenari)||{};
    .formatToParts(new Date(u.replace("Z",":00Z"))).forEach(x=>{p[x.type]=x.value;});return `${p.year}-${p.month}-${p.day} ${p.hour}:${p.minute}`;};
  const AG=((D.agenda&&D.agenda.eventi)||[]).filter(e=>!e.uscito&&(e.impatto||"high")=="high");
  const ev=AG.length?AG.map(e=>({quando:e.utc?romaTxt(e.utc):e.data+" 23:59",senzaora:!e.utc,nome:e.nome.replace(/\s*\(.*\)$/,""),
-   nomeL:e.nome,valuta:e.valuta,tipo:e.tipo,cod:e.codice})).filter(e=>Date.parse(e.quando.slice(0,10))-Date.now()<7.5*864e5)
-   .sort((a,b)=>a.quando<b.quando?-1:1):(D.eventi||[]);
+   nomeL:e.nome,valuta:e.valuta,tipo:e.tipo,cod:e.codice})).sort((a,b)=>a.quando<b.quando?-1:1)
+   // v7.30 di norma i prossimi 7 giorni; in una settimana senza eventi il nastro NON sparisce: mostra i prossimi 4
+   .filter((e,i,tutti)=>{const vicini=tutti.filter(x=>Date.parse(x.quando.slice(0,10))-Date.now()<7.5*864e5);
+     return vicini.length?vicini.includes(e):i<4;}):(D.eventi||[]);
  const GG=["dom","lun","mar","mer","gio","ven","sab"];
  /* ORA DI ROMA: gli orari degli eventi sono "ora di Roma"; li confrontiamo con l'adesso di Roma (non del dispositivo),
     cosi' chi guarda da un altro fuso vede comunque lo stato giusto. Tutto in "minuti da epoca" fittizia (UTC finto). */

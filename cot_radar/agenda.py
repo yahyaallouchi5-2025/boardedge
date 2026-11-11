@@ -124,7 +124,15 @@ def carica(adesso=None, scarica_fn=scarica, cache=CACHE):
         return eventi, "financecalendar"
     try:
         with open(cache, encoding="utf-8") as f:
-            return json.load(f), "financecalendar (copia salvata)"
+            copia = json.load(f)
+        # v7.30 copia vecchia (fonte giu' da giorni): senza eventi futuri il nastro della Dashboard spariva.
+        # Si aggiungono gli eventi principali del calendario interno (NFP, CPI, Fed, BCE) che la copia non ha.
+        oggi = (adesso or datetime.utcnow()).strftime("%Y-%m-%d")
+        if not any(e.get("data", "") >= oggi for e in copia):
+            log.warning("agenda: la copia salvata non ha eventi futuri, aggiungo il calendario interno")
+            presenti = {(e.get("codice"), e.get("data")) for e in copia}
+            copia += [e for e in interno() if e["data"] >= oggi and (e["codice"], e["data"]) not in presenti]
+        return copia, "financecalendar (copia salvata)"
     except (OSError, ValueError):
         log.warning("agenda: nessuna copia salvata, uso il calendario interno (solo NFP, CPI, Fed, BCE)")
         return interno(), "interno"

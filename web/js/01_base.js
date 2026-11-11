@@ -111,3 +111,29 @@ function controllaVersione(){if(!/^https?:/.test(location.protocol)||!D.stato||!
 controllaVersione();setInterval(controllaVersione,10*60*1000);
 window.addEventListener("unhandledrejection",ev=>{window.__errori.push({sezione:"pagina",errore:String(ev.reason)});bannerErrore(ev.reason);});
 
+
+/* v7.30 FUMETTI (i) SUL TELEFONO: posizione corretta anche a pagina scorsa.
+   PROBLEMA: sul telefono molti fumetti usano "position:fixed" (larghi quanto lo schermo, regole @media in stile.css)
+   ma senza "top": il browser li mette dove starebbero nel flusso della pagina SENZA tenere conto dello scorrimento,
+   quindi, piu' in basso si e' scesi, piu' il fumetto finisce fuori dallo schermo (es. "Il mio conto" nei Portafogli:
+   tocchi la (i) e non compare niente).
+   SOLUZIONE: quando una (i) si apre e il suo fumetto e' "fixed", lo mettiamo noi sotto la (i) (o sopra, se sotto non
+   c'e' spazio), sempre dentro lo schermo
+   (se il testo e' lungo scorre dentro il fumetto); mentre si scorre lo segue, e se la (i) esce dallo schermo si chiude.
+   I fumetti "absolute" (PC) non vengono toccati. DEBUG: F12 -> Console -> document.querySelectorAll("details.info[open]") */
+(function(){
+ const M=8;                                               // margine dai bordi dello schermo (px)
+ function piazza(d){const box=d.querySelector(":scope>div"),s=d.querySelector(":scope>summary");if(!box||!s)return;
+  if(getComputedStyle(box).position!=="fixed"){box.style.top="";return;}
+  const r=s.getBoundingClientRect(),h=box.offsetHeight,H=window.innerHeight;
+  if(r.bottom<0||r.top>H){d.open=false;box.style.top="";return;}          // la (i) e' uscita dallo schermo: chiudi
+  // sotto la (i) se ci sta (o se sotto c'e' piu' spazio che sopra), altrimenti sopra; mai sopra la (i) stessa,
+  // cosi' si puo' sempre ritoccare per chiudere. Se il testo e' piu' alto dello spazio, il fumetto scorre al suo interno.
+  const sotto=H-r.bottom-2*M,sopra=r.top-2*M,giu=h<=sotto||sotto>=sopra,spazio=Math.max(60,giu?sotto:sopra);
+  box.style.maxHeight=spazio+"px";box.style.overflowY=h>spazio?"auto":"";box.style.marginTop="0";
+  box.style.top=Math.round(giu?r.bottom+M:r.top-M-Math.min(h,spazio))+"px";}
+ document.addEventListener("toggle",ev=>{const d=ev.target;                // "toggle" non risale: si ascolta in cattura
+  if(d&&d.matches&&d.matches("details.info")&&d.open)requestAnimationFrame(()=>piazza(d));},true);
+ const tutti=()=>document.querySelectorAll("details.info[open]").forEach(piazza);
+ window.addEventListener("scroll",tutti,{passive:true});window.addEventListener("resize",tutti);
+})();
