@@ -60,7 +60,7 @@ try{
    - Chi ha chiesto "riduci animazioni" nel sistema operativo vede le pillole ferme, una accanto all'altra (a capo).
    - Si ricalcola quando cambia la larghezza della finestra. La spiegazione sta nel tasto (i). */
 try{const VEL=38,SC=(D.agenda&&D.agenda.scenari)||{};
- /* v6.73 EVENTI: tutta l'agenda ad alto impatto dei prossimi 7 giorni (financecalendar: NFP, CPI, PCE, ISM, banche
+ /* v6.73 EVENTI: tutta l'agenda ad alto impatto dei prossimi 7 giorni (v7.31: dati USA dalla FRED + banche centrali; prima financecalendar: NFP, CPI, PCE, ISM, banche
     centrali di tutte le valute...). Orario UTC -> ora di Roma. Senza agenda: i 4 eventi principali di D.eventi.
     senzaora = la fonte non da' l'orario (es. CPI Eurozona flash): si mostra solo il giorno. */
  const romaTxt=u=>{const p={};new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Rome",hourCycle:"h23",year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"})
@@ -88,7 +88,8 @@ try{const VEL=38,SC=(D.agenda&&D.agenda.scenari)||{};
    <span class="evv">${esc(e.valuta)}</span><b>${esc(e.nome)}</b><span class="evq">${GG[q.getDay()]} ${e.quando.slice(8,10)}/${e.quando.slice(5,7)}${e.senzaora?"":` <b>${e.quando.slice(11)}</b>`}</span><em>${incorso&&!e.senzaora?"<i class='evlive'></i>IN CORSO":incorso?"OGGI":quando}</em></span>`;};
  $("eventi").innerHTML=attivi().length?`<div class="card eventi"><div class="evhead"><h3>Prossimi eventi ad alto impatto</h3>
   <details class="info"><summary title="Come usarli" aria-label="Informazioni">i</summary><div>Il giorno del dato la volatilit&agrave; sale: per lo swing conviene valutare l'ingresso <b>dopo</b> l'uscita. Dopo il dato la riga "Notizie" delle card mostra se la sorpresa rafforza o penalizza il segnale.<br><br><b>Passa il mouse (o tocca) un evento</b> per lo scenario: cosa misura, dato precedente, cosa succede alla valuta se esce sopra o sotto e quanto reagisce di solito il mercato. Il confronto &egrave; con il dato precedente, non con le attese degli analisti (non disponibili gratis). Reazione tipica = quante delle ultime uscite hanno mosso il tasso USA a 2 anni pi&ugrave; di una giornata normale (solo dati USA).</div></details>
-  ${D.agenda&&String(D.agenda.fonte||"").startsWith("financecalendar")?`<span class="small evfonte">Calendario: <a href="https://www.financecalendar.com" target="_blank" rel="noopener">financecalendar.com</a></span>`:""}</div>
+  ${D.agenda&&String(D.agenda.fonte||"").startsWith("financecalendar")?`<span class="small evfonte">Calendario: <a href="https://www.financecalendar.com" target="_blank" rel="noopener">financecalendar.com</a></span>`
+   :D.agenda&&String(D.agenda.fonte||"").startsWith("FRED")?`<span class="small evfonte">Fonti: <a href="https://fred.stlouisfed.org/releases/calendar" target="_blank" rel="noopener">FRED</a> e calendari ufficiali delle banche centrali</span>`:""}</div>
   <div class="evnastro" role="marquee" aria-label="Prossimi eventi"><div class="evtrack"></div></div></div>`:"";
  const nastro=$("eventi").querySelector(".evnastro"),track=nastro&&nastro.querySelector(".evtrack");
  let base=attivi().map(pill).join("");
