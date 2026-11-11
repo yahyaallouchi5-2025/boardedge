@@ -37,7 +37,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  try{const c=+localStorage.getItem("ebSimCap");if(c>0)simCap=c;simOrz=localStorage.getItem("ebSimOrz")||simOrz;simLeva=localStorage.getItem("ebSimLeva")||simLeva;}catch(e){}
  const RISK={conservativo:["Basso","r1"],moderato:["Medio","r2"],aggressivo:["Alto","r3"]};
  const pc=(v,d=1)=>v==null?"n/d":(v>0?"+":"")+fx(v,d)+"%";
- const eur=v=>v==null?"n/d":Math.round(v).toLocaleString("it-IT")+" €";
+ // v7.36 migliaia SEMPRE con il punto: Intl it-IT non separa i numeri di 4 cifre ("5000 €" accanto a "10.000 €")
+ const mil=v=>{const n=Math.round(v),t=String(Math.abs(n)).replace(/\B(?=(\d{3})+(?!\d))/g,".");return (n<0?"-":"")+t;};
+ const eur=v=>v==null?"n/d":mil(v)+" €";
  const gg=d=>d?d.slice(8,10)+"/"+d.slice(5,7)+"/"+d.slice(0,4):"";
  const nomeK=k=>{for(const p of P.profili){const c=p.composizione.find(x=>x.k==k);if(c)return c.nome;const a=p.ammessi.find(x=>x.k==k);if(a)return a.nome;}return k;};
  let sel=P.profili[1].id,per="tutto",tutteRot=false;
@@ -254,9 +256,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <span class="pmc-b${c.live?"":" sim"}">${c.live?"Provvisorio &middot; si chiude a fine mese":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
    <div class="pmc-g"><b class="${cl}">${pc(r)}</b><span>da inizio mese &middot; ingresso alla chiusura del ${gg(c.dal)} &middot; <em class="pmc-al${fermi(c.al)?" fermo":""}" title="${fermi(c.al)?"Prezzi non aggiornati: il risultato non include le ultime sedute":"Ultima chiusura usata"}">prezzi al ${gg(c.al)}${fermi(c.al)?" (in aggiornamento)":""}</em></span></div>
    <div class="pmc-oggi" hidden></div>
-   <div><div class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></div><div class="pmc-bl"><span>Giorno ${c.gg} di ${c.tot} di borsa</span><span>fine mese</span></div></div>
-   <div class="pmc-k">${k("Drawdown peggiore",pc(c.dd),"down")}${k("Mesi storici in positivo",wr==null?"n/d":wr+"%")}</div>
-   ${termo}
+   <div class="pmc-k">
+    <div><small>Giorno di borsa</small><b>${c.gg} <span class="pmc-di">di ${c.tot}</span></b><div class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></div></div>
+    ${k("Drawdown del mese",pc(c.dd),"down")}${k(`${MES(m&&m.mese||c.mese)} positivo`,wr==null?"n/d":wr+"% degli anni")}</div>
+   ${termo?`<div class="pmc-fw"><span class="pmc-ft">${MES(m&&m.mese||c.mese)} negli anni passati</span>${termo}</div>`:""}
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}
 </div>`;}
 
@@ -315,7 +318,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const b=(arr,cur,attr,lab)=>`<div class="vfswitch psim-s">${arr.map(x=>`<button data-${attr}="${x}" class="${x==cur?"on":""}">${lab(x)}</button>`).join("")}</div>`;
   return `<div class="card psim" id="psim"><div class="psim-t"><h3>Simulatore <span class="pbprof">${esc(p.nome)}</span></h3>
     <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div><b>Cosa mostra.</b> Il capitale investito in questo profilo partendo in ogni mese dello storico (dal ${gg(p.sim.dal)}): il valore a fine periodo nel caso medio (mediana) e la fascia che contiene 9 casi su 10. Stessa misura del sito: euro, acquisto prudente, costi inclusi.<br><br><b>Leva.</b> 1,3&times; e 1,5&times; = investire anche denaro preso a prestito, con un costo stimato di tasso BCE + ${fx(p.sim.spread,1)} punti l'anno. Guadagni e drawdown crescono insieme; costi e condizioni reali dipendono dal broker.<br><br><b>Rendita.</b> Prelievo annuo massimo che, in 10 anni, avrebbe lasciato il capitale finale almeno uguale a quello iniziale.<br><br><b>Attenzione.</b> Le regole del portafoglio sono state riviste guardando anche questi anni: i numeri futuri possono essere peggiori. Informazione, non consulenza.</div></details></div>
-   <div class="psim-c"><label class="pcap">Capitale <input type="text" inputmode="numeric" value="${simCap.toLocaleString("it-IT")}" aria-label="Capitale del simulatore in euro"> &euro;</label>
+   <div class="psim-c"><label class="pcap">Capitale <input type="text" inputmode="numeric" value="${mil(simCap)}" aria-label="Capitale del simulatore in euro"> &euro;</label>
     ${b(["1","3","5","10"],simOrz,"orz",x=>x+(x=="1"?" anno":" anni"))}${b(["1.0","1.3","1.5"],simLeva,"leva",x=>x=="1.0"?"Senza leva":"Leva "+x.replace(".",",")+"&times;")}</div>
    <div class="psim-b">${simCorpo(p)}</div></div>`;}
  function simEventi(p){const c=el.querySelector("#psim");if(!c)return;const corpo=()=>{c.querySelector(".psim-b").innerHTML=simCorpo(p);};
@@ -323,7 +326,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   c.querySelectorAll("[data-orz]").forEach(x=>x.onclick=()=>{simOrz=x.dataset.orz;salva("ebSimOrz",simOrz);c.querySelectorAll("[data-orz]").forEach(y=>y.classList.toggle("on",y==x));corpo();});
   c.querySelectorAll("[data-leva]").forEach(x=>x.onclick=()=>{simLeva=x.dataset.leva;salva("ebSimLeva",simLeva);c.querySelectorAll("[data-leva]").forEach(y=>y.classList.toggle("on",y==x));corpo();});
   const ci=c.querySelector("input");ci.oninput=()=>{simCap=+ci.value.replace(/\D/g,"")||0;corpo();};
-  ci.onblur=()=>{ci.value=simCap.toLocaleString("it-IT");salva("ebSimCap",simCap);};}
+  ci.onblur=()=>{ci.value=mil(simCap);salva("ebSimCap",simCap);};}
 
 
  // --- v7.4 CRISI STORICHE (cot_radar/portafogli.py: crisi_profilo + crisi_mercati): per ogni grande crisi dal 2006
@@ -721,14 +724,12 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return {p:prof[i],breve:lo<0,limite:lo<0||lo<test.tol?"orizzonte":test.tol<prof.length-1?"perdita":null};}
  function testHTML(){const prof=P.profili,cap=test.cap||capitale,nP=3;
   const info=`<details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div>Tre domande, ognuna legata ai dati del modello: il <b>capitale</b> sceglie la versione (compatta sotto ${eur((P.compatto||{}).sotto||10000)}) e gli importi in euro; l'<b>orizzonte</b> si confronta con tutte le finestre storiche dal 2006 (un profilo &egrave; adatto se in quella durata ha chiuso in perdita al massimo nel 5% dei casi); la <b>perdita accettata</b> con il drawdown massimo storico di ogni profilo. Vale il limite pi&ugrave; prudente.<br><br>Prima di investire tieni da parte un fondo per le emergenze (di solito 3-6 mesi di spese). Il test non conosce la tua situazione completa (debiti, entrate, altri investimenti): &egrave; un aiuto alla scelta, non una consulenza personalizzata. I risultati passati non garantiscono quelli futuri: un drawdown pu&ograve; essere pi&ugrave; ampio di quello storico.</div></details>`;
-  if(test.passo==-1||(test.esito&&test.passo==5))   // test saltato o chiuso: solo una riga
-   return `<div class="ptest mini"><span>${test.esito?`Profilo dal test: <b>${esc((prof.find(x=>x.id==test.esito)||{}).nome||"")}</b>`:"Non sai quale profilo scegliere?"}</span><button type="button" class="ptest-go" data-t="rifai">${test.esito?"Rifai il test":"Fai il test (3 domande)"}</button></div>`;
   const dots=`<div class="ptest-dots" aria-hidden="true">${[1,2,3].map(n=>`<i class="${Math.max(1,test.passo)>=n?"on":""}"></i>`).join("")}</div>`;
-  const testa=(t)=>`<div class="ptest-t"><span class="ptest-k">Trova il tuo profilo</span>${test.passo<=nP?`<span class="ptest-n">${test.passo||1} di ${nP}</span>`:""}${info}</div>${test.passo<=nP?dots:""}<h3>${t}</h3>`;
-  const piede=`<div class="ptest-b">${test.passo>1&&test.passo<=nP?`<button type="button" class="ptest-ind" data-t="ind">&larr; Indietro</button>`:"<span></span>"}<button type="button" class="ptest-salta" data-t="salta">${test.passo>nP?"Chiudi":"Salta"}</button></div>`;
+  const testa=(t)=>`<div class="ptest-t"><span class="ptest-k" id="ptest-tit">Trova il tuo profilo</span>${test.passo<=nP?`<span class="ptest-n">${Math.max(1,test.passo)} di ${nP}</span>`:""}${info}<button type="button" class="ptest-x" data-t="chiudi" aria-label="Chiudi">&times;</button></div>${test.passo<=nP?dots:""}<h3>${t}</h3>`;
+  const piede=`<div class="ptest-b">${test.passo>1&&test.passo<=nP?`<button type="button" class="ptest-ind" data-t="ind">&larr; Indietro</button>`:"<span></span>"}<button type="button" class="ptest-salta" data-t="chiudi">${test.passo>nP?"Chiudi":"Esci"}</button></div>`;
   if(test.passo<=1){const ch=[2000,5000,10000,25000];
    return `<div class="ptest">${testa("Quanto vuoi investire?")}<div class="ptest-o c4">${ch.map(v=>`<button type="button" data-cap="${v}" class="${cap==v?"on":""}">${eur(v)}</button>`).join("")}</div>
-    <label class="ptest-lib">Altro importo <input type="text" inputmode="numeric" value="${ch.includes(cap)?"":cap.toLocaleString("it-IT")}" placeholder="es. 7.500" aria-label="Altro importo in euro"> &euro;<button type="button" class="ptest-ok" data-t="cap">Avanti</button></label>${piede}</div>`;}
+    <label class="ptest-lib">Altro importo <input type="text" inputmode="numeric" value="${ch.includes(cap)?"":mil(cap)}" placeholder="es. 7.500" aria-label="Altro importo in euro"> &euro;<button type="button" class="ptest-ok" data-t="cap">Avanti</button></label>${piede}</div>`;}
   if(test.passo==2)
    return `<div class="ptest">${testa("Fra quanto tempo potrebbero servirti questi soldi?")}<div class="ptest-o">${ORZ.map(o=>`<button type="button" data-anni="${o[0]}" class="${test.anni==o[0]?"on":""}"><b>${o[1]}</b><small>${o[2]}</small></button>`).join("")}</div>${piede}</div>`;
   if(test.passo==3){
