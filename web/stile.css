@@ -2250,7 +2250,9 @@ html.ptmod-on{overflow:hidden}
    in una riga (giorno con barra, drawdown, % anni positivi) e la barra storica con la sua etichetta */
 .pmc-oggi[hidden]{display:none!important}
 .pmc-k b .pmc-di{font-size:13px;font-weight:600;color:var(--mute)}
-.pmc-k .pmc-bar{height:6px;margin-top:8px}
+/* la barra sta dentro un riquadro .pmc-k div: annulla padding/bordo/sfondo del riquadro, altrimenti resta una pastiglia vuota */
+.pmc-k .pmc-bar,.pmc-k div.pmc-bar{height:6px;margin-top:10px;padding:0;border:0;border-radius:99px;background:color-mix(in srgb,var(--line) 80%,transparent)}
+.pmc-k .pmc-bar i{box-shadow:0 0 10px color-mix(in srgb,var(--acc) 45%,transparent)}
 .pmc-fw{display:flex;flex-direction:column;gap:2px}
 .pmc-ft{font-size:11.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--mute)}
 .pmc-fw .pmc-f{margin:16px 0 24px}
