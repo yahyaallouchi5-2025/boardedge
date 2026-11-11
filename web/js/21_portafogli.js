@@ -128,9 +128,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   if(c.k=="SP500"&&compatto(cap)&&P.compatto.sp500)return Object.assign({lk:"SP500C"},P.compatto.sp500);
   return c.ue?Object.assign({lk:c.k},c.ue):null;}
  const prezzoLive=(lk,base)=>{const lv=window.ebLive&&ebLive.ue&&ebLive.ue[lk];return (lv&&lv.p)||base||null;};
- function piano(p){const righe=[];let spesa=0;
-  const ordine=[];MACRO.forEach(g=>compAcq(p,capitale).filter(c=>g[1].includes(c.classe)).forEach(c=>ordine.push(c)));
-  ordine.forEach(c=>{const obi=capitale*c.peso/100;
+ // v7.33: capitale come parametro (test del profilo); senza = il capitale scritto dall'utente
+ function piano(p,cap){cap=cap||capitale;const righe=[];let spesa=0;
+  const ordine=[];MACRO.forEach(g=>compAcq(p,cap).filter(c=>g[1].includes(c.classe)).forEach(c=>ordine.push(c)));
+  ordine.forEach(c=>{const obi=cap*c.peso/100;
    if(c.k=="AZ"){const lista=c.titoli||[];if(!lista.length)return;const per=obi/lista.length,ris=(c.riserve||[]).slice(),settori=new Set(lista.map(x=>x.s));
     lista.forEach(x=>{let t=x,nota=null;
      if(!x.eur||x.eur*MARG>per){                                // 1 azione costa piu' della quota (o prezzo mancante)
@@ -145,12 +146,19 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    if(c.k=="CASH"){const t=P.tasso_bce,neg=t!=null&&t<=0;
     righe.push({cash:true,neg,nome:"Liquidità sul conto",obi,real:obi,q:null,prezzo:null,
      nota:t==null?null:neg?`tasso BCE ${fx(t,2)}%: niente XEON`:`oppure XEON (LU0290358497) &middot; tasso BCE ${fx(t,2)}%`});return;}
-   const u=strumentoAcq(c,capitale),pr=u&&prezzoLive(u.lk,u.prezzo);   // v7.1: intraday se c'e'
+   const u=strumentoAcq(c,cap),pr=u&&prezzoLive(u.lk,u.prezzo);   // v7.1: intraday se c'e'
    if(!pr){righe.push({nome:u?u.nome:c.nome,isin:u&&u.isin,q:null,prezzo:null,obi});return;}
    const q=Math.floor(obi/(pr*MARG));spesa+=q*pr;
    righe.push({nome:u.nome,isin:u.isin,q,prezzo:pr,obi,nota:q?null:`1 quota costa di pi&ugrave;: resta sul conto`});});
-  const scost=righe.reduce((a,r)=>a+Math.abs((r.real??(r.q||0)*(r.prezzo||0))-r.obi),0)/2/(capitale||1)*100;
-  return {righe,spesa,resto:capitale-spesa,scost};}
+  const scost=righe.reduce((a,r)=>a+Math.abs((r.real??(r.q||0)*(r.prezzo||0))-r.obi),0)/2/(cap||1)*100;
+  return {righe,spesa,resto:cap-spesa,scost};}
+ // v7.33 CAPITALE MINIMO di un profilo: il piu' piccolo importo (griglia sotto) con cui, a quote intere e ai prezzi di oggi,
+ //     il conto resta entro SCOST_OK punti percentuali dal modello. Sotto, alcune quote non si comprano e restano sul conto.
+ const SCOST_OK=5,GRIGLIA_CAP=[1000,2000,3000,4000,5000,6000,7500,10000,12500,15000,20000,25000,30000,40000,50000,75000,100000];
+ // (da quel capitale in su lo scarto resta sempre entro la soglia: sopra i 10.000 euro si torna alla versione intera,
+ //  con quote piu' care, e lo scarto puo' risalire)
+ const minimoCap=p=>{let m=null;for(let i=GRIGLIA_CAP.length-1;i>=0;i--){if(piano(p,GRIGLIA_CAP[i]).scost<=SCOST_OK)m=GRIGLIA_CAP[i];else break;}return m;};
+ window.__scostamento=(id,cap)=>{const p=P.profili.find(x=>x.id==id);return p?{scost:piano(p,cap).scost,minimo:minimoCap(p)}:null;};   // DEBUG
  function compattoHTML(p){const c=p.compatto,s=c&&c.stat.totale,t=p.stat.totale||{};
   return `<div class="pacq-cmp"><span class="pacq-cb">Versione compatta</span><span class="small">sotto ${eur(P.compatto.sotto)}</span>
    <details class="info"><summary title="Cos'&egrave;" aria-label="Cos'&egrave;">i</summary><div>Con meno di ${eur(P.compatto.sotto)} alcune quote intere costano troppo (S&amp;P 500 circa 700 &euro;, Nasdaq-100 circa 1.300 &euro;) e il conto si allontana dal modello. Qui l'<b>S&amp;P 500</b> si compra con l'ETF Vanguard: stesso indice, quota pi&ugrave; piccola.${c?` Il <b>Nasdaq-100</b> &egrave; unito all'S&amp;P 500, che lo contiene gi&agrave; in buona parte.<br><br><b>Nello storico</b>: ${fx(s.cagr,1)}% l'anno contro ${fx(t.cagr,1)}% del modello completo, drawdown massimo ${pc(s.maxdd)} contro ${pc(t.maxdd)}. Stessa misura del sito: euro, costi inclusi.`:" Il resto del portafoglio non cambia."}</div></details></div>`;}
