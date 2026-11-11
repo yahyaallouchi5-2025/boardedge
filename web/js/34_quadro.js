@@ -46,6 +46,36 @@ try{(function(){
    <b>Allarme recessione</b>: regola di Sahm, cio&egrave; la disoccupazione (media 3 mesi) salita di almeno 0,5 punti dal minimo dell'ultimo anno; per gli USA anche curva dei tassi invertita con spread delle aziende pi&ugrave; indebitate in salita.<br><br>
    ${tab?`<b>USA, com'&egrave; andata</b>: rendimento medio annuo del mese dopo, per fase, dal 1990 (oro dal 2004).${tab}`:""}
    <b>Solo contesto, non un segnale</b>: i mercati si muovono prima dei dati economici (in recessione l'S&amp;P 500 ha spesso gi&agrave; ripreso a salire). I portafogli seguono il filtro di trend sui prezzi.`,"qe-is");
+ // v7.40 CICLO DEL DEBITO (solo USA): E.debito da cot_radar/debito.py = {fase, da, debito, deb3, deb1, rata, rata_media,
+ //   reale, fed, infl, spread, stress, storia:[[trimestre, indice fase]], storico:{fase:[media annua %, trimestri, % positivi]}}
+ //   Riga con le 5 fasi in ordine (quella di oggi accesa), 4 riquadri di dati e la striscia degli ultimi 15 anni.
+ const CD=["Espansione","Bolla","Picco","Crisi","Riduzione del debito"],CDC=["cd-e","cd-b","cd-p","cd-c","cd-r"];
+ const CDF=["il debito cresce in linea con il reddito","il debito cresce pi&ugrave; del reddito","la Fed stringe: curva piatta o invertita",
+            "il credito &egrave; sotto stress","il debito scende rispetto al reddito"];
+ const trimIt=q=>q?`${["1&deg;","2&deg;","3&deg;","4&deg;"][+q.slice(6)-1]} trim. ${q.slice(0,4)}`:"";
+ function debitoHTML(){const d=E.debito;if(!d||!d.fase)return "";
+  const k=CD.indexOf(d.fase),seg=(v,u="")=>(v>0?"+":"")+fx(v,1)+u;
+  const t=d.storico,tabD=t?`<table class="qe-tab"><tr><th>Fase</th><th class="num">S&amp;P 500</th><th class="num">Positivi</th><th class="num">Trimestri</th></tr>${CD.filter(f=>t[f]).map(f=>`<tr><td>${f}</td><td class="num ${t[f][0]>=0?"up":"down"}">${pc(t[f][0])}</td><td class="num">${t[f][2]}%</td><td class="num">${t[f][1]}</td></tr>`).join("")}</table>`:"";
+  const tile=(n,v,s)=>`<div class="qe-i"><small>${n}</small><b>${v}</b><span>${s}</span></div>`;
+  const tiles=[tile("Debito privato / PIL",fx(d.debito,0)+"%",`${seg(d.deb3)} punti in 3 anni &middot; ${seg(d.deb1)} in 1 anno`),
+   d.rata!=null?tile("Rata delle famiglie",fx(d.rata,1)+"%",`del reddito &middot; media dal ${d.rata_dal} ${fx(d.rata_media,1)}%`):"",
+   tile("Tasso reale della Fed",seg(d.reale,"%"),`tasso ${fx(d.fed,2)}% meno inflazione ${fx(d.infl,1)}%`),
+   tile("Spread aziende Baa",fx(d.spread,2),d.stress?`<em class="qe-ti down">credito sotto stress</em>`:"credito calmo &middot; stress sopra 3,5")].join("");
+  const str=(d.storia||[]),striscia=str.length>8?`<div class="cd-str" role="img" aria-label="Fasi degli ultimi ${Math.round(str.length/4)} anni">${str.map(s=>`<i class="${CDC[s[1]]}" title="${trimIt(s[0]).replace(/&deg;/g,"°")}: ${CD[s[1]]}"></i>`).join("")}</div>
+    <div class="cd-anni"><span>${str[0][0].slice(0,4)}</span><span>${str[Math.floor(str.length/2)][0].slice(0,4)}</span><span>oggi</span></div>`:"";
+  return `<div class="qe-sez"><div class="qe-st"><h4>Ciclo del debito</h4>${info(`Dal modello di Ray Dalio: il debito si muove in <b>5 fasi</b> che si leggono dai dati. Regole fisse, in quest'ordine:<br>
+    <b>Crisi</b>: spread delle obbligazioni aziendali Baa sopra 3,5 punti, o salito di oltre 0,6 in 6 mesi.<br>
+    <b>Picco</b>: curva 10-2 anni sotto 0,25 con tasso reale della Fed positivo (o Fed salita di oltre 1,5 punti in un anno).<br>
+    <b>Riduzione del debito</b>: debito di famiglie e aziende sul PIL pi&ugrave; basso di un anno prima.<br>
+    <b>Bolla</b>: debito sul PIL salito di oltre 5 punti in 3 anni e di oltre 1 nell'ultimo anno.<br>
+    <b>Espansione</b>: tutti gli altri casi.<br><br>
+    Il debito esce ogni 3 mesi con circa 10 settimane di ritardo (ultimo: ${trimIt(d.trimestre)}); tassi e spread sono di questo trimestre.<br><br>
+    ${tabD?`<b>Com'&egrave; andata dal ${d.storico_dal}</b>: rendimento medio annuo dell'S&amp;P 500 nel trimestre dopo, quota di trimestri positivi e numero di casi.${tabD}`:""}
+    <b>Solo contesto, non un segnale</b>: le differenze tra le fasi sono piccole rispetto ai casi contati e il rendimento medio &egrave; positivo in tutte. I portafogli seguono il filtro di trend sui prezzi.`)}
+    <span class="cd-da">${d.fase} dal ${trimIt(d.da)}</span></div>
+   <div class="cd-fasi" role="img" aria-label="Fase del ciclo del debito: ${d.fase}">${CD.map((f,i)=>`<div class="cd-f ${CDC[i]}${i==k?" on":""}"><b>${f}</b><span>${i==k?"oggi":"&nbsp;"}</span></div>`).join("")}</div>
+   <p class="cd-frase"><b class="${CDC[k]}">${d.fase}</b>: ${CDF[k]}.</p>
+   <div class="qe-ind cd-ind">${tiles}</div>${striscia}</div>`;}
  // v7.22d: il dettaglio (mappa, indicatori, ciambelle) si apre SOLO al click su una card; un secondo click lo chiude
  let sel=null;
  let borsa=null;                                           // top.json "economie": arriva dopo, se c'e'
@@ -73,7 +103,7 @@ try{(function(){
    <div class="qe-dons">${col.map(a=>{const l=a.label||"NEUTRO",c=/BUY/.test(l)?"up":/SELL/.test(l)?"down":"neu";return `<div class="qe-d" title="${esc(a.name)}: ${l}">${ciambella((a.score+100)/2,(a.score>0?"+":"")+Math.round(a.score),c)}<b>${esc(a.name)}</b><small>${l}</small></div>`;}).join("")}</div></div>`:"";
   return `<div class="qe-dh">${bandiera(x.id)}<b class="${f[1]}">${x.regime}</b><span>${esc(x.nome)}: l'economia ${f[0]} &middot; dati di ${meseIt(x.mese)}</span>
     <span class="qe-al ${x.allarme?"on":""}">${x.allarme?"Allarme recessione":"Nessun allarme recessione"}</span></div>
-   <div class="qe-main">${mappa}<div class="qe-ind">${tiles.join("")}</div></div>${settHTML}${idx}${cot}`;}
+   <div class="qe-main">${mappa}<div class="qe-ind">${tiles.join("")}</div></div>${x.id=="usa"?debitoHTML():""}${settHTML}${idx}${cot}`;}
  function disegna(){const x=E.economie.find(e=>e.id==sel);
   el.innerHTML=`<div class="qe-sec"><div class="qe-h"><h2>Quadro economico</h2>${infoSez}</div>
    <div class="qe-row${x?" qe-scelta":""}">${E.economie.map(card).join("")}</div>
