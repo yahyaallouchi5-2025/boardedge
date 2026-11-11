@@ -244,6 +244,13 @@ def calcola(fred, cartella=None, scarica=True):
     if not out:
         return None
     res = {"economie": out, "agg": cache.get("agg")}
+    try:                                             # v7.40 ciclo del debito USA (debito.py): riga in piu', mai bloccante
+        from . import debito
+        deb = debito.calcola(cartella, scarica_ora=scarica)
+        if deb:
+            res["debito"] = deb
+    except Exception as e:
+        log.warning("economie: ciclo del debito non calcolato (%s)", e)
     if cartella and cli.get("USA"):
         try:
             res["storico"] = storico_usa(cli["USA"], cartella)
