@@ -248,17 +248,22 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
 `;}
   const wr=m&&m.n?Math.round(100*m.positivi/m.n):null;
   const k=(t,v,cls="")=>`<div><small>${t}</small><b class="${cls}">${v}</b></div>`;
+  // v7.38 riquadro con 3 righe fisse: intestazione (etichetta a sinistra, etichetta di contesto a destra) | valore | piede
+  //   stesse altezze e stessa dimensione del valore in tutti e tre, cosi' i testi sono allineati in orizzontale
+  const tk=(lab,tag,val,cls,piede)=>`<div class="pk"><div class="pk-h"><span>${lab}</span>${tag?`<em>${tag}</em>`:""}</div><b class="pk-v ${cls||""}">${val}</b><div class="pk-f">${piede||""}</div></div>`;
+  const NM=MES(m&&m.mese||c.mese),pos=m&&m.n?`${m.positivi} anni su ${m.n}`:"storico non disponibile";
   if(c.attesa)return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in partenza <span class="pbprof">${esc(p.nome)}</span></h3>
     <span class="pmc-b">Composizione decisa &middot; si entra il ${gg(c.dal)}</span></div>
-   <div class="pmc-k">${k("Giorni di borsa nel mese",c.tot)}${k("Mesi storici in positivo",wr==null?"n/d":wr+"%")}${k("Media storica del mese",m&&m.media!=null?pc(m.media):"n/d",m&&m.media>=0?"up":"down")}</div>
+   <div class="pmc-k pk3">${tk("Giorni di borsa","",c.tot,"","nel mese")}${tk("Positivo",NM,wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",pos)}${tk("Media storica",NM,m&&m.media!=null?pc(m.media):"n/d",m&&m.media>=0?"up":"down","rendimento medio del mese")}</div>
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}</div>`;
   return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in corso <span class="pbprof">${esc(p.nome)}</span><details class="info pmci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div>Risultato del mese dalla chiusura del giorno di rotazione all'ultima chiusura. La barra sotto confronta il mese con gli stessi mesi degli anni passati (minimo, media, massimo). Il risultato &egrave; provvisorio fino a fine mese.</div></details></h3>
     <span class="pmc-b${c.live?"":" sim"}">${c.live?"Provvisorio &middot; si chiude a fine mese":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
    <div class="pmc-g"><b class="${cl}">${pc(r)}</b><span>da inizio mese &middot; ingresso alla chiusura del ${gg(c.dal)} &middot; <em class="pmc-al${fermi(c.al)?" fermo":""}" title="${fermi(c.al)?"Prezzi non aggiornati: il risultato non include le ultime sedute":"Ultima chiusura usata"}">prezzi al ${gg(c.al)}${fermi(c.al)?" (in aggiornamento)":""}</em></span></div>
    <div class="pmc-oggi" hidden></div>
-   <div class="pmc-k">
-    <div><small>Giorno di borsa</small><b>${c.gg} <span class="pmc-di">di ${c.tot}</span></b><div class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></div></div>
-    ${k("Drawdown del mese",pc(c.dd),"down")}${k(`${MES(m&&m.mese||c.mese)} positivo`,wr==null?"n/d":wr+"% degli anni")}</div>
+   <div class="pmc-k pk3">
+    ${tk("Giorno di borsa","",`${c.gg} <span class="pk-di">di ${c.tot}</span>`,"",`<span class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></span>`)}
+    ${tk("Drawdown del mese","",pc(c.dd),"down","dal massimo del mese")}
+    ${tk("Positivo",NM,wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",pos)}</div>
    ${termo?`<div class="pmc-fw"><span class="pmc-ft">${MES(m&&m.mese||c.mese)} negli anni passati</span>${termo}</div>`:""}
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}
 </div>`;}
@@ -288,7 +293,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
 
  /* v6.52: ogni rotazione mostra com'e' andato il mese (netto e drawdown) e, aprendo "Dettaglio", ogni mercato con
     peso, rendimento, contributo al totale (punti %) e drawdown; per le Azioni scelte anche i singoli titoli. */
- function dettMese(m){if(!m)return `<div class="prisul small">mese in corso</div>`;
+ // v7.38 mese in corso: al posto della scritta "mese in corso" il risultato PROVVISORIO (stessi numeri del riquadro del mese)
+ function dettMese(m,cor){if(!m){if(!cor||cor.attesa||cor.r==null)return `<div class="prisul small">mese in corso</div>`;
+   return `<div class="prisul"><span class="pmc-b">Provvisorio</span><span>Risultato <b class="${cor.r>=0?"up":"down"}">${pc(cor.r)}</b></span><span>drawdown <b class="down">${pc(cor.dd)}</b></span>${cor.gg&&cor.tot?`<span>giorno di borsa <b>${cor.gg}</b> di ${cor.tot}</span>`:""}</div>`;}
   const riga=a=>`<tr><td>${esc(a.nome)}${a.titoli&&a.titoli.length?`<div class="ptit">${a.titoli.map(t=>`<span>${esc(t.n)} <em class="${t.r==null?"":t.r>=0?"up":"down"}">${t.r==null?"in corso":pc(t.r)}</em></span>`).join("")}</div>`:""}</td>
    <td class="num">${fx(a.w,0)}%</td>${a.attesa?`<td class="num small" colspan="3" title="I rendimenti delle 5 azioni di questo mese arrivano con il prossimo aggiornamento dell'Azionario">dati in arrivo</td>`:`<td class="num ${a.r>=0?"up":"down"}">${pc(a.r)}</td><td class="num ${a.c>=0?"up":"down"}">${a.c>0?"+":""}${fx(a.c,2)}</td><td class="num down">${pc(a.dd)}</td>`}</tr>`;
   const peg=m.asset.filter(x=>x.c!=null).sort((x,y)=>x.c-y.c)[0];
@@ -470,12 +477,14 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    mioConto.altri=[...box.querySelectorAll('[data-g="a"] [data-a]')].map(r=>{const i=r.querySelectorAll("input");return {n:i[0].value.trim().slice(0,40),v:num(i[1].value),c:num(i[2].value)};}).filter(a=>a.v>0);
    mioConto.liq=num(b(".pconto-liq input").value);mioConto.vers=num(b(".pconto-vers input").value);salvaConto();contoEdit=false;ridis();};}
 
+ // v7.38 riga di una rotazione: data | gruppi (Entrati / Usciti / Restano, etichetta a parole in colonna fissa) | liquidita'
+ //   sotto: risultato del mese (chiuso) o provvisorio (mese in corso, solo la prima riga)
  function rotazioni(p){const ch=k=>`<span class="pchip" title="${esc(nomeK(k))}">${esc(nomeK(k))}</span>`;
+  const gr=(cls,et,v)=>v.length?`<div class="pgr ${cls}"><span class="pgl">${et}</span><div class="pgc">${v.map(ch).join("")}</div></div>`:"";
   const perMese={};(p.mesi_chiusi||[]).forEach(m=>perMese[m.mese]=m);
-  return `<div class="prot${tutteRot?" aperta":""}">${p.rotazioni.map((r,i)=>`<div class="protr${i>=3?" pextra":""}"><b>${gg(r.data)}</b><div>
-   ${r.entrati.length?`<div class="pin">+ ${r.entrati.map(ch).join("")}</div>`:""}${r.usciti.length?`<div class="pout">&minus; ${r.usciti.map(ch).join("")}</div>`:""}
-   ${r.tenuti.length?`<div class="pten">= ${r.tenuti.map(ch).join("")}</div>`:""}${!r.entrati.length&&!r.usciti.length&&!r.tenuti.length?'<div class="small">tutto in liquidit&agrave;</div>':""}</div>
-   <span class="small">${r.liquidita?`liquidit&agrave; ${r.liquidita}%`:""}</span>${r.attesa?`<div class="prisul small"><span class="pmc-b">si esegue all'apertura del ${gg(r.data)}</span></div>`:dettMese(perMese[r.data.slice(0,7)])}</div>`).join("")}
+  return `<div class="prot${tutteRot?" aperta":""}">${p.rotazioni.map((r,i)=>`<div class="protr${i>=3?" pextra":""}"><b>${gg(r.data)}</b><div class="pgrs">
+   ${gr("pin","Entrati",r.entrati)}${gr("pout","Usciti",r.usciti)}${gr("pten","Restano",r.tenuti)}${!r.entrati.length&&!r.usciti.length&&!r.tenuti.length?'<div class="small">tutto in liquidit&agrave;</div>':""}</div>
+   <span class="pliq${r.liquidita?"":" zero"}" title="Quota tenuta in liquidit&agrave; in questa rotazione">liquidit&agrave; ${r.liquidita||0}%</span>${r.attesa?`<div class="prisul small"><span class="pmc-b">si esegue all'apertura del ${gg(r.data)}</span></div>`:dettMese(perMese[r.data.slice(0,7)],i==0?p.corrente:null)}</div>`).join("")}
    ${p.rotazioni.length>3?`<button class="ptutte">${tutteRot?"Mostra meno":`Mostra tutte (${p.rotazioni.length})`}</button>`:""}</div>`;}
 
  // --- CONFRONTO DEI 3 PROFILI mese per mese (v6.56): stessi mesi chiusi delle rotazioni, i tre profili affiancati,
@@ -676,11 +685,11 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
 
   // ultime rotazioni: entrati / usciti / rimasti e risultato del mese chiuso
   if(p.rotazioni&&p.rotazioni.length){const perMese={};(p.mesi_chiusi||[]).forEach(q=>perMese[q.mese]=q);
-   y=d.serve(y,80,T);y=E.sezione(d,y+28,"Ultime rotazioni","+ entrati · − usciti · = rimasti");
+   y=d.serve(y,80,T);y=E.sezione(d,y+28,"Ultime rotazioni","+ entrati · − usciti · = restano");
    p.rotazioni.slice(0,6).forEach(r=>{const L=[];
     if(r.entrati.length)L.push(["+ "+r.entrati.map(nomeK).join(", "),C.up]);if(r.usciti.length)L.push(["− "+r.usciti.map(nomeK).join(", "),C.down]);
     if(r.tenuti.length)L.push(["= "+r.tenuti.map(nomeK).join(", "),C.ink]);if(!L.length)L.push(["tutto in liquidità",C.mute]);
-    const mm=perMese[r.data.slice(0,7)],ris=r.attesa?`si esegue all'apertura del ${gg(r.data)}`:mm?`Risultato ${pc(mm.r)} · drawdown ${pc(mm.dd)}`:"mese in corso";
+    const mm=perMese[r.data.slice(0,7)],ris=r.attesa?`si esegue all'apertura del ${gg(r.data)}`:mm?`Risultato ${pc(mm.r)} · drawdown ${pc(mm.dd)}`:(p.corrente&&!p.corrente.attesa&&p.corrente.r!=null&&r===p.rotazioni[0])?`Provvisorio ${pc(p.corrente.r)} · drawdown ${pc(p.corrente.dd)}`:"mese in corso";
     const righe=L.flatMap(l=>d.righe(l[0],LW-70-185,8).map(t2=>[t2,l[1]])),h=Math.max(16,righe.length*11)+10;
     y=d.serve(y,h,T);d.testo(M,y+10,gg(r.data),{s:8.5,b:true});righe.forEach((q,i)=>d.testo(M+70,y+10+i*11,q[0],{s:8,c:q[1]}));
     d.testo(PW-M,y+10,ris,{s:7.6,c:mm?(mm.r>=0?C.up:C.down):C.mute,a:"r",b:!!mm});if(r.liquidita)d.testo(PW-M,y+21,`liquidità ${r.liquidita}%`,{s:7,c:C.mute,a:"r"});
@@ -824,7 +833,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${simulatoreHTML(p)}
    ${crisiHTML(p)}
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
-   ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div>+ entrati, &minus; usciti, = rimasti. La riga in alto &egrave; la rotazione in vigore o in partenza; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato.</div></details></h3>${rotazioni(p)}</div>`:""}`;
+   ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <span class="pbprof">${esc(p.nome)}</span><details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div><b>Entrati</b>: mercati comprati nella rotazione. <b>Usciti</b>: venduti. <b>Restano</b>: tenuti dal mese prima (con i pesi aggiornati). La riga in alto &egrave; la rotazione in vigore, con il risultato provvisorio del mese; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato. Cambiando profilo cambiano mercati, pesi e liquidit&agrave;.</div></details></h3>${rotazioni(p)}</div>`:""}`;
   {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito);}
   {const b=el.querySelector(".ptest-reset");if(b)b.onclick=()=>{test={passo:0};try{localStorage.removeItem("ebTest");}catch(e){}disegna();};}   // v7.37 azzera il profilo   // v7.36 test nel popup
   el.querySelectorAll(".pvista button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{localStorage.setItem("ebPortVista",vista);}catch(e){}ridisegna(".pvista");});
