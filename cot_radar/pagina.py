@@ -223,9 +223,11 @@ def build(data_source=load_all, demo=False, sito=False):
             log.error("portafogli: mostrata l'ultima scheda salvata (%s) con avviso di manutenzione", port.get("aggiornato"))
     # FORECASTER (forecaster.py, v6.65): previsioni e sfidanti registrati PRIMA di ogni mese e verificati dopo.
     # Isolato: se fallisce manca solo la scheda "Forecaster". Scrive nel registro solo sul sito (mai in demo).
+    # v7.49 ELIMINATO: lo studio sui mesi 2005-2026 (stesse regole) non ha trovato vantaggi ne' nelle previsioni ne' nelle
+    # varianti dei portafogli. Il registro non si aggiorna piu'; codice e registro restano nel repository.
     fore = None
     try:
-        if px:
+        if False and px:
             from . import forecaster
             fore = forecaster.calcola(righe_cot or cache["cot"]["data"], px, sat if not demo else None,
                                       scrivi=sito and not demo)
