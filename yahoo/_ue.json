@@ -1,65 +1,71 @@
 {
- "giorno": "2026-11-11",
- "giri": 3,
+ "giorno": "2026-11-12",
+ "giri": 1,
  "prezzi": {
   "BTC": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 6.517,
+   "p": 6.6765,
    "sym": "IB1T.XETRA"
   },
   "CASH": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 150.737,
+   "p": 150.739,
    "sym": "XEON.XETRA"
   },
   "COPPER": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 47.822,
+   "p": 48.488,
    "sym": "OD7C.XETRA"
   },
   "EAFE": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 40.6,
+   "p": 41.02,
    "sym": "EXUS.XETRA"
   },
   "EM": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 44.552,
+   "p": 46.074,
    "sym": "IS3N.XETRA"
   },
   "GOLD": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
    "p": 69.96,
    "sym": "PPFB.XETRA"
   },
   "NASDAQ": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 1426.2,
+   "p": 1472.6,
    "sym": "SXRV.XETRA"
   },
   "SP500": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 726.06,
+   "p": 740.56,
    "sym": "SXR8.XETRA"
   },
   "SP500C": {
-   "d": "2026-11-10",
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 130.18,
+   "p": 132.795,
    "sym": "VUAA.XETRA"
   },
-  "WTI": {
-   "d": "2026-11-10",
+  "US10Y": {
+   "d": "2026-11-11",
    "fonte": "eodhd",
-   "p": 14.877,
+   "p": 151.12,
+   "sym": "SXRM.XETRA"
+  },
+  "WTI": {
+   "d": "2026-11-11",
+   "fonte": "eodhd",
+   "p": 15.241,
    "sym": "OD7F.XETRA"
   }
  },
@@ -71,6 +77,7 @@
   "GB00B15KXQ89": "OD7C.XETRA",
   "GB00B15KXV33": "OD7F.XETRA",
   "IE0006WW1TQ4": "EXUS.XETRA",
+  "IE00B3VWN518": "SXRM.XETRA",
   "IE00B4ND3602": "PPFB.XETRA",
   "IE00B53SZB19": "SXRV.XETRA",
   "IE00B5BMR087": "SXR8.XETRA",
