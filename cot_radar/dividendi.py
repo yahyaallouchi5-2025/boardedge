@@ -22,10 +22,10 @@ from . import azioni as A
 from . import eodhd
 
 log = logging.getLogger(__name__)
-VERSIONE = 2              # v7.22b: u12 senza stacchi futuri
+VERSIONE = 3              # v7.53: storia di 31 anni e anni di AUMENTI (rifare tutti i file). v7.22b: u12 senza stacchi futuri
 RIFAI_GIORNI = 7               # i dividendi cambiano di rado: una volta a settimana basta
 TEMPO_MAX = 600                # secondi massimi per giro: il resto al giro dopo
-ANNI = 11
+ANNI = 31                  # v7.53 (prima 11): servono 25+ anni per riconoscere gli "aristocratici" del dividendo
 
 
 def riassunto(js, oggi):
@@ -61,8 +61,20 @@ def riassunto(js, oggi):
     anni = 0
     while per_anno.get(a - anni):
         anni += 1
+    # v7.53 ANNI DI AUMENTI CONSECUTIVI (idea: "Dividend Aristocrats", Lichtenfeld): la rata TIPICA dell'anno (mediana
+    # dei pagamenti, cosi' un pagamento che slitta a gennaio o un dividendo straordinario non falsano il conto) deve
+    # essere piu' alta di quella dell'anno prima. Anno in corso escluso (parziale).
+    rate = {}
+    for p in pag:
+        rate.setdefault(int(p["d"][:4]), []).append(p["v"])
+    tipica = {y: sorted(v)[len(v) // 2] if len(v) % 2 else sum(sorted(v)[len(v) // 2 - 1:len(v) // 2 + 1]) / 2
+              for y, v in rate.items()}
+    aumenti = 0
+    while tipica.get(a - aumenti) and tipica.get(a - aumenti - 1) and \
+            tipica[a - aumenti] > tipica[a - aumenti - 1] * 1.0005:
+        aumenti += 1
     return {"valuta": next((p["val"] for p in reversed(pag) if p["val"]), None),
-            "u12": round(sum(p["v"] for p in recenti), 4), "freq": freq, "cagr5": cagr, "anni": anni,
+            "u12": round(sum(p["v"] for p in recenti), 4), "freq": freq, "cagr5": cagr, "anni": anni, "aumenti": aumenti,
             "storia": [[y, round(per_anno.get(y, 0), 4)] for y in range(oggi.year - 9, oggi.year + 1)],
             "ultimi": [{k: p[k] for k in ("d", "pag", "v")} for p in pag[-8:]][::-1]}
 

@@ -58,6 +58,13 @@ CASSA = ["CashAndCashEquivalentsAtCarryingValue", "CashCashEquivalentsRestricted
 PN = ["StockholdersEquity", "StockholdersEquityIncludingPortionAttributableToNoncontrollingInterest"]
 EPS = ["EarningsPerShareDiluted", "EarningsPerShareBasicAndDiluted", "EarningsPerShareBasic"]
 URL_DEPOSITI = "https://data.sec.gov/submissions/CIK{cik:010d}.json"
+# v7.51 COPERTURA DEL DIVIDENDO (idea da "Get Rich with Dividends", Lichtenfeld): dividendi pagati confrontati con
+# utile e flusso di cassa libero (flusso di cassa operativo meno investimenti in impianti)
+DIVIDENDI = ["PaymentsOfDividendsCommonStock", "PaymentsOfDividends", "PaymentsOfOrdinaryDividends"]
+FCO = ["NetCashProvidedByUsedInOperatingActivities", "NetCashProvidedByUsedInOperatingActivitiesContinuingOperations"]
+CAPEX = ["PaymentsToAcquirePropertyPlantAndEquipment", "PaymentsToAcquireProductiveAssets"]
+PAYOUT_ALTO = 75                # % : sopra questa soglia il dividendo ha poco margine (regola del libro)
+SALTO = 25                      # punti: payout salito di colpo rispetto alla media dei 2 anni prima = segnale di allarme
 TRIMESTRI = 8                   # trimestri conservati: 4 da mostrare + 4 per il confronto con l'anno prima
 FINESTRA_CONTI = 21             # giorni dopo la data stimata dei conti in cui il titolo si riscarica ogni giorno
 
@@ -136,7 +143,97 @@ def estrai(fatti, settore=None):
     crescita = round(((anni[-1]["ricavi"] / anni[0]["ricavi"]) ** (1 / n) - 1) * 100, 1) \
         if anni[0]["ricavi"] and anni[-1]["ricavi"] and anni[0]["ricavi"] > 0 and anni[-1]["ricavi"] > 0 else None
     giudizio, motivo = _giudizio(anni, perdite, settore)
-    return {"anni": anni, "perdite": perdite, "crescita": crescita, "giudizio": giudizio, "motivo": motivo}
+    out = {"anni": anni, "perdite": perdite, "crescita": crescita, "giudizio": giudizio, "motivo": motivo}
+    try:                                                   # v7.54 tipo di azienda secondo Lynch (descrittivo)
+        tipo = tipo_lynch(anni, settore)
+        if tipo:
+            out["lynch"] = tipo
+    except Exception as e:
+        log.info("tipo Lynch non calcolato (%s: %s)", type(e).__name__, e)
+    try:                                                   # extra: mai bloccante per il bilancio
+        cop = copertura_dividendo(fatti, fini, ut, settore)
+        if cop:
+            out["dividendo"] = cop
+    except Exception as e:
+        log.info("copertura dividendo non calcolata (%s: %s)", type(e).__name__, e)
+    return out
+
+
+CICLICI = ("mat", "ener")      # materiali ed energia: utili legati al ciclo economico e ai prezzi delle materie prime
+
+
+def tipo_lynch(anni, settore=None):
+    """v7.54 TIPO DI AZIENDA secondo Peter Lynch ("One Up on Wall Street"), solo descrittivo (non entra nella Forza):
+    dice che cosa aspettarsi dal titolo. Regole fissate qui (crescita = utile annuo composto sugli anni disponibili):
+      IN RIPRESA      : una perdita negli ultimi 3 anni e utile di nuovo positivo nell'ultimo anno;
+      CICLICA         : settori materiali ed energia (utili che seguono il ciclo);
+      CRESCITA RAPIDA : utile in crescita di almeno il 20% l'anno;
+      SOLIDA          : utile in crescita tra il 10% e il 20% l'anno;
+      CRESCITA LENTA  : utile in crescita sotto il 10% l'anno (o in calo).
+    None con meno di 3 anni o con l'ultimo anno in perdita."""
+    if len(anni) < 3 or anni[-1]["utile"] <= 0:
+        return None
+    if any(x["utile"] <= 0 for x in anni[-3:-1]):
+        return {"tipo": "IN RIPRESA", "motivo": "tornata in utile dopo una perdita negli ultimi anni"}
+    if settore in CICLICI:
+        return {"tipo": "CICLICA", "motivo": "utili legati al ciclo economico e ai prezzi delle materie prime"}
+    pos = [x for x in anni if x["utile"] > 0]
+    n = anni[-1]["a"] - pos[0]["a"]
+    if n < 2:
+        return None
+    cr = ((anni[-1]["utile"] / pos[0]["utile"]) ** (1 / n) - 1) * 100
+    tipo = "CRESCITA RAPIDA" if cr >= 20 else "SOLIDA" if cr >= 10 else "CRESCITA LENTA"
+    return {"tipo": tipo, "crescita": round(cr, 1), "anni": n,
+            "motivo": f"utile {'+' if cr >= 0 else ''}{cr:.0f}% l'anno in {n} anni".replace(".", ",")}
+
+
+def copertura_dividendo(fatti, fini, utile, settore=None):
+    """v7.51 Quanto dell'utile e del flusso di cassa libero se ne va in dividendi, anno per anno (ultimi anni fiscali).
+    -> {"anni": [{a, pagati, pu (% dell'utile), pf (% del flusso libero)}], "giudizio", "motivo"} o None se l'azienda
+    non paga dividendi. Giudizio (soglie fissate prima, dal libro):
+      A RISCHIO  : dividendi > 100% del flusso di cassa libero, oppure flusso libero o utile <= 0 con dividendo pagato;
+      ATTENZIONE : payout > 75% (sull'utile o sul flusso libero) o salito di oltre 25 punti rispetto ai 2 anni prima;
+      COPERTO    : tutto il resto.
+    Banche e assicurazioni ("fin"): il flusso di cassa libero non e' significativo, conta solo l'utile.
+    Immobiliare ("imm", REIT): per legge distribuiscono quasi tutto e l'utile contabile e' basso (ammortamenti):
+    si usa solo il flusso di cassa libero."""
+    div = _annuali(fatti, DIVIDENDI)
+    fco, capex = _annuali(fatti, FCO), _annuali(fatti, CAPEX)
+    righe = []
+    for f in fini:
+        d = div.get(f)
+        if not d or d <= 0:
+            continue
+        u = utile.get(f)
+        fl = fco.get(f) - (capex.get(f) or 0) if fco.get(f) is not None else None
+        righe.append({"a": int(f[:4]), "pagati": d,
+                      "pu": round(d / u * 100) if u and u > 0 else None,
+                      "pf": round(d / fl * 100) if fl and fl > 0 else None, "u_neg": bool(u is not None and u <= 0),
+                      "f_neg": bool(fl is not None and fl <= 0)})
+    if not righe:
+        return None
+    ult = righe[-1]
+    usa_u, usa_f = settore != "imm", settore != "fin"
+    pay = [x for x in ((ult["pu"] if usa_u else None), (ult["pf"] if usa_f else None)) if x is not None]
+    prima = [r for r in righe[-3:-1]]
+    def media(k):
+        v = [r[k] for r in prima if r[k] is not None]
+        return sum(v) / len(v) if v else None
+    salto = max([ult[k] - media(k) for k in (("pu",) if not usa_f else ("pf",) if not usa_u else ("pu", "pf"))
+                 if ult[k] is not None and media(k) is not None] or [0])
+    if (usa_f and (ult["f_neg"] or (ult["pf"] or 0) > 100)) or (usa_u and ult["u_neg"]):
+        g, m = "A RISCHIO", ("dividendo pagato con flusso di cassa libero negativo" if usa_f and ult["f_neg"]
+                             else "dividendo pagato in un anno in perdita" if usa_u and ult["u_neg"]
+                             else f"dividendi pari al {ult['pf']}% del flusso di cassa libero")
+    elif pay and max(pay) > PAYOUT_ALTO:
+        g, m = "ATTENZIONE", f"payout del {max(pay)}%: poco margine se gli utili calano"
+    elif salto >= SALTO:
+        g, m = "ATTENZIONE", f"payout salito di {round(salto)} punti rispetto ai 2 anni prima"
+    elif pay:
+        g, m = "COPERTO", f"payout del {max(pay)}%: margine per mantenere e far crescere il dividendo"
+    else:
+        return {"anni": righe, "giudizio": None, "motivo": "dati di utile o flusso di cassa non disponibili"}
+    return {"anni": righe, "giudizio": g, "motivo": m}
 
 
 def _giudizio(anni, perdite, settore):
@@ -178,7 +275,7 @@ def titoli_usa(el=None):
 
 
 # --------------------------------------------------------------------------- trimestrali (v6.54)
-VERSIONE_TRIM = 2               # v7.15: concetto SEC piu' recente per i trimestri (vedi _periodi)
+VERSIONE_TRIM = 3               # v7.51: copertura del dividendo (rifare tutti i file). v7.15: concetto SEC piu' recente per i trimestri (vedi _periodi)
 
 
 def _periodi(fatti, concetti, unita="USD"):
