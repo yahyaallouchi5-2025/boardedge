@@ -1,0 +1,26 @@
+# studio-vix.yml - STUDIO: il VIX contro la volatilita' realizzata dell'S&P 500 (premio, previsione, rendimenti).
+# Si avvia a mano; risultato nel log e nell'artifact. Chiavi solo dai Secrets.
+name: Studio VIX
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Studio
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+          FRED_API_KEY: ${{ secrets.FRED_API_KEY }}
+        run: python studi/studio_vix.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: vix
+          path: studio_out/
