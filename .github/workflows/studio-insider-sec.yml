@@ -1,0 +1,26 @@
+# studio-insider-sec.yml - STUDIO insider con gli archivi trimestrali SEC (acquisti) e i prezzi EODHD.
+# Si avvia a mano; risultato nel log e nell'artifact. Chiavi e contatto solo dai Secrets.
+name: Studio insider SEC
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 100
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Studio
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+          SEC_CONTATTO: ${{ secrets.SEC_CONTATTO }}
+        run: python studi/studio_insider.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: insider
+          path: studio_out/
