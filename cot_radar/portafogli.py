@@ -1747,6 +1747,17 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
         scambi_cp = []                               # v7.51 capitale scambiato a ogni rotazione (tabella rischio e costi)
         cp = simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"}, fx=fxp, tassi=tep, scambi=scambi_cp)
         c_sel = simula_prudente(g, piani, giorni[0], fx=fxp, tassi=tep)
+        # v7.58 TRASPARENZA: quanto del rendimento dipende dal Bitcoin. Stessa storia con la quota BTC lasciata in
+        #   liquidita' (studio del 12/11/2026: nell'Aggressivo il 5% di Bitcoin vale circa 3 punti l'anno).
+        senza_btc = None
+        if "BTC" in prof["base"]:
+            piani_nb = {}
+            for i_, pp in piani.items():
+                q = {k: w for k, w in pp.items() if k != "BTC"}
+                q["CASH"] = round(q.get("CASH", 0) + pp.get("BTC", 0), 4)
+                piani_nb[i_] = q
+            st_nb = statistiche(simula_prudente(g, piani_nb, giorni[0], sostituisci={"AZ": "SPY"}, fx=fxp, tassi=tep), liq)
+            senza_btc = {"cagr": st_nb.get("cagr"), "maxdd": st_nb.get("maxdd"), "quota": round(prof["base"]["BTC"] * (1 - prof.get("az", 0)) * 100, 1)} if st_nb else None
         # v7.6 versione compatta: stesso motore con il Nasdaq unito all'S&P 500 (solo se il profilo lo ha)
         compatto = None
         if any(k in prof["base"] for k in UNISCI_COMPATTO):
@@ -1849,6 +1860,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
             "rischio_ext": rischio_esteso(cp, liq, scambi_cp),     # v7.51 tabella "Rischio e costi a confronto"
             "stat_sel": {"totale": statistiche(c_sel, liq), "oos": statistiche(_tagli(c_sel, dal=OOS_DAL), liq)},
             "stat_usd": {"totale": statistiche(c_usd), "oos": statistiche(_tagli(c_usd, dal=OOS_DAL))},
+            **({"senza_btc": senza_btc} if senza_btc else {}),        # v7.58
             "curva": _settimanale(cp), "live_dal": live[0][0] if live else None,
             "sim": simulatore(cp, tep if eur_ok else {}),       # v6.100: simulatore (finestre mobili, leva, prelievo)
             "crisi": crisi_profilo(g, piani, giorni[0], fxp, tep),   # v7.4: stress test sulle crisi storiche
