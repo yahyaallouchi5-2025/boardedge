@@ -1378,6 +1378,73 @@ def quote_rischio(g, pesi, fx=None, giorni=RISCHIO_GIORNI, fino=None):
     return {"vol": round(math.sqrt(var * 252) * 100, 1), "giorni": n, "quote": quote}
 
 
+# --- v7.57 PERDITA DEL MESE (1 volta su 20) e RISCHIO DAL CAMBIO -----------------------------------------------
+# Studio del 12/11/2026 (studi/studio_var_cambio.py), a ogni rotazione dal 2006, sviluppo fino al 2015 e verifica dopo:
+#   - soglia "normale" (volatilita' x 1,645 x radice di 21, semplice o EWMA): superata solo nello 0-2,5% dei mesi
+#     invece del 5% -> troppo pessimista, scartata;
+#   - soglia STORICA (5o percentile dei rendimenti a 21 giorni degli ultimi 3 anni, con i pesi di oggi): superata nel
+#     3-9% dei mesi, mai respinta dalla prova binomiale -> adottata.
+SOGLIA_GIORNI = 756             # 3 anni di borsa: finestra della soglia storica
+MESE_BORSA = 21                 # sedute in un mese
+
+
+def _proforma(g, pesi, fx, i0, fino):
+    """Rendimenti giornalieri che i pesi di OGGI avrebbero avuto dal giorno i0 a `fino` (compresi), in EURO se c'e'
+    il cambio fx ({data: dollari per 1 euro}). Restituisce (totale, sola parte dovuta al cambio).
+    Liquidita' = 0 (e' in euro); "Azioni scelte" = S&P 500, come in quote_rischio."""
+    cambio, ult = [], None
+    for j in range(i0 - 1, fino + 1):
+        ult = (fx or {}).get(g.date[j], ult)
+        cambio.append(ult)
+    righe = [(w, _ticker("SP500" if k == "AZ" else k)) for k, w in pesi.items() if k != "CASH" and w > 0]
+    tot, parte = [], []
+    for n, j in enumerate(range(i0, fino + 1)):
+        f = cambio[n] / cambio[n + 1] - 1 if cambio[n] and cambio[n + 1] else 0.0     # dollaro contro euro, quel giorno
+        a = b = 0.0
+        for w, t in righe:
+            a += w * ((1 + g.rend(t, j)) * (1 + f) - 1)
+            b += w * f
+        tot.append(a)
+        parte.append(b)
+    return tot, parte
+
+
+def perdita_mese(g, pesi, fx=None, fino=None):
+    """Perdita in % (numero negativo) che il portafoglio di oggi supera in circa 1 mese su 20: 5o percentile dei
+    rendimenti a 21 giorni di borsa (finestre sovrapposte) negli ultimi 3 anni, in euro. None se i dati mancano."""
+    fino = len(g.date) - 1 if fino is None else fino
+    i0 = max(1, fino - SOGLIA_GIORNI + 1)
+    if fino - i0 < 250:
+        return None
+    r, _ = _proforma(g, pesi, fx, i0, fino)
+    if not any(r):
+        return 0.0                                       # solo liquidita': nessuna oscillazione
+    cum = [0.0]
+    for x in r:
+        cum.append(cum[-1] + math.log(1 + x))
+    mesi = sorted(math.exp(cum[k + MESE_BORSA] - cum[k]) - 1 for k in range(len(r) - MESE_BORSA + 1))
+    return round(min(0.0, mesi[int(0.05 * len(mesi))]) * 100, 1)
+
+
+def quota_cambio(g, pesi, fx, giorni=RISCHIO_GIORNI, fino=None):
+    """Quota in % del rischio del portafoglio che viene dal cambio euro/dollaro (covarianza tra la parte cambio e il
+    portafoglio, divisa per la varianza del portafoglio). Puo' essere negativa: il dollaro ha attenuato le
+    oscillazioni. None senza cambio o senza dati."""
+    if not fx:
+        return None
+    fino = len(g.date) - 1 if fino is None else fino
+    i0 = max(1, fino - giorni + 1)
+    if fino - i0 < 60:
+        return None
+    r, f = _proforma(g, pesi, fx, i0, fino)
+    n = len(r)
+    mr, mf = sum(r) / n, sum(f) / n
+    var = sum((x - mr) ** 2 for x in r)
+    if var <= 0:
+        return None
+    return round(sum((y - mf) * (x - mr) for x, y in zip(r, f)) / var * 100)
+
+
 def dettaglio_mesi(g, piani, giorni, curva, sat=None, n=12):
     """ULTIMI n MESI CHIUSI di un profilo (v6.52), per la sezione "Ultime rotazioni":
     per ogni mese (da una rotazione all'ultimo giorno di borsa prima della successiva) il risultato netto e il
@@ -1749,6 +1816,13 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
             b = set(k for k in p0 if k != "CASH")
             cambi.append({"data": d1, "entrati": sorted(a - b), "usciti": sorted(b - a), "tenuti": sorted(a & b),
                           "liquidita": round(p1.get("CASH", 0) * 100), **({"attesa": True} if d1 == attesa else {})})
+        # v7.57: perdita del mese (1 su 20) e quota di rischio dal cambio, di oggi e in media sullo storico del profilo
+        rq = quote_rischio(g, pesi, fxp)
+        if rq:
+            rq["mese95"] = perdita_mese(g, pesi, fxp)
+            rq["cambio"] = quota_cambio(g, pesi, fxp)
+            passate = [q for q in (quota_cambio(g, pp, fxp, fino=g.pos[d] - 1) for d, pp in storia if d in g.pos) if q is not None]
+            rq["cambio_media"] = round(sum(passate) / len(passate)) if len(passate) >= 24 else None
         out_prof.append({
             "id": prof["id"], "nome": prof["nome"], "descr": prof["descr"], "dd_rif": prof["dd"],
             "rischio": prof.get("rischio"),
@@ -1758,7 +1832,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                                                           if prof.get("az") else []),
             "ammessi": [{"k": k, "nome": TUTTI[k][2]} for k in prof["ammessi"]],
             "composizione": comp, "esclusi": esclusi,
-            "rischio_quote": quote_rischio(g, pesi, fxp),             # v7.41 quanto rischio porta ogni mercato
+            "rischio_quote": rq,                                      # v7.41 quanto rischio porta ogni mercato (+ v7.57)
             "mese": rischio_mese(g, pesi, mese_rot[5:7], mese_rot),
             "corrente": {"mese": MESI[int(mese_rot[5:7]) - 1], "dal": attesa or g.date[ultimo_rib], "al": g.date[-1],
                          "gg": 0 if attesa else len(g.date) - ultimo_rib, "tot": giorni_feriali(mese_rot),

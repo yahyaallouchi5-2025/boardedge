@@ -27,6 +27,7 @@ from .log import log
 from .stagionalita import prezzo_coppia
 
 ANNO = 252                 # sedute in un anno: per "annualizzare" la volatilita'
+LAMBDA = 0.94             # v7.57 peso del passato nella stima EWMA (ieri conta il 6%)
 MOBILE = 20                # finestra del regime attuale: ultime 20 sedute (4 settimane)
 CONFRONTO = 1260           # il regime si confronta con gli ultimi 5 anni (1260 sedute)
 SOGLIE = (33, 67)          # sotto il 33 percentile = calma, sopra il 67 = agitata
@@ -122,6 +123,13 @@ def profilo(pts):
     for d, x in r:
         per_a.setdefault(d[:4], []).append(x)
     anni = {a: sd(v) for a, v in sorted(per_a.items()) if len(v) >= MIN_ANNO}
+    # --- v7.57 stima per il prossimo mese: EWMA (lambda 0,94, RiskMetrics). Studio del 12/11/2026: sbaglia la
+    #     volatilita' del mese dopo meno della deviazione standard semplice (errore 26,6% contro 28,7% nello sviluppo,
+    #     30,6% contro 33,2% nella verifica). Solo informativa: il regime resta quello di sempre.
+    ew = r[0][1] ** 2
+    for _, x in r[1:]:
+        ew = LAMBDA * ew + (1 - LAMBDA) * x * x
+    prev = round(math.sqrt(ew * ANNO) * 100, 1)
     # --- regime di adesso
     v20 = vol_mobile(pts)
     reg = regime(v20, len(pts) - 1)
@@ -131,7 +139,7 @@ def profilo(pts):
         "dal": pts[0][0], "al": pts[-1][0], "prezzo": round(pts[-1][1], 6),   # ultimo prezzo: per i pip/punti
         "giorni": giorni, "settimane": settimane, "mesi": mesi, "anni": anni,
         "ann_storia": sd([x for _, x in r]), "ann_anno": sd([x for _, x in ultimo_anno]),
-        "regime": {"nome": reg[0], "pct": reg[1], "vol": reg[2]} if reg else None,
+        "regime": {"nome": reg[0], "pct": reg[1], "vol": reg[2], "prev": prev} if reg else None,
         "oggi": {"data": oggi[0], "mossa": round(abs(oggi[1]) * 100, 3),
                  "media_giorno": giorni[w]["storia"] if w < 5 else None},
     }
