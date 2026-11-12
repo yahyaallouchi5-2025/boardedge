@@ -1,0 +1,24 @@
+# studio-qualita.yml - STUDIO: punteggio qualita' delle aziende contro i rendimenti a 12 mesi. Avvio a mano.
+name: Studio qualita
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Studio
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: python studi/studio_qualita.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: qualita
+          path: studio_out/
