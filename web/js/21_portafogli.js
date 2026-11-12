@@ -497,6 +497,33 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  //     con rischio (volatilita' annua e drawdown sul periodo), mesi negativi, peggior mese, correlazione e la spiegazione
  //     automatica di ogni mese negativo (il mercato che ha pesato di piu'). Interruttore: profilo in evidenza.
  let cfrSel=null;
+ // --- v7.51 RISCHIO E COSTI A CONFRONTO: i 3 profili affiancati sullo storico intero (euro, acquisto prudente).
+ //     Dati: p.stat.totale (rendimento, drawdown, recupero, Calmar) e p.rischio_ext (Sortino, peggiori 12 mesi,
+ //     asimmetria, capitale scambiato e costo annuo: cot_radar/portafogli.py, rischio_esteso). In verde il migliore
+ //     di ogni riga. Spiegazioni nel fumetto (i), testi brevi in pagina.
+ function rischioCfr(){const PR=P.profili;if(!PR.some(x=>x.rischio_ext))return "";
+  // v7.56 colonna di riferimento "S&P 500" (tutto in azioni USA, comprato e tenuto): non partecipa al "migliore"
+  const SP=P.sp500&&P.sp500.rischio_ext?P.sp500:null;
+  const evid=cfrSel||sel,T=x=>x.stat.totale||{},E=x=>x.rischio_ext||{};
+  // righe: [etichetta, valore numerico, testo, "alto"/"basso" = quale e' migliore, nota breve]
+  const R=[["Rendimento annuo",x=>T(x).cagr,x=>pc(T(x).cagr),"alto","media dal "+(T(PR[0]).dal||"").slice(0,4)],
+   ["Max drawdown",x=>T(x).maxdd,x=>pc(T(x).maxdd),"alto","dal picco al minimo"],
+   ["Mesi per recuperare",x=>T(x).recupero_mesi,x=>T(x).recupero_mesi??"in corso","basso","dal drawdown peggiore"],
+   ["Peggiori 12 mesi",x=>E(x).peggiori12&&E(x).peggiori12[0],x=>E(x).peggiori12?`<span title="da fine ${E(x).peggiori12[1]} a fine ${E(x).peggiori12[2]}">${pc(E(x).peggiori12[0])}</span><small class="prper">${E(x).peggiori12[2].slice(0,4)}</small>`:"n/d","alto","anno peggiore, in qualsiasi mese"],
+   ["Drawdown in 1 anno su 10",x=>E(x).dd_1su10,x=>E(x).dd_1su10!=null?pc(E(x).dd_1su10):"n/d","alto","nei 12 mesi, anno brutto"],
+   ["Media dei mesi peggiori",x=>E(x).cvar_mese,x=>E(x).cvar_mese!=null?pc(E(x).cvar_mese):"n/d","alto","il 5% dei mesi peggiori"],
+   ["Sortino",x=>E(x).sortino,x=>E(x).sortino!=null?fx(E(x).sortino,2):"n/d","alto","oltre la liquidit&agrave; / ribassi"],
+   ["Calmar",x=>T(x).calmar,x=>T(x).calmar!=null?fx(T(x).calmar,2):"n/d","alto","rendimento / drawdown"],
+   ["Asimmetria",x=>E(x).asimmetria,x=>E(x).asimmetria!=null?(E(x).asimmetria>0?"+":"")+fx(E(x).asimmetria,2):"n/d","alto","sotto zero = crolli rari"],
+   ["Capitale scambiato l'anno",x=>E(x).scambiato_anno,x=>E(x).scambiato_anno!=null?E(x).scambiato_anno+"%":"n/d","basso","somma delle rotazioni"],
+   ["Costo annuo stimato",x=>E(x).costo_anno,x=>E(x).costo_anno!=null?(E(x).costo_anno?"&minus;"+fx(E(x).costo_anno,2)+"%":"0%"):"n/d","basso","0,10% sullo scambiato"]];
+  const riga=([nome,val,txt,meglio,nota])=>{const v=PR.map(val),ok=v.filter(z=>z!=null),
+    top=ok.length>1?(meglio=="alto"?Math.max(...ok):Math.min(...ok)):null;
+   return `<tr><td>${nome}</td>${PR.map((x,i)=>`<td class="num${x.id==evid?" ev":""}${v[i]!=null&&v[i]===top?" prbest":""}">${txt(x)}</td>`).join("")}${SP?`<td class="num prsp">${txt(SP)}</td>`:""}<td class="pcfw small">${nota}</td></tr>`;};
+  return `<div class="card pcfr prcfr">
+   <div class="tablewrap"><table class="compatta pcft"><tr><th>Misura</th>${PR.map(x=>`<th class="num${x.id==evid?" ev":""}"><span class="pcl">${x.nome}</span><span class="pcs">${x.nome.slice(0,4)}.</span></th>`).join("")}${SP?`<th class="num prsp" title="Tutto in S&amp;P 500, comprato una volta e tenuto"><span class="pcl">S&amp;P 500</span><span class="pcs">S&amp;P</span></th>`:""}<th class="pcfw"></th></tr>
+    ${R.map(riga).join("")}</table></div>
+   <p class="small pcfnota">In verde il migliore dei 3 profili.${SP?" S&amp;P 500 = tutto in azioni USA, comprato e tenuto: il riferimento da battere.":""} Storico in euro dal ${esc((T(PR[0]).dal||"").slice(0,4))}, acquisto prudente, costi inclusi.</p></div>`;}
  function confronto(){const PR=P.profili,mesi=[...new Set(PR.flatMap(p=>(p.mesi_chiusi||[]).map(m=>m.mese)))].sort().reverse();
   if(!mesi.length)return "";
   const evid=cfrSel||sel,M=MESI.map(x=>x.slice(0,3));
@@ -846,6 +873,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${tabella(p)}
    ${simulatoreHTML(p)}
    ${crisiHTML(p)}
+   <details class="psez" open><summary><h3 class="vft">Rischio e costi a confronto</h3><details class="info prinfo" onclick="event.stopPropagation()"><summary title="Come si leggono" aria-label="Come si leggono">i</summary><div><b>S&amp;P 500</b>: la scelta pi&ugrave; semplice, un solo ETF comprato e tenuto, misurata allo stesso modo (in euro): un profilo ha senso solo se fa meglio su rendimento <i>e</i> rischio. <b>Max drawdown</b>: la perdita pi&ugrave; grande dal massimo al minimo. <b>Mesi per recuperare</b>: dal massimo prima del drawdown al ritorno sopra quel livello. <b>Peggiori 12 mesi</b>: il risultato pi&ugrave; basso su un anno qualsiasi, non solo da gennaio a dicembre. <b>Drawdown in 1 anno su 10</b>: partendo da un mese qualsiasi, la perdita massima nei 12 mesi successivi &egrave; stata almeno questa in un caso su dieci: un anno &laquo;brutto&raquo; ma non il peggiore. <b>Media dei mesi peggiori</b> (CVaR): la perdita media nel 5% dei mesi peggiori, quanto fa male un mese davvero cattivo. <b>Sortino</b>: rendimento oltre la liquidit&agrave; diviso le sole oscillazioni negative (sopra 1 &egrave; buono): a differenza della volatilit&agrave; non penalizza i rialzi. <b>Calmar</b>: rendimento annuo diviso il drawdown massimo. <b>Asimmetria</b>: sotto zero = guadagni piccoli e frequenti ma perdite rare e grandi, il rischio che volatilit&agrave; e Sharpe sottovalutano; sopra zero = il contrario. <b>Capitale scambiato</b>: quanto del portafoglio si compra e vende in un anno con le rotazioni. <b>Costo annuo</b>: lo scambiato per il costo del modello (0,10%); con il tuo broker pu&ograve; essere diverso. Numeri storici simulati: non garantiscono risultati futuri.</div></details><span class="small">i 3 profili affiancati</span></summary>${rischioCfr()}</details>
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
    ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <span class="pbprof">${esc(p.nome)}</span><details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div><b>Entrati</b>: mercati comprati nella rotazione. <b>Usciti</b>: venduti. <b>Restano</b>: tenuti dal mese prima (con i pesi aggiornati). La riga in alto &egrave; la rotazione in vigore, con il risultato provvisorio del mese; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato. Cambiando profilo cambiano mercati, pesi e liquidit&agrave;.<br><br><b>Live</b>: mese seguito dal vivo (da novembre 2026). <b>Simulato</b>: mese precedente, calcolato dal modello con le stesse regole e i prezzi reali di quel mese, senza essere stato seguito in tempo reale.</div></details></h3>${rotazioni(p)}</div>`:""}`;
   {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito);}
