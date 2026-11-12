@@ -158,3 +158,53 @@ class StoriaBilanci(unittest.TestCase):
             self.assertEqual((r["nuove"], r["mancanti"]), (0, 2))
         finally:
             shutil.rmtree(d)
+
+
+# --------------------------------------------------------------------------- v7.51 copertura del dividendo
+def con_dividendi(utili, dividendi, fco, capex):
+    a = azienda(utili)
+    anni = range(2020, 2020 + len(utili))
+    g = a["facts"]["us-gaap"]
+    g["PaymentsOfDividendsCommonStock"] = {"units": {"USD": [fatto(x, d) for x, d in zip(anni, dividendi) if d]}}
+    g["NetCashProvidedByUsedInOperatingActivities"] = {"units": {"USD": [fatto(x, v) for x, v in zip(anni, fco)]}}
+    g["PaymentsToAcquirePropertyPlantAndEquipment"] = {"units": {"USD": [fatto(x, v) for x, v in zip(anni, capex)]}}
+    return a
+
+
+class CoperturaDividendo(unittest.TestCase):
+    def test_coperto(self):
+        s = F.estrai(con_dividendi([100] * 5, [40] * 5, [150] * 5, [30] * 5))
+        d = s["dividendo"]
+        self.assertEqual(d["giudizio"], "COPERTO")
+        self.assertEqual(d["anni"][-1]["pu"], 40)                # 40 / 100
+        self.assertEqual(d["anni"][-1]["pf"], 33)                # 40 / (150 - 30)
+
+    def test_payout_alto(self):
+        s = F.estrai(con_dividendi([100] * 5, [80] * 5, [200] * 5, [20] * 5))
+        self.assertEqual(s["dividendo"]["giudizio"], "ATTENZIONE")
+
+    def test_salto(self):
+        s = F.estrai(con_dividendi([100] * 5, [30, 30, 30, 30, 60], [200] * 5, [20] * 5))
+        self.assertEqual(s["dividendo"]["giudizio"], "ATTENZIONE")
+        self.assertIn("salito", s["dividendo"]["motivo"])
+
+    def test_a_rischio(self):
+        s = F.estrai(con_dividendi([100] * 5, [50] * 5, [100, 100, 100, 100, 40], [20] * 5))
+        self.assertEqual(s["dividendo"]["giudizio"], "A RISCHIO")   # 50 > flusso libero 20
+
+    def test_niente_dividendo(self):
+        self.assertNotIn("dividendo", F.estrai(azienda([50, 60, 70, 80, 90])))
+
+    def test_banca_solo_utile(self):
+        s = F.estrai(con_dividendi([100] * 5, [40] * 5, [-500] * 5, [0] * 5), "fin")
+        self.assertEqual(s["dividendo"]["giudizio"], "COPERTO")      # flusso di cassa negativo ignorato per le banche
+
+
+class TipoLynch(unittest.TestCase):
+    def test_tipi(self):
+        self.assertEqual(F.estrai(azienda([100, 125, 156, 195, 244]))["lynch"]["tipo"], "CRESCITA RAPIDA")
+        self.assertEqual(F.estrai(azienda([100, 112, 125, 140, 157]))["lynch"]["tipo"], "SOLIDA")
+        self.assertEqual(F.estrai(azienda([100, 102, 104, 106, 108]))["lynch"]["tipo"], "CRESCITA LENTA")
+        self.assertEqual(F.estrai(azienda([100, 110, -50, 20, 90]))["lynch"]["tipo"], "IN RIPRESA")
+        self.assertEqual(F.estrai(azienda([100, 110, 120, 130, 140]), "ener")["lynch"]["tipo"], "CICLICA")
+        self.assertNotIn("lynch", F.estrai(azienda([100, 110, 120, 130, -5])))

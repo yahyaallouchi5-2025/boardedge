@@ -35,5 +35,18 @@ class Riassunto(unittest.TestCase):
         self.assertIsNone(DV.riassunto(None, date(2026, 11, 9)))
 
 
+    def test_anni_di_aumenti(self):
+        # rata trimestrale +0,01 ogni anno dal 2000 al 2025, ferma nel 1999 -> 26 anni di aumenti (aristocratico)
+        js = [{"date": f"{a}-{m:02d}-07", "value": round(0.10 + 0.01 * max(0, a - 1999), 2), "currency": "USD"}
+              for a in range(1998, 2026) for m in (2, 5, 8, 11)]
+        js += [{"date": "2023-12-20", "value": 2.0, "currency": "USD"}]   # straordinario: non deve falsare il conto
+        r = DV.riassunto(js, date(2026, 11, 9))
+        self.assertEqual(r["aumenti"], 26)
+        # un anno senza aumento interrompe la serie
+        js2 = [x for x in js if not x["date"].startswith("2025")] + \
+              [{"date": f"2025-{m:02d}-07", "value": 0.34, "currency": "USD"} for m in (2, 5, 8, 11)]
+        self.assertEqual(DV.riassunto(js2, date(2026, 11, 9))["aumenti"], 0)
+
+
 if __name__ == "__main__":
     unittest.main()

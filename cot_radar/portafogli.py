@@ -588,7 +588,7 @@ def _ribilancia(valore, quote, nuovi):
     return valore, {k: valore * w for k, w in nuovi.items()}
 
 
-def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None, tassi=None, traccia=None):
+def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None, tassi=None, traccia=None, scambi=None):
     """v6.87 - IL NUMERO ONESTO DEL PORTAFOGLIO (in pagina, PDF, confronti):
       - ACQUISTO PRUDENTE: decisione sulla chiusura del giorno prima, acquisto alla CHIUSURA del giorno di rotazione
         (abbiamo solo prezzi di chiusura). Il movimento del giorno di rotazione resta al portafoglio VECCHIO: e' un
@@ -624,6 +624,10 @@ def simula_prudente(g, pianificati, dal_i, al_i=None, sostituisci=None, fx=None,
             quote = nuove
             valore = sum(quote.values())
         if i in pianificati:                       # acquisto alla chiusura del giorno di rotazione
+            if scambi is not None:                 # v7.51 capitale scambiato (quota del portafoglio, 1 = 100%)
+                tot = sum(quote.values()) or 1.0
+                vec, nuo = {k: v / tot for k, v in quote.items()}, pianificati[i]
+                scambi.append((g.date[i], sum(abs(nuo.get(k, 0) - vec.get(k, 0)) for k in set(nuo) | set(vec)) if quote else None))
             valore, quote = _ribilancia(valore, quote, pianificati[i])
         curva.append((g.date[i], valore))
     return curva
@@ -876,6 +880,72 @@ def robustezza(g, prof, sc, giorni, fx=None, tassi=None, liq=None):
     finally:
         SMA = base
     return out
+
+
+def rischio_esteso(curva, liq=None, scambi=None):
+    """v7.51 RISCHIO E COSTI A CONFRONTO (tabella dei 3 profili). Idee dai libri studiati con Ya (11/2026):
+      - Gregoriou, "Hedge Funds: Insights in Performance": volatilita' e Sharpe sottovalutano il rischio quando le
+        perdite sono rare ma grandi (asimmetria negativa) -> SORTINO e ASIMMETRIA dei rendimenti mensili;
+      - Barber-Odean / Ferri: le operazioni costano -> CAPITALE SCAMBIATO l'anno e COSTO ANNUO stimato.
+    curva = [(data, valore)] giornaliera (euro, acquisto prudente); liq = curva della liquidita'; scambi = [(data, quota
+    scambiata o None per l'acquisto iniziale)] da simula_prudente. Tutto descrittivo: nessuna regola cambia."""
+    if len(curva) < 300:
+        return None
+    v = [x[1] for x in curva]
+    anni = (date.fromisoformat(curva[-1][0]) - date.fromisoformat(curva[0][0])).days / 365.25
+    cagr = (v[-1] / v[0]) ** (1 / anni) - 1
+    liq_cagr = 0.0
+    if liq:
+        lq = [x for d, x in liq if curva[0][0] <= d <= curva[-1][0]]
+        if len(lq) > 1:
+            liq_cagr = (lq[-1] / lq[0]) ** (1 / anni) - 1
+    # SORTINO: rendimento annuo oltre la liquidita' diviso la volatilita' dei soli giorni negativi (annualizzata)
+    r = [v[i] / v[i - 1] - 1 for i in range(1, len(v))]
+    giu = math.sqrt(sum(x * x for x in r if x < 0) / len(r)) * math.sqrt(252)
+    sortino = round((cagr - liq_cagr) / giu, 2) if giu else None
+    # rendimenti mensili (fine mese su fine mese)
+    fm = {}
+    for d, x in curva:
+        fm[d[:7]] = (d, x)
+    mesi = sorted(fm)
+    rm = [fm[mesi[i]][1] / fm[mesi[i - 1]][1] - 1 for i in range(1, len(mesi))]
+    # PEGGIORI 12 MESI: rendimento piu' basso su 12 mesi consecutivi (fine mese su fine mese)
+    peg12 = None
+    for i in range(12, len(mesi)):
+        x = fm[mesi[i]][1] / fm[mesi[i - 12]][1] - 1
+        if peg12 is None or x < peg12[0]:
+            peg12 = (x, mesi[i - 12], mesi[i])
+    # ASIMMETRIA (skewness) dei rendimenti mensili: negativa = perdite rare ma piu' grandi dei guadagni
+    n = len(rm)
+    mu = sum(rm) / n
+    sd = math.sqrt(sum((x - mu) ** 2 for x in rm) / n) or 1e-12
+    asim = sum((x - mu) ** 3 for x in rm) / n / sd ** 3
+    # v7.55 CVaR: perdita MEDIA nel 5% dei mesi peggiori (le code della distribuzione, Gregoriou cap. 22 e 24)
+    peggiori = sorted(rm)[:max(1, round(len(rm) * 0.05))]
+    cvar = sum(peggiori) / len(peggiori)
+    # v7.55 DRAWDOWN IN 1 ANNO SU 10: per ogni inizio mese, drawdown massimo nei 12 mesi successivi (252 sedute);
+    # il 90 percentile dice quanto si e' perso, almeno, in un anno "brutto" su dieci
+    dd12 = []
+    inizi = sorted({i for i, (d, _) in enumerate(curva) if i == 0 or d[:7] != curva[i - 1][0][:7]})
+    for i0 in inizi:
+        if i0 + 252 > len(v):
+            break
+        picco, peg = v[i0], 0.0
+        for x in v[i0:i0 + 252]:
+            picco = max(picco, x)
+            peg = min(peg, x / picco - 1)
+        dd12.append(peg)
+    dd90 = sorted(dd12)[int(len(dd12) * 0.1)] if len(dd12) >= 20 else None
+    # CAPITALE SCAMBIATO l'anno (escluso l'acquisto iniziale) e COSTO ANNUO con il costo del modello (COSTO)
+    sc = [q for _, q in (scambi or []) if q is not None]
+    giro = sum(sc) / anni if sc else (0.0 if scambi else None)       # solo acquisto iniziale: niente scambi
+    rot = sum(1 for q in sc if q > 0.005) / anni if sc else (0.0 if scambi else None)
+    return {"sortino": sortino, "asimmetria": round(asim, 2), "cvar_mese": round(cvar * 100, 1),
+            "dd_1su10": round(dd90 * 100, 1) if dd90 is not None else None,
+            "peggiori12": [round(peg12[0] * 100, 1), peg12[1], peg12[2]] if peg12 else None,
+            "scambiato_anno": round(giro * 100) if giro is not None else None,
+            "rotazioni_anno": round(rot, 1) if rot is not None else None,
+            "costo_anno": round(giro * COSTO * 100, 2) if giro is not None else None}
 
 
 def _dd_rec(curva):
@@ -1575,6 +1645,11 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
     fxp, tep = (fx, te) if eur_ok else (None, None)
     liq = indice_liquidita(g, te, giorni[0]) if eur_ok else None
     bench_p = simula_prudente(g, {i: dict(BENCH) for i in giorni}, giorni[0], fx=fxp, tassi=tep) if "IEF" in px else None
+    # v7.56 RIFERIMENTO "tutto S&P 500" (comprato una volta e tenuto): la scelta piu' semplice, misurata come i profili
+    # (euro, acquisto prudente). Serve alla tabella "Rischio e costi a confronto": un profilo vale la pena solo se fa
+    # meglio di questo su rendimento E rischio.
+    sp_sc = []
+    sp_p = simula_prudente(g, {giorni[0]: {"SP500": 1.0}}, giorni[0], fx=fxp, tassi=tep, scambi=sp_sc)
     rotazioni = leggi_rotazioni(cartella)
     out_prof, composizioni, comp_reg = [], {}, {}
     corrente, chiusi = [], {}
@@ -1602,7 +1677,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
         curva = simula(g, piani, giorni[0])          # serie "tecnica" in dollari: mese in corso e mesi chiusi (come prima)
         # v6.87 serie per i NUMERI in pagina: euro + acquisto prudente; principale con le 5 azioni = S&P 500 (prudente),
         # "sel" con la selezione vera dei 5 titoli, "usd" = principale ma in dollari (per chi investe in dollari)
-        cp = simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"}, fx=fxp, tassi=tep)
+        scambi_cp = []                               # v7.51 capitale scambiato a ogni rotazione (tabella rischio e costi)
+        cp = simula_prudente(g, piani, giorni[0], sostituisci={"AZ": "SPY"}, fx=fxp, tassi=tep, scambi=scambi_cp)
         c_sel = simula_prudente(g, piani, giorni[0], fx=fxp, tassi=tep)
         # v7.6 versione compatta: stesso motore con il Nasdaq unito all'S&P 500 (solo se il profilo lo ha)
         compatto = None
@@ -1696,6 +1772,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                      "live": statistiche(live, liq) if live else None},
             "stat_eur": {"totale": statistiche(cp, liq), "oos": statistiche(_tagli(cp, dal=OOS_DAL), liq)}
                         if eur_ok else None,
+            "rischio_ext": rischio_esteso(cp, liq, scambi_cp),     # v7.51 tabella "Rischio e costi a confronto"
             "stat_sel": {"totale": statistiche(c_sel, liq), "oos": statistiche(_tagli(c_sel, dal=OOS_DAL), liq)},
             "stat_usd": {"totale": statistiche(c_usd), "oos": statistiche(_tagli(c_usd, dal=OOS_DAL))},
             "curva": _settimanale(cp), "live_dal": live[0][0] if live else None,
@@ -1728,6 +1805,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                   "stat": {"storico": statistiche(_tagli(bench_p, al=OOS_DAL), liq),
                            "oos": statistiche(_tagli(bench_p, dal=OOS_DAL), liq), "totale": statistiche(bench_p, liq)},
                   "stat_eur": {"totale": statistiche(bench_p, liq)} if eur_ok else None} if bench_p else None,
+        "sp500": {"nome": "S&P 500", "stat": {"totale": statistiche(sp_p, liq)},
+                  "rischio_ext": rischio_esteso(sp_p, liq, sp_sc)} if sp_p else None,
         "valuta": "EUR" if eur_ok else "USD",
         "crisi": crisi_mercati(g, giorni[0], fxp),          # v7.4: crisi storiche (S&P 500 e mappa dei mercati)
         # v7.5: tasso BCE sui depositi in vigore (la scheda dice se la liquidita' va in XEON o resta sul conto)
