@@ -12,6 +12,11 @@ VARIANTI FISSATE PRIMA DI VEDERE I RISULTATI (tutte a pari peso tra i titoli ten
   DIVISA5   al massimo 5; la quota intera divisa tra quelli che passano (2 titoli = 50% ciascuno)
   TUTTI     tutti quelli che passano i filtri, senza tetto, quota intera divisa tra loro
   TUTTI20   come TUTTI ma al massimo 20 (evita portafogli da 100 titoli impossibili da comprare)
+AGGIUNTA DICHIARATA DOPO I PRIMI RISULTATI (Ya, 12/11/2026: "il numero lo decidono i filtri, 1, 2, 3..."): i filtri
+  di oggi lasciano passare in media 78 titoli, quindi il numero non varia mai. Prova con UNA sola soglia, fissata
+  prima di vederne il risultato e mai cambiata:
+  PT90      solo i titoli con punteggio dell'Azionario >= 90 su 100, al massimo 20, quota divisa tra loro
+            (0 titoli = liquidita')
 GIUDIZIO: la quota sostituisce l'S&P 500 dei portafogli, quindi una variante ha VANTAGGIO solo se in ENTRAMBI i periodi
   (2005-2015 studio, 2016-oggi verifica) ha rendimento annuo >= S&P 500 con lo stesso filtro E drawdown massimo non
   peggiore. Si riporta anche quanti titoli passano i filtri ogni mese.
@@ -26,7 +31,8 @@ from cot_radar import satellite as S          # noqa: E402
 import studio_onesto as O                     # noqa: E402
 
 COSTO = S.COSTO
-VARIANTI = {"OGGI": (5, False), "DIVISA5": (5, True), "TUTTI": (None, True), "TUTTI20": (20, True)}
+VARIANTI = {"OGGI": (5, False), "DIVISA5": (5, True), "TUTTI": (None, True), "TUTTI20": (20, True), "PT90": (20, True)}
+SOGLIA_PT = {"PT90": 90}           # punteggio minimo (solo per la variante PT90)
 
 
 def sotto_media(sp, t):
@@ -34,7 +40,7 @@ def sotto_media(sp, t):
     return all(t - k in sp for k in range(10)) and sp[t] < sum(sp[t - k] for k in range(10)) / 10
 
 
-def serie(tt, univ_t, cand, sp, tetto, dividi, dal, al):
+def serie(tt, univ_t, cand, sp, tetto, dividi, dal, al, pt_min=None):
     """Rendimenti mensili della quota. cand[t] = candidati del mese t (gia' calcolati). Pesi: 1/5 fissi oppure quota
     divisa tra i tenuti. Costo = COSTO x somma dei pesi cambiati."""
     out, prima, conta = [], {}, []
@@ -42,7 +48,8 @@ def serie(tt, univ_t, cand, sp, tetto, dividi, dal, al):
         if sotto_media(sp, t):
             pesi = {}
         else:
-            sc = cand[t][:tetto] if tetto else cand[t]
+            sc = [x for x in cand[t] if pt_min is None or x["pt"] >= pt_min]
+            sc = sc[:tetto] if tetto else sc
             k = len(sc)
             pesi = {x["t"]: (1 / k if dividi else 1 / 5) for x in sc} if k else {}
         conta.append(len(pesi))
@@ -69,9 +76,11 @@ def main():
     cand = {t: O.scegli(O.universo_onesto(tt, t), t, None) for t in range(dal, ultimo)}
     righe = {}
     for nome, (tetto, dividi) in VARIANTI.items():
-        rs, conta = serie(tt, None, cand, sp, tetto, dividi, dal, ultimo)
+        rs, conta = serie(tt, None, cand, sp, tetto, dividi, dal, ultimo, SOGLIA_PT.get(nome))
         righe[nome] = rs
         investiti = [c for c in conta if c]
+        dist = {k: sum(1 for c in conta if (c == k if k < 5 else c >= 5)) for k in range(6)}
+        print(f"{nome:8} mesi per numero di titoli (0,1,2,3,4,5+): {list(dist.values())}")
         print(f"{nome:8} titoli tenuti: media {sum(investiti)/max(1,len(investiti)):.1f} quando investita, "
               f"min {min(investiti) if investiti else 0}, max {max(conta)}; mesi in liquidita' {conta.count(0)} su {len(conta)}")
     righe["S&P 500 + filtro"] = [(S._ym(t + 1), 0.0 if sotto_media(sp, t) else sp[t + 1] / sp[t] - 1)
@@ -79,9 +88,9 @@ def main():
     pas = [len(cand[t]) for t in cand]
     print(f"titoli che passano i filtri (prima del filtro di mercato): media {sum(pas)/len(pas):.1f}, "
           f"0 in {pas.count(0)} mesi, 1-4 in {sum(1 for p in pas if 1 <= p <= 4)}, 5+ in {sum(1 for p in pas if p >= 5)}")
-    f = lambda s: f"{s['cagr']:6.1f}%{s['vol']:6.1f}%{s['maxdd']:7.1f}%" if s else "   n/d"
+    f = lambda s: f"{s['cagr']:6.1f}%{s['vol']:6.1f}%{s['maxdd']:7.1f}%{(s['rv'] or 0):5.2f}" if s else "   n/d"
     print(f"\n{'':18}{'STUDIO 2005-2015':^22}|{'VERIFICA 2016-oggi':^22}|{'TUTTO':^22}")
-    print(f"{'':18}" + ("   CAGR    Vol   MaxDD|" * 3))
+    print(f"{'':18}" + ("   CAGR    Vol   MaxDD  R/V|" * 3))
     rif = {}
     for nome, rs in righe.items():
         st, vf, tu = (O.stat([x for x in rs if x[0] < "2016-01"]), O.stat([x for x in rs if x[0] >= "2016-01"]), O.stat(rs))
