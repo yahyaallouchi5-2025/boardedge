@@ -1,0 +1,25 @@
+# studio-valore.yml - STUDIO: bilanci forti e prezzo basso (GARP) contro i rendimenti a 12 mesi. Avvio a mano.
+name: Studio valore
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Studio
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+          SEC_CONTATTO: ${{ secrets.SEC_CONTATTO }}
+        run: python studi/studio_valore.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: valore
+          path: studio_out/
