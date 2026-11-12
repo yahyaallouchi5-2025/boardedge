@@ -21,6 +21,34 @@ try{(function(){const S=D.stag||{},el=$("stag"),M12=["Gen","Feb","Mar","Apr","Ma
   ${v.map((y,i)=>`<circle cx="${xs(i)}" cy="${sc(y)}" r="3.5" fill="${col}"/><text x="${xs(i)}" y="${H-4}" text-anchor="middle" font-size="11" fill="var(--mute)">${i?"+"+i+"s":"oggi"}</text>`).join("")}
   <rect x="${xf+9}" y="${yf-11}" width="${txt.length*7.4+12}" height="22" rx="11" fill="var(--card2)" stroke="${col}" stroke-opacity=".55"/>
   <text x="${xf+15}" y="${yf+4.5}" font-size="12.5" font-weight="700" fill="${col}">${txt}</text></svg>`;}
+ // v7.50 ORARIO ESATTO DELLA GIORNATA in ora di Roma: ogni "giorno" va da una chiusura ufficiale alla successiva.
+ //       Orari ufficiali delle borse (CME "Daily Settlement Time Details", ICE "Settlement Window", FRED per Coinbase),
+ //       convertiti in ora di Roma per la data di oggi: ora legale USA e italiana gestite da sole (Intl).
+ const CHIUSURA={SP500:["America/New_York","16:00","chiusura di Wall Street"],NASDAQ:["America/New_York","16:00","chiusura di Wall Street"],
+  DOW:["America/New_York","16:00","chiusura di Wall Street"],RUSSELL:["America/New_York","16:00","chiusura di Wall Street (ETF IWM)"],
+  EAFE:["America/New_York","16:00","chiusura di Wall Street (ETF EFA)"],EM:["America/New_York","16:00","chiusura di Wall Street (ETF EEM)"],
+  GOLD:["America/New_York","16:00","chiusura di Wall Street (ETF GLD)"],SILVER:["America/New_York","16:00","chiusura di Wall Street (ETF SLV)"],
+  PLATINUM:["America/New_York","16:00","chiusura di Wall Street (ETF PPLT)"],
+  CORN:["America/Chicago","13:15","settlement CBOT"],SOY:["America/Chicago","13:15","settlement CBOT"],SOYMEAL:["America/Chicago","13:15","settlement CBOT"],
+  SOYOIL:["America/Chicago","13:15","settlement CBOT"],WHEAT:["America/Chicago","13:15","settlement CBOT"],KCWHEAT:["America/Chicago","13:15","settlement CBOT"],
+  RICE:["America/Chicago","13:15","settlement CBOT"],CATTLE:["America/Chicago","13:00","settlement CME"],FEEDER:["America/Chicago","13:00","settlement CME"],
+  HOGS:["America/Chicago","13:00","settlement CME"],GASOLINE:["America/New_York","14:30","settlement NYMEX"],HEATOIL:["America/New_York","14:30","settlement NYMEX"],
+  COPPER:["America/New_York","13:00","settlement COMEX"],PALLADIUM:["America/New_York","13:00","settlement NYMEX"],
+  US2Y:["America/Chicago","14:00","settlement CBOT"],US5Y:["America/Chicago","14:00","settlement CBOT"],US10Y:["America/Chicago","14:00","settlement CBOT"],
+  USBOND:["America/Chicago","14:00","settlement CBOT"],ULTRA:["America/Chicago","14:00","settlement CBOT"],
+  COFFEE:["America/New_York","12:25","settlement ICE"],SUGAR:["America/New_York","12:55","settlement ICE"],COCOA:["America/New_York","11:50","settlement ICE"],
+  COTTON:["America/New_York","14:15","settlement ICE"],OJ:["America/New_York","13:30","settlement ICE"],
+  BTC:["America/Los_Angeles","17:00","rilevazione Coinbase"],ETH:["America/Los_Angeles","17:00","rilevazione Coinbase"]};
+ // ora di Roma di oggi corrispondente all'orario "hhmm" del fuso tz
+ function oraRoma(tz,hhmm){const n=new Date(),[h,m]=hhmm.split(":").map(Number);
+  const parti=(d,z)=>Object.fromEntries(new Intl.DateTimeFormat("en-CA",{timeZone:z,year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit",hourCycle:"h23"}).formatToParts(d).map(x=>[x.type,x.value]));
+  const p=parti(n,tz),guess=Date.UTC(+p.year,+p.month-1,+p.day,h,m),q=parti(new Date(guess),tz);
+  const off=Date.UTC(+q.year,+q.month-1,+q.day,+q.hour,+q.minute)-guess;
+  return new Date(guess-off).toLocaleTimeString("it-IT",{timeZone:"Europe/Rome",hour:"2-digit",minute:"2-digit"});}
+ function giornata(k){const c=CHIUSURA[k];
+  if(!c)return "Prezzo spot giornaliero EIA (FRED): l'orario esatto di rilevazione non &egrave; pubblicato.";
+  const r=oraRoma(c[0],c[1]),dopo=r<"12:00"&&c[1]>="12:00";       // es. Coinbase 17:00 PT = 02:00 di Roma del giorno dopo
+  return `Giorno = da chiusura a chiusura (${c[2]}, ${c[1]} ora locale = <b>${r} ora di Roma</b>): &laquo;mercoled&igrave;&raquo; = ${dopo?"da mercoled&igrave; "+r+" a gioved&igrave; "+r:"da marted&igrave; "+r+" a mercoled&igrave; "+r}.`;}
  function disegna(){const X=S[sel],f=X.finestra,mm=X.mesi||[],gg=X.giorni,ora=new Date().getMonth();
   const verd=!f?"n/d":f.robusto?(f.score>0?"RIALZO":"RIBASSO"):"NEUTRA";
   const fcard=`<div class="card"><h3>Prossime 4 settimane</h3><div class="kpi"><div class="big" style="color:${!f||!f.robusto?"var(--ink)":f.score>0?"var(--b)":"var(--s)"}">${verd}</div>
@@ -30,7 +58,7 @@ try{(function(){const S=D.stag||{},el=$("stag"),M12=["Gen","Feb","Mar","Apr","Ma
   const gcard=`<div class="card"><h3>Giorni della settimana</h3>${gg?`<div class="tablewrap" style="box-shadow:none;margin-top:10px"><table class="compatta"><tr><th>Giorno</th><th class="num">In rialzo</th><th class="num">Media</th><th class="num">Mov. tipico</th><th class="num">Ultimi 10a</th><th>Effetto</th></tr>
    ${gg.map(g=>{const vmax=Math.max(...gg.map(x=>x.vol));return `<tr><td><b>${esc(g.giorno)}</b></td><td class="num">${g.su}%</td><td class="num ${g.media>0?"up":g.media<0?"down":""}">${pc(g.media,3)}</td>
    <td class="num">${fx(g.vol,2)}%${g.vol==vmax?' <b title="giorno piu\' mosso" style="color:var(--acc)">&#9679;</b>':""}</td><td class="num">${pc(g.rec,3)}</td><td>${g.robusto?`<span class="tag ${g.t>0?"ok":"ko"}">${g.t>0?"rialzo":"ribasso"} (t ${fx(g.t,1)})</span>`:'<span class="small">non significativo</span>'}</td></tr>`}).join("")}</table></div>
-   <div class="small" style="margin-top:8px">&#9679; = giorno che si muove di piu'. ${gg[0].n+gg[1].n+gg[2].n+gg[3].n+gg[4].n} giorni dal ${X.da}. Cambi FRED rilevati alle 12:00 di New York: "mercoledi'" = da martedi' 12:00 a mercoledi' 12:00.</div>`:'<p class="small">Storico giornaliero insufficiente.</p>'}</div>`;
+   <div class="small" style="margin-top:8px">&#9679; = giorno che si muove di piu'. ${gg[0].n+gg[1].n+gg[2].n+gg[3].n+gg[4].n} giorni dal ${X.da}. ${giornata(sel)}</div>`:'<p class="small">Storico giornaliero insufficiente.</p>'}</div>`;
   const vmax=Math.max(0.01,...mm.map(m=>Math.abs(m.med||0)));
   const mcard=`<div class="card"><h3>Mesi</h3><div class="mesi">${mm.map((m,i)=>m.n>=10?`<div class="mese${i==ora?" ora":""}${m.robusto?" forte":""}" title="${M12[i]}: salito ${m.su}/${m.n} anni, mediana ${pc(m.med)}${m.robusto?" (affidabile)":""}">
    <div class="barra"><i style="height:${Math.round(Math.abs(m.med)/vmax*50)}%;${m.med>=0?"bottom:50%":"top:50%"};background:${m.med>=0?"var(--b)":"var(--s)"}"></i></div>
