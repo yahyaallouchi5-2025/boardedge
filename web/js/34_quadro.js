@@ -76,6 +76,23 @@ try{(function(){
    <div class="cd-fasi" role="img" aria-label="Fase del ciclo del debito: ${d.fase}">${CD.map((f,i)=>`<div class="cd-f ${CDC[i]}${i==k?" on":""}"><b>${f}</b><span>${i==k?"oggi":"&nbsp;"}</span></div>`).join("")}</div>
    <p class="cd-frase"><b class="${CDC[k]}">${d.fase}</b>: ${CDF[k]}.</p>
    <div class="qe-ind cd-ind">${tiles}</div>${striscia}</div>`;}
+ // v7.60 MODALITA' DI MERCATO (solo USA): E.modalita da cot_radar/modalita.py = {modo, dist, soglia, data, dal,
+ //   storico:{modo:[eccesso 3 mesi %, positivi %, drawdown medio %, casi]}}. Tre fasi in fila (oggi accesa),
+ //   una frase e lo storico nella (i). Solo contesto: lo studio del 12/11/2026 non ha trovato un vantaggio operativo.
+ const MM=["PESSIMISMO","NORMALE","ECCESSO"],MMN=["Pessimismo","Normale","Eccesso"],MMC=["mm-p","mm-n","mm-e"];
+ const MMF=["S&amp;P 500 sotto la media a 200 giorni","S&amp;P 500 sopra la media, nei livelli abituali","S&amp;P 500 molto sopra la media, oltre i livelli abituali"];
+ function modalitaHTML(){const m=E.modalita;if(!m||!m.modo)return "";
+  const k=MM.indexOf(m.modo),s=m.storico;
+  const tabM=s?`<table class="qe-tab"><tr><th>Modalit&agrave;</th><th class="num">3 mesi</th><th class="num">Positivi</th><th class="num">Drawdown</th><th class="num">Casi</th></tr>${MM.filter(x=>s[x]).map((x,i)=>`<tr><td>${MMN[MM.indexOf(x)]}</td><td class="num ${s[x][0]>=0?"up":"down"}">${pc(s[x][0])}</td><td class="num">${s[x][1]}%</td><td class="num down">${pc(s[x][2])}</td><td class="num">${s[x][3]}</td></tr>`).join("")}</table>`:"";
+  return `<div class="qe-sez"><div class="qe-st"><h4>Modalit&agrave; di mercato</h4>${info(`Lo stato d'animo del mercato USA, dal prezzo dell'S&amp;P 500. Regole fisse:<br>
+    <b>Pessimismo</b>: prezzo sotto la media dei 200 giorni.<br>
+    <b>Eccesso</b>: prezzo sopra la media pi&ugrave; dell'80% delle volte negli ultimi 5 anni (oggi la soglia &egrave; ${pc(m.soglia)}).<br>
+    <b>Normale</b>: tutti gli altri casi.<br><br>
+    ${tabM?`<b>Com'&egrave; andata dal ${(m.dal||"").slice(0,4)}</b>: a ogni fine mese, S&amp;P 500 con dividendi nei 3 mesi dopo${m.liquidita?" oltre la liquidit&agrave;":""}, quota di casi positivi e drawdown medio nei 3 mesi.${tabM}`:""}
+    <b>Solo contesto, non un segnale</b>: nelle nostre prove ridurre in eccesso non ha aiutato e il pessimismo si &egrave; capovolto (fino al 2010 conveniva stare fuori, dal 2011 sono stati i mesi migliori, con drawdown pi&ugrave; ampi).`)}
+    <span class="cd-da">S&amp;P 500 ${pc(m.dist)} dalla media</span></div>
+   <div class="cd-fasi mm-fasi" role="img" aria-label="Modalit&agrave; di mercato: ${MMN[k]}">${MM.map((x,i)=>`<div class="cd-f ${MMC[i]}${i==k?" on":""}"><b>${MMN[i]}</b><span>${i==k?"oggi":"&nbsp;"}</span></div>`).join("")}</div>
+   <p class="cd-frase"><b class="${MMC[k]}">${MMN[k]}</b>: ${MMF[k]}.</p></div>`;}
  // v7.22d: il dettaglio (mappa, indicatori, ciambelle) si apre SOLO al click su una card; un secondo click lo chiude
  let sel=null;
  let borsa=null;                                           // top.json "economie": arriva dopo, se c'e'
@@ -103,7 +120,7 @@ try{(function(){
    <div class="qe-dons">${col.map(a=>{const l=a.label||"NEUTRO",c=/BUY/.test(l)?"up":/SELL/.test(l)?"down":"neu";return `<div class="qe-d" title="${esc(a.name)}: ${eti(l)}">${ciambella((a.score+100)/2,(a.score>0?"+":"")+Math.round(a.score),c)}<b>${esc(a.name)}</b><small>${eti(l)}</small></div>`;}).join("")}</div></div>`:"";
   return `<div class="qe-dh">${bandiera(x.id)}<b class="${f[1]}">${x.regime}</b><span>${esc(x.nome)}: l'economia ${f[0]} &middot; dati di ${meseIt(x.mese)}</span>
     <span class="qe-al ${x.allarme?"on":""}">${x.allarme?"Allarme recessione":"Nessun allarme recessione"}</span></div>
-   <div class="qe-main">${mappa}<div class="qe-ind">${tiles.join("")}</div></div>${x.id=="usa"?debitoHTML():""}${settHTML}${idx}${cot}`;}
+   <div class="qe-main">${mappa}<div class="qe-ind">${tiles.join("")}</div></div>${x.id=="usa"?modalitaHTML()+debitoHTML():""}${settHTML}${idx}${cot}`;}
  function disegna(){const x=E.economie.find(e=>e.id==sel);
   el.innerHTML=`<div class="qe-sec"><div class="qe-h"><h2>Quadro economico</h2>${infoSez}</div>
    <div class="qe-row${x?" qe-scelta":""}">${E.economie.map(card).join("")}</div>

@@ -256,6 +256,15 @@ def build(data_source=load_all, demo=False, sito=False):
                                       scarica=not demo)
     except Exception:
         log.warning("quadro economico non calcolato:\n%s", traceback.format_exc())
+    # v7.60 MODALITA' DI MERCATO dell'S&P 500 (modalita.py): nel dettaglio USA del quadro, solo contesto. Isolata.
+    try:
+        if quadro_pag:
+            from . import modalita
+            mo = modalita.calcola(px, storico.CARTELLA if os.path.isdir(storico.CARTELLA) else None)
+            if mo:
+                quadro_pag["modalita"] = mo
+    except Exception:
+        log.warning("modalita' di mercato non calcolata:\n%s", traceback.format_exc())
     # CORRELAZIONI DEI PREZZI (correlazioni.py): stessi prezzi dei portafogli + settori USA e dollaro. Isolate.
     corr_px = None
     try:
