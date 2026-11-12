@@ -1,0 +1,26 @@
+# studio-insider.yml - STUDIO: gli acquisti dei manager (Form 4) anticipano rendimenti migliori? Dati EODHD,
+# titoli USA del sito. Si avvia a mano; il risultato e' nel log e nell'artifact "insider".
+# La chiave EODHD arriva solo dai Secrets.
+name: Studio insider
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Studio
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: python studi/studio_insider.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: insider
+          path: studio_out/
