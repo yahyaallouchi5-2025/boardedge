@@ -567,7 +567,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  //     nessuna barra fissa. Data e ora dell'anomalia arrivano dal backend (P.avviso.quando).
  if(P.avviso)ebManutenzione({scheda:"port",codice:P.avviso.codice,quando:P.avviso.quando,dal:P.avviso.dal});
 
- // --- CARD PRINCIPALE del profilo scelto: rischio, descrizione, numeri chiave, composizione per classe, 5 azioni
+ // --- CARD PRINCIPALE del profilo scelto: rischio, descrizione, numeri chiave, composizione per classe, azioni scelte
  // v7.2 un solo fumetto (i) accanto al nome: descrizione, come si misura, numeri secondari (niente righe tecniche fisse)
  function infoProfilo(p,t){const usd=p.stat_usd&&p.stat_usd.totale;
   return `<details class="info phi"><summary title="Il profilo" aria-label="Il profilo">i</summary><div>${esc(p.descr)}<br><br><b>Come si misura.</b> Numeri in euro senza copertura del cambio, liquidit&agrave; al tasso BCE, acquisto alla chiusura del giorno di rotazione, costi 0,10% inclusi.${t.oltre_liq!=null?` Oltre la liquidit&agrave;: <b>${pc(t.oltre_liq)}</b> l'anno.`:""}${t.recupero_mesi!=null?` Recupero dal drawdown peggiore: <b>${t.recupero_mesi} mesi</b>.`:""}${usd?` In dollari: ${pc(usd.cagr)} l'anno.`:""}${p.senza_btc&&p.senza_btc.cagr!=null?`<br><br><b>Peso del Bitcoin.</b> Il ${fx(p.senza_btc.quota,1)}% in Bitcoin conta molto: senza (quota in liquidit&agrave;) il rendimento storico sarebbe <b>${pc(p.senza_btc.cagr)}</b> l'anno, con max drawdown ${pc(p.senza_btc.maxdd)}.`:""}</div></details>`;}
@@ -592,14 +592,14 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <div><em>Max drawdown</em><b class="down">${pc(t.maxdd)}</b><span>dal picco al minimo</span></div>
     <div><em>10.000 € nel ${anno}</em><b>${eur(finale)}</b><span>valore di oggi${p.stat_eur&&p.stat_eur.totale?" (in euro)":""}</span></div>
     <div><em>Mesi positivi</em><b>${t.mesi_pos??"n/d"}%</b><span>su tutti i mesi</span></div></div>
-   <div class="phcomp"><h4>Composizione del mese <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div><b>Ogni primo giorno di borsa del mese</b> si controlla il trend: un mercato azionario sotto la media a 200 giorni va in pausa nella liquidit&agrave;. Treasury e oro restano sempre come difesa. Si scambia solo se un mercato entra o esce, e a inizio trimestre per riportare i pesi. Durante il mese non si tocca nulla. Dettagli nella <b>Guida</b>.${RQ?`<br><br><b>Rischio</b>: quanta parte delle oscillazioni del portafoglio viene da ogni classe (barra sottile). Un mercato molto volatile porta pi&ugrave; rischio del suo peso; la liquidit&agrave; non ne porta. Calcolo sugli ultimi ${RQ.giorni} giorni di borsa, in euro: peso &times; covarianza con il portafoglio. La somma fa 100. Le 5 azioni singole sono contate come l'S&amp;P 500: il rischio vero di 5 titoli &egrave; pi&ugrave; alto.`:""}</div></details>${RQ?`<span class="phleg"><i class="lp"></i>peso<i class="lr"></i>rischio</span>`:""}</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar${RQ?" rk":""}"><span>${x[1]}</span>${rkTag(x[0])}<b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;--cb:${CL[x[0]]}"></s></i>${rkBar(x[0])}</div>`).join("")}${rkNota}</div>
+   <div class="phcomp"><h4>Composizione del mese <details class="info"><summary title="Come funziona" aria-label="Come funziona">i</summary><div><b>Ogni primo giorno di borsa del mese</b> si controlla il trend: un mercato azionario sotto la media a 200 giorni va in pausa nella liquidit&agrave;. Treasury e oro restano sempre come difesa. Si scambia solo se un mercato entra o esce, e a inizio trimestre per riportare i pesi. Durante il mese non si tocca nulla. Dettagli nella <b>Guida</b>.${RQ?`<br><br><b>Rischio</b>: quanta parte delle oscillazioni del portafoglio viene da ogni classe (barra sottile). Un mercato molto volatile porta pi&ugrave; rischio del suo peso; la liquidit&agrave; non ne porta. Calcolo sugli ultimi ${RQ.giorni} giorni di borsa, in euro: peso &times; covarianza con il portafoglio. La somma fa 100. Le azioni scelte sono contate come l'S&amp;P 500: il rischio vero dei titoli singoli &egrave; pi&ugrave; alto.`:""}</div></details>${RQ?`<span class="phleg"><i class="lp"></i>peso<i class="lr"></i>rischio</span>`:""}</h4>${CLN.filter(x=>cl[x[0]]).map(x=>`<div class="phbar${RQ?" rk":""}"><span>${x[1]}</span>${rkTag(x[0])}<b>${fx(cl[x[0]],1)}%</b><i><s style="width:${Math.min(100,cl[x[0]])}%;--cb:${CL[x[0]]}"></s></i>${rkBar(x[0])}</div>`).join("")}${rkNota}</div>
    ${/* v7.35 tolto il riquadro "Le 5 azioni del mese": doppione (i titoli sono gia' nelle righe del portafoglio e in
        Acquisto diretto, con quote e importi) e rumore nella card principale */""}
 </div>`;}
 
  // --- v6.78 PDF DEL PORTAFOGLIO (generatore in 01b_pdf.js): gli stessi dati della pagina su un foglio chiaro, pensato
  //     per la stampa. Pagina 1: rischio, numeri chiave, composizione (ciambella + classi) e righe del portafoglio con
- //     strumento, ISIN, peso e importo sul capitale scritto dall'utente (5 azioni comprese, con ISIN). Poi: curva del
+ //     strumento, ISIN, peso e importo sul capitale scritto dall'utente (azioni scelte comprese, con ISIN). Poi: curva del
  //     capitale (periodo scelto nella pagina), risultati per periodo, rischio del mese, ultime rotazioni.
  const COLP={azioni:"#3b7de0","azioni singole":"#1a9e93",obbligazioni:"#12a874",metalli:"#c98a14","materie prime":"#e0820f",crypto:"#9b59d0",liquidita:"#8793a6"};
  const txt=s=>String(s==null?"":s).replace(/&middot;/g,"·").replace(/&amp;/g,"&").replace(/&[a-z]+;/g,"").replace(/<[^>]+>/g,"");
@@ -608,7 +608,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   :`Trend ${pc(c.trend)} sopra la media a 200 giorni · volatilità ${fx(c.vol,0)}% · COT ${c.score!=null?sg(c.score,0):"n/d"} (informativo)`;
  async function pdfPort(){const E=window.ebPdf;if(!E)return;const p=P.profili.find(x=>x.id==sel),C=E.C;
   const az=p.composizione.find(c=>c.k=="AZ"),reg=!!(az&&az.titoli&&az.titoli.length),lista=az?((reg?az.titoli:(az.anteprima||{}).titoli)||[]):[];
-  // ISIN delle 5 azioni: stessi file della pagina; massimo 5 secondi di attesa, poi il PDF esce comunque
+  // ISIN delle azioni scelte: stessi file della pagina; massimo 5 secondi di attesa, poi il PDF esce comunque
   const isin={};await Promise.race([Promise.all(lista.map(x=>isinDi(x.t).then(v=>{isin[x.t]=v;}))),new Promise(r=>setTimeout(r,5000))]);
   const d=E.Doc();d.pagina();const {M,PW}=d,LW=PW-2*M,T="Portafoglio "+p.nome,mese=MESI[+P.rotazione.slice(5,7)-1];
   const t=p.stat.totale||{},rk=RISK[p.id]||["",""],anno=(t.dal||"").slice(0,4),nM=p.composizione.filter(c=>c.k!="CASH").length;
@@ -624,10 +624,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const bw=(LW-24)/4;K.forEach((k,i)=>{const x=M+i*(bw+8);d.rett(x,y,bw,56,{f:C.soft,r:7});
    d.testo(x+11,y+16,k[0],{s:7.8,c:C.mute});d.testo(x+11,y+36,k[1],{s:15,b:true,c:k[3]});d.testo(x+11,y+48,k[2],{s:7.2,c:C.mute});});
   y+=56;
-  // v6.87: stessa misura prudente della pagina (euro, acquisto alla chiusura del giorno di rotazione, 5 azioni = S&P 500)
+  // v6.87: stessa misura prudente della pagina (euro, acquisto alla chiusura del giorno di rotazione, azioni scelte = S&P 500)
   {const sel=p.stat_sel&&p.stat_sel.totale,usd=p.stat_usd&&p.stat_usd.totale;y+=16;
    d.testo(M,y,`${p.valuta=="EUR"?"In euro":"In dollari"} · oltre la liquidità ${t.oltre_liq!=null?pc(t.oltre_liq):"n/d"} l'anno · Calmar ${t.calmar!=null?fx(t.calmar,2):"n/d"} · recupero ${t.recupero_mesi!=null?t.recupero_mesi+" mesi":"in corso"}`,{s:8.5,c:C.mute});
-   y+=12;y+=d.paragrafo(M,y,`Numeri prudenti: acquisto alla chiusura del giorno di rotazione, costi inclusi, 5 azioni contate come l'S&P 500 (lo storico usa i titoli di oggi).${sel?` Con la selezione vera: ${pc(sel.cagr)} l'anno.`:""}${usd?` In dollari: ${pc(usd.cagr)} l'anno.`:""}`,LW,{s:7.8,c:C.mute});}
+   y+=12;y+=d.paragrafo(M,y,`Numeri prudenti: acquisto alla chiusura del giorno di rotazione, costi inclusi, azioni scelte contate come l'S&P 500 (lo storico usa i titoli di oggi).${sel?` Con la selezione vera: ${pc(sel.cagr)} l'anno.`:""}${usd?` In dollari: ${pc(usd.cagr)} l'anno.`:""}`,LW,{s:7.8,c:C.mute});}
   // composizione: ciambella dei pesi (colore = classe) e barre per classe
   y=E.sezione(d,y+30,"Composizione del mese",`${nM} ${nM==1?"mercato":"mercati"}`);
   const cx=M+62,cy=y+60;let a=0;
@@ -654,9 +654,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     d.testo(M+20,y+24,d.taglia(str,xP-M-30,8,!!c.ue),{s:8,b:!!c.ue,c:c.ue?C.acc:C.ink});let yr=y+24;
     if(nota){yr+=10;d.testo(M+20,yr,d.taglia(txt(nota),xP-M-30,7.2),{s:7.2,c:C.mute});}
     d.testo(M+20,yr+11,d.taglia(motivo(c),xP-M-30,7.2),{s:7.2,c:C.mute});y=yr+18;
-    // le 5 azioni scelte, una per riga, con ISIN, borsa, quota e importo
+    // le azioni scelte, una per riga, con ISIN, borsa, quota e importo
     if(c.k=="AZ"){const q=lista.length?c.peso/lista.length:0;
-     if(!lista.length){spazio(16);y+=d.paragrafo(M+20,y+2,`I 5 titoli si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.`,xP-M-30,{s:7.8,c:C.mute})+4;}
+     if(!lista.length){spazio(16);y+=d.paragrafo(M+20,y+2,`Le azioni (fino a 20) si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.`,xP-M-30,{s:7.8,c:C.mute})+4;}
      else{if(!reg){spazio(28);y+=d.paragrafo(M+20,y+2,`Anteprima per ${MESI[+az.anteprima.mese.slice(5,7)-1]}, calcolata il ${gg(az.anteprima.al)} con i prezzi di quel giorno: la lista definitiva si fissa l'ultimo giorno di borsa ed entra il ${gg(P.prossima)}.`,xP-M-30,{s:7.8,c:C.warn})+4;}
       lista.forEach(x=>{spazio(26);const b=borsa(x.t),st=(SETT[x.s]||[x.s||""])[0];
        d.rett(M+20,y,LW-28,22,{f:"#fafbfd",s:C.line,lw:.4,r:4});
