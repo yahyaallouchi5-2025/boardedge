@@ -81,9 +81,17 @@ try{(function(){const el=$("azioni");if(!el)return;
    if(!d||!d.quando||d.quando===LV.quando||Date.now()/1000-d.quando>20*3600)return;
    LV.p=d.p||{};LV.quando=d.quando;aggiornaLive();}catch(e){}}
  setInterval(leggiLive,60000);document.addEventListener("visibilitychange",leggiLive);
+ // v7.47 ETICHETTA DEL PREZZO LIVE: "LIVE" solo a borsa aperta. A borsa chiusa: "Chiusura" se l'ultimo prezzo e' quello
+ //     della chiusura, altrimenti "Ultimo prezzo ... borsa chiusa" (es. giro dopo la chiusura non ancora arrivato).
+ function statoLive(t){const st=window.ebMercati?ebMercati.stato(gruppoMkt(t.t)):null,ts=LV.p[t.t]&&LV.p[t.t][2];
+  return st&&!st.aperto?(ebMercati.allaChiusura(gruppoMkt(t.t),ts)?"chiusura":"ultimo"):"live";}
+ function etiLive(t,l){const s=statoLive(t);
+  return s=="live"?`<span class="azlv azlvt"><i></i>LIVE &middot; ore ${l.ora} &middot; ritardo ~15 min</span>`
+   :s=="chiusura"?`<span class="azlvt azchiuso">Chiusura &middot; ore ${l.ora}</span>`
+   :`<span class="azlvt azchiuso">Ultimo prezzo &middot; ore ${l.ora} &middot; borsa chiusa</span>`;}
  // intestazione della scheda: prezzo grande (live se c'e') + variazione + orario
  function testaPrezzo(t){const l=lv(t);
-  return l?`<b>${prezzo(l.p,t.val)}</b>${pc(l.g,2)}<span class="azlv azlvt"><i></i>LIVE &middot; ore ${l.ora} &middot; ritardo ~15 min</span>`
+  return l?`<b>${prezzo(l.p,t.val)}</b>${pc(l.g,2)}${etiLive(t,l)}`
    :`<b>${prezzo(t.p,t.val)}</b>${pc(t.v1g,2)}<span class="small">chiusura del ${gg(t.data)}</span><span class="azmkw" data-mk>${mercatiHTML()}</span>`;}
 
  // --- v7.22c STATO DEI MERCATI (rosso lampeggiante = chiusi, verde = aperti). v7.25: logica e festivita' in
@@ -337,7 +345,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   box.innerHTML=`<div class="azgint"><div class="azgh"><b>${titolo}</b>${nota}</div>${graficoIntra(s,base,t.val,per,box.clientWidth<520)}
    <div class="azistat"><span>Ultimo <b>${prezzo(ult[1],t.val)}</b> <em class="${var_>=0?"up":"down"}">${var_>0?"+":""}${fx(var_,2)}%</em></span>
     <span>Max <b>${prezzo(mx,t.val)}</b></span><span>Min <b>${prezzo(mn,t.val)}</b></span>
-    <span class="azist-t">${per=="oggi"?`ore ${oraIt(ult[0])} &middot; ritardo ~15 min`:`barre a 5 minuti`}</span></div></div>`;
+    <span class="azist-t">${per=="oggi"?`ore ${oraIt(ult[0])} &middot; ${st&&!st.aperto&&eOggi?(ebMercati.allaChiusura(gruppoMkt(t.t),ult[0])?"chiusura":"ultimo dato, borsa chiusa"):"ritardo ~15 min"}`:`barre a 5 minuti`}</span></div></div>`;
   tooltip(box,s,t.val,i=>(per=="oggi"?"":giornoIt(s[i][0])+" ")+oraIt(s[i][0]),base);});}
  function graficoIntra(s,base,val,per,stretto){if(s.length<2)return `<div class="azgvuoto">Ancora pochi punti: il grafico si riempie ogni 15 minuti durante la seduta.</div>`;
   const W=640,H=240,L=8,R=58,T=12,B=26,v=s.map(p=>p[1]).concat(per=="oggi"?[base]:[]),lo=Math.min(...v),hi=Math.max(...v),pad=(hi-lo||hi*0.01)*0.08;

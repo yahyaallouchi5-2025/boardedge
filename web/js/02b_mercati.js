@@ -38,6 +38,10 @@ try{(function(){
   const i=`<details class="info"><summary title="Stato dei mercati" aria-label="Informazioni">i</summary><div>${testo}</div></details>`;
   return aperti.length?`<span class="azmk on"><i></i>Aperti: ${aperti.join(" + ")}</span>${i}`
    :`<span class="azmk off"><i></i>Mercati chiusi${prox.length?` &middot; apre ${prox[0][0]} ${oraIt(prox[0][1].prossima)}`:""}</span>${i}`;}
- window.ebMercati={html,stato,oraIt,aperta:apertaB};
+ // v7.47 il prezzo (timestamp in secondi) e' quello di chiusura? Vero se, nell'ora locale della borsa, e' uguale o
+ // successivo a 2 minuti prima della chiusura (EODHD a borsa chiusa riporta l'ultimo scambio delle 16:00/17:30).
+ function allaChiusura(g,ts){if(!ts)return false;const d=new Date(ts*1000);
+  return membri(g).some(b=>{const i=info(b),l=loc(i.fuso,d),[h,m]=i.chiude.split(":").map(Number),lim=h*60+m-2,[a,c]=l.hm.split(":").map(Number);return a*60+c>=lim;});}
+ window.ebMercati={html,stato,oraIt,aperta:apertaB,allaChiusura};
  fetch("../azioni/calendario.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(c=>{if(c&&c.borse){CAL=c;window.dispatchEvent(new Event("eb-mercati"));}}).catch(()=>{});
 })();}catch(e){console.warn("mercati",e);}

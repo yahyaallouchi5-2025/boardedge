@@ -67,8 +67,10 @@ def calcola(prima=None):
 
 
 # borse aperte (ora locale) per i titoli dell'Azionario: (fuso, apertura, chiusura + ritardo dei prezzi)
-ORARI = {"US": ("America/New_York", "09:30", "16:20"), "EU": ("Europe/Berlin", "09:00", "17:50"),
-         "TO": ("America/Toronto", "09:30", "16:20"), "AU": ("Australia/Sydney", "10:00", "16:20")}   # v7.23
+# v7.47 fine finestra = chiusura +40 minuti (prima +20): il ciclo gira ogni ~15-20 minuti (pausa + download), con +20 il
+# giro dopo la chiusura poteva cadere fuori e restava l'ultimo prezzo di 20 minuti prima (DLTR 11/11: ore 21:39 italiane)
+ORARI = {"US": ("America/New_York", "09:30", "16:40"), "EU": ("Europe/Berlin", "09:00", "18:10"),
+         "TO": ("America/Toronto", "09:30", "16:40"), "AU": ("Australia/Sydney", "10:00", "16:40")}   # v7.23
 RAW_AZ = "https://raw.githubusercontent.com/{repo}/live/live_az.json"
 
 

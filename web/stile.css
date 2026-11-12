@@ -2353,3 +2353,6 @@ html.ptmod-on{overflow:hidden}
 #azioni .aztesta{display:flex;align-items:center;gap:10px;margin:0 0 14px;position:relative}#azioni .aztesta h2{margin:0}
 #azioni .aztesta .info{display:inline-block}
 @media (max-width:600px){#azioni .aztesta .info{position:static}#azioni .aztesta .info div{left:0!important;right:0!important;top:calc(100% + 6px);width:auto;max-width:none}}
+
+/* v7.47 prezzo a borsa chiusa: niente pallino pulsante, colore neutro */
+.azlvt.azchiuso{color:var(--mute);font-weight:600}
