@@ -843,6 +843,9 @@ html.cbloccato,html.cbloccato body{overflow:hidden}
 .cmodal-testo{overflow-y:auto;overscroll-behavior:contain;padding:4px 14px 4px 2px;border-bottom:1px solid var(--line);font-size:14px;line-height:1.6;color:var(--ink2)}
 .cmodal-testo:focus{outline:none}.cmodal-testo h4{margin:16px 0 4px;font-size:14.5px;color:var(--ink)}.cmodal-testo p{margin:0 0 8px}
 .cmodal-testo a{color:var(--acc)}
+/* v7.45 condizioni complete: elenchi puntati compatti e riga introduttiva */
+.cmodal-testo .cl{margin:0 0 10px;padding-left:20px}.cmodal-testo .cl li{margin:2px 0}.cmodal-testo .cl li::marker{color:var(--acc)}
+.cmodal-testo .cint{margin:8px 0 4px;font-size:13px;color:var(--ink3,var(--ink2))}
 .cmodal-piede{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
 .cmodal-hint{font-size:12.5px;color:var(--mute);transition:color .2s}.cmodal-hint.ok{color:var(--b)}
 .cmodal-btn{display:flex;gap:10px;margin-left:auto}
