@@ -1,0 +1,26 @@
+# studio-pattern-eodhd.yml - RIPROVA dello studio del Pattern Detector con candele EODHD allineate alla chiusura di
+# New York (D1 e H4, come un broker). Si avvia a mano; il risultato e' nel log e nell'artifact "pattern-eodhd".
+# La chiave EODHD arriva solo dai Secrets.
+name: Studio pattern EODHD
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Studio
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: python studi/studio_pattern_eodhd.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pattern-eodhd
+          path: studio_out/
