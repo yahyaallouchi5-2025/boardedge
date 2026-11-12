@@ -412,7 +412,8 @@ try{(function(){const el=$("azioni");if(!el)return;
      <text x="${(x+bw/2).toFixed(1)}" y="${H-6}" text-anchor="middle" class="pax">${y.a}</text>`;}).join("");
    box.innerHTML=`<h4 class="aztit">Bilancio <span class="small">${A.length} anni &middot; SEC</span>
      <details class="info"><summary title="Da dove arrivano i dati" aria-label="Informazioni">i</summary><div>Bilanci annuali (10-K) depositati alla SEC: arrivano 2-3 mesi dopo la chiusura dell'anno fiscale e qui si aggiornano ogni settimana. Giudizio automatico e semplificato, non una valutazione di investimento.</div></details></h4>
-    <div class="bgiu ${g[0]}"><b>${g[1]}</b><span>${esc(b.motivo||"")}</span></div>
+    <div class="bgiu ${g[0]}"><b>${g[1]}</b><span>${esc(b.motivo||"")}</span></div>${b.lynch?`<div class="blyn"><span class="blynt">${esc(b.lynch.tipo)}</span><span>${esc(b.lynch.motivo||"")}</span>
+     <details class="info"><summary title="I tipi di Peter Lynch" aria-label="Informazioni">i</summary><div>Classificazione di Peter Lynch (&laquo;One Up on Wall Street&raquo;) dagli utili degli ultimi anni, solo per capire <b>cosa aspettarsi</b>: <b>Crescita lenta</b> (sotto il 10% l'anno): aziende mature, si tengono per il dividendo. <b>Solida</b> (10-20%): grandi aziende stabili, guadagni moderati e buona tenuta nelle crisi. <b>Crescita rapida</b> (oltre 20%): il potenziale pi&ugrave; alto e il rischio pi&ugrave; alto, finch&eacute; la crescita dura. <b>Ciclica</b> (materiali, energia): utili che seguono il ciclo economico, contano i tempi. <b>In ripresa</b>: tornata in utile dopo una perdita. Non entra nel punteggio Forza e non &egrave; un consiglio.</div></details></div>`:""}
     <div class="azmini bmini"><div><span>Ricavi ${u.a}</span><b>${dollari(u.ricavi)}</b>${b.crescita!=null?`<em class="${b.crescita>=0?"up":"down"}">${b.crescita>0?"+":""}${fx(b.crescita,1)}% l'anno</em>`:""}</div>
      <div><span>Utile netto ${u.a}</span><b class="${u.utile>=0?"up":"down"}">${dollari(u.utile)}</b><em>margine ${u.ricavi?fx(u.utile/u.ricavi*100,1)+"%":"n/d"}</em></div>
      <div><span>Anni in perdita</span><b class="${b.perdite?"down":"up"}">${b.perdite} su ${A.length}</b></div>
@@ -469,20 +470,27 @@ try{(function(){const el=$("azioni");if(!el)return;
  const descBase=t=>`<p class="azdesc">${esc(t.n)}: azienda del settore ${esc(nomeSet(t.s).toLowerCase())}, quotata alla ${esc(borsa(t.t))}. <a href="${cercaWiki(t)}" target="_blank" rel="noopener">Cerca su Wikipedia</a></p>`;
  // --- v7.22 DIVIDENDI (cot_radar/dividendi.py -> dividendi/<TICKER>.json, EODHD): rendimento sugli ultimi 12 mesi,
  //     ultimo stacco, frequenza, crescita a 5 anni, anni consecutivi e barre degli ultimi 10 anni. Senza file: nascosto.
+ // v7.51 COPERTURA DEL DIVIDENDO (solo titoli USA, bilanci SEC: bilanci/<T>.json -> "dividendo", vedi
+ //       cot_radar/fondamentali.py copertura_dividendo): quanto dell'utile e del flusso di cassa libero va in dividendi.
+ function copertura(c){if(!c||!c.giudizio)return "";const u=(c.anni||[]).slice(-1)[0]||{},CL={"COPERTO":"ok","ATTENZIONE":"warn","A RISCHIO":"ko"};
+  const parti=[u.pu!=null?`<b>${u.pu}%</b> dell'utile`:"",u.pf!=null?`<b>${u.pf}%</b> del flusso libero`:""].filter(Boolean).join(" &middot; ");
+  return `<div class="azcop" title="${esc(c.motivo||"")}"><span class="azcopb ${CL[c.giudizio]||""}">${esc(c.giudizio)}</span><span>Payout ${u.a||""}: ${parti||"n/d"}</span></div>`;}
  function dividendi(box,t){if(!box)return;
-  fetch(BASE+"dividendi/"+encodeURIComponent(t.t.replace("^","_"))+".json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null).then(d=>{
+  const nf=encodeURIComponent(t.t.replace("^","_"))+".json",js=u=>fetch(u,{cache:"no-cache"}).then(r=>r.ok?r.json():null).catch(()=>null);
+  Promise.all([js(BASE+"dividendi/"+nf),js(BASE+"bilanci/"+nf)]).then(([d,bil])=>{
    if(!box.isConnected||!d)return;
+   const cop=copertura(bil&&bil.dividendo);
    const val=d.valuta||t.val,l=lv(t),px=l?l.p:t.p,dy=d.u12&&px?d.u12/px*100:0;
    const FREQ={1:"Annuale",2:"Semestrale",4:"Trimestrale",12:"Mensile"},fq=FREQ[d.freq]||(d.freq?d.freq+" volte l'anno":"&ndash;");
    const S=d.storia||[],mx=Math.max(...S.map(x=>x[1]),0)||1,u=(d.ultimi||[])[0];
-   const info=`<details class="info"><summary title="Come si legge" aria-label="Informazioni">i</summary><div><b>Rendimento</b>: dividendi staccati negli ultimi 12 mesi diviso il prezzo di oggi. <b>Crescita 5 anni</b>: aumento medio annuo del dividendo tra l'ultimo anno completo e 5 anni prima. <b>Anni consecutivi</b>: anni solari di fila con almeno un dividendo. Importi rettificati per i frazionamenti; l'anno in corso &egrave; parziale. Il dividendo si incassa se si possiede il titolo il giorno prima dello <b>stacco</b>. Su Scalable in regime amministrato il dividendo arriva gi&agrave; tassato (26% in Italia, pi&ugrave; l'eventuale ritenuta del paese della societ&agrave;).</div></details>`;
+   const info=`<details class="info"><summary title="Come si legge" aria-label="Informazioni">i</summary><div><b>Rendimento</b>: dividendi staccati negli ultimi 12 mesi diviso il prezzo di oggi. <b>Crescita 5 anni</b>: aumento medio annuo del dividendo tra l'ultimo anno completo e 5 anni prima. <b>Anni di aumenti</b>: anni di fila in cui il dividendo tipico (mediana dei pagamenti dell'anno) &egrave; salito; da 25 in su l'azienda &egrave; un &laquo;aristocratico&raquo; del dividendo. Sotto: anni di fila con almeno un dividendo. Importi rettificati per i frazionamenti; l'anno in corso &egrave; parziale. <b>Copertura</b> (titoli USA, bilanci SEC): dividendi pagati nell'ultimo anno fiscale in percentuale dell'utile e del flusso di cassa libero (cassa operativa meno investimenti). <b>Coperto</b> = sotto il 75%; <b>Attenzione</b> = sopra il 75% o salito di oltre 25 punti in un anno; <b>A rischio</b> = dividendi superiori al flusso di cassa libero o pagati in un anno in perdita. Un payout che sale di colpo spesso anticipa un taglio del dividendo. Il dividendo si incassa se si possiede il titolo il giorno prima dello <b>stacco</b>. Su Scalable in regime amministrato il dividendo arriva gi&agrave; tassato (26% in Italia, pi&ugrave; l'eventuale ritenuta del paese della societ&agrave;).</div></details>`;
    if(!d.u12&&!d.anni){box.innerHTML=`<h4 class="aztit">Dividendi ${info}</h4><p class="small">Nessun dividendo negli ultimi anni.</p>`;box.hidden=false;return;}
    box.innerHTML=`<h4 class="aztit">Dividendi ${info}</h4>
-    <div class="azdvt"><b>${fx(dy,2)}%</b><span>rendimento ultimi 12 mesi<br><em>${prezzo(d.u12,val)} per azione</em></span></div>
+    <div class="azdvt"><b>${fx(dy,2)}%</b><span>rendimento ultimi 12 mesi<br><em>${prezzo(d.u12,val)} per azione</em></span></div>${cop}
     <div class="azmini azdvm"><div><span>${u&&u.d>new Date().toISOString().slice(0,10)?"Prossimo stacco":"Ultimo stacco"}</span><b>${u?gg(u.d):"&ndash;"}</b><small>${u?prezzo(u.v,val)+(u.pag?" &middot; pagato "+gg(u.pag):""):""}</small></div>
      <div><span>Frequenza</span><b>${fq}</b></div>
      <div><span>Crescita 5 anni</span>${d.cagr5==null?'<b class="flat">n/d</b>':`<b class="${d.cagr5>=0?"up":"down"}">${d.cagr5>0?"+":""}${fx(d.cagr5,1)}% <em>l'anno</em></b>`}</div>
-     <div><span>Anni consecutivi</span><b>${d.anni||0}</b></div></div>
+     <div><span>Anni di aumenti</span><b>${d.aumenti??"&ndash;"}${(d.aumenti||0)>=25?' <i class="azarist" title="Dividendo aumentato ogni anno da almeno 25 anni">ARISTOCRATICO</i>':""}</b><small>con dividendo da ${d.anni||0} ${d.anni==1?"anno":"anni"}</small></div></div>
     <div class="azdvb" role="img" aria-label="Dividendi degli ultimi 10 anni">${S.map((x,i)=>`<div title="${x[0]}: ${prezzo(x[1],val)}${i==S.length-1?" (anno in corso)":""}"><i class="${i==S.length-1?"parz":""}" style="height:${Math.max(x[1]?4:0,x[1]/mx*100)}%"></i><em>${String(x[0]).slice(2)}</em></div>`).join("")}</div>`;
    box.hidden=false;});}
 

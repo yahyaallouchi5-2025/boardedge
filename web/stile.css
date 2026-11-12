@@ -2359,3 +2359,26 @@ html.ptmod-on{overflow:hidden}
 
 /* v7.48 scheda Volatilita' (menu Mercati): titolo con (i) accanto, come le altre schede */
 #volat .vltesta{display:flex;align-items:center;gap:10px;margin:0 0 6px}#volat .vltesta h2{margin:0}
+
+/* v7.51 Rischio e costi a confronto: valore migliore di ogni riga in verde, (i) accanto al titolo della sezione */
+.prcfr .pcft td.prbest{color:var(--b);font-weight:700}
+.psez>summary .prinfo{align-self:center}
+.prcfr .prper{display:block;font-size:10.5px;color:var(--mute);font-weight:500;margin-top:1px}
+@media (max-width:600px){.psez>summary{flex-wrap:nowrap;align-items:center}.psez>summary>.small{display:none}.psez>summary h3{font-size:13px}}
+
+/* v7.51 copertura del dividendo: etichetta colorata + payout (scheda del titolo, riquadro Dividendi) */
+.azcop{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:10px 0 2px;padding:9px 12px;border-radius:12px;background:var(--soft);font-size:12.5px;color:var(--ink2)}
+.azcop b{color:var(--ink);font-variant-numeric:tabular-nums}
+.azcopb{flex:none;font-size:10.5px;font-weight:800;letter-spacing:.4px;padding:3px 8px;border-radius:999px;border:1px solid currentColor}
+.azcopb.ok{color:var(--b)}.azcopb.warn{color:var(--warn)}.azcopb.ko{color:var(--s)}
+.azarist{font-style:normal;font-size:9.5px;font-weight:800;letter-spacing:.4px;color:var(--acc);border:1px solid currentColor;border-radius:999px;padding:2px 6px;margin-left:6px;vertical-align:middle}
+
+/* v7.54 tipo di azienda secondo Lynch (riquadro Bilancio) */
+.blyn{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:8px;padding:8px 12px;border-radius:12px;background:var(--soft);font-size:12.5px;color:var(--ink2)}
+.blynt{font-size:10.5px;font-weight:800;letter-spacing:.4px;color:var(--acc);border:1px solid currentColor;border-radius:999px;padding:3px 8px}
+.blyn .info{margin-left:auto}
+.prcfr .pcft th.prsp,.prcfr .pcft td.prsp{border-left:2px dashed var(--line);color:var(--ink2)}
+/* v7.56 su telefono le 4 colonne di numeri devono stare tutte senza scorrere: testo e margini piu' compatti */
+@media (max-width:600px){.prcfr{padding:10px 8px}.prcfr .pcft{table-layout:fixed;width:100%}.prcfr .pcft th,.prcfr .pcft td{padding:8px 4px;font-size:11.5px}
+ .prcfr .pcft th:first-child,.prcfr .pcft td:first-child{width:31%;min-width:0;padding-left:8px;font-size:11.5px;line-height:1.3}
+ .prcfr .pcft th{font-size:9.5px;letter-spacing:0}.prcfr .pcft td:last-of-type,.prcfr .pcft th:last-of-type{padding-right:8px}}
