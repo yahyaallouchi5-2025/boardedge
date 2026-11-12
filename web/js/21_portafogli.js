@@ -577,7 +577,13 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const azR=RQ?Math.round((rk_cl["azioni"]||0)+(rk_cl["azioni singole"]||0)):null,azP=Math.round((cl["azioni"]||0)+(cl["azioni singole"]||0));
   const rkTag=k=>{if(!RQ)return "";const v=Math.round(rk_cl[k]||0);return `<em class="phrk${v>=cl[k]+5?" su":""}" title="Quota del rischio del portafoglio portata da questa classe">rischio ${v}%</em>`;};
   const rkBar=k=>RQ?`<u><s style="width:${Math.max(0,Math.min(100,rk_cl[k]||0))}%"></s></u>`:"";
-  const rkNota=RQ?`<p class="phrkn">Volatilit&agrave; del portafoglio <b>${fx(RQ.vol,1)}%</b> l'anno &middot; le azioni pesano il <b>${azP}%</b> e portano il <b>${azR}%</b> del rischio</p>`:"";
+  // v7.57 TRE NUMERI DI RISCHIO al posto della frase: volatilita', mese difficile (1 su 20, in % e in euro sul
+  //   capitale scritto dall'utente), rischio dal cambio. Spiegazioni solo nel fumetto (i). Dati: p.rischio_quote.
+  const mEur=RQ&&RQ.mese95!=null?eur(Math.round(capitale*RQ.mese95/100)):null;
+  const rkNota=RQ?`<div class="phrk3"><div><em>Volatilit&agrave;</em><b>${fx(RQ.vol,1)}%</b><span>l'anno</span></div>
+    ${RQ.mese95!=null?`<div><em>Mese difficile</em><b class="${RQ.mese95<0?"down":""}">${pc(RQ.mese95)}</b><span>${mEur} &middot; 1 mese su 20</span></div>`:""}
+    ${RQ.cambio!=null?`<div><em>Rischio dal cambio</em><b>${RQ.cambio}%</b><span>euro / dollaro</span></div>`:""}
+    <details class="info"><summary title="Come leggere" aria-label="Come leggere">i</summary><div><b>Volatilit&agrave;</b>: quanto oscilla il portafoglio in un anno; le azioni pesano il ${azP}% e portano il ${azR}% del rischio.${RQ.mese95!=null?`<br><br><b>Mese difficile</b>: con la composizione di oggi, circa 1 mese su 20 chiude peggio di ${pc(RQ.mese95)} (${mEur} su ${eur(capitale)}). Calcolo sui 3 anni passati, in euro: nelle prove dal 2006 &egrave; stato superato nel 3&ndash;9% dei mesi. Non &egrave; la perdita massima.`:""}${RQ.cambio!=null?`<br><br><b>Rischio dal cambio</b>: quanta parte delle oscillazioni viene dal dollaro e non dai mercati (ultimi ${RQ.giorni} giorni).${RQ.cambio_media!=null?` Media storica del profilo: ${RQ.cambio_media}%.`:""} Sotto zero = il dollaro ha attenuato le oscillazioni.`:""}</div></details></div>`:"";
   const te=p.stat_eur&&p.stat_eur.totale,finale=te&&te.totale!=null?10000*(1+te.totale/100):t.totale!=null?10000*(1+t.totale/100):null   /* v6.57: 10.000 EURO -> si usa la curva in euro */,anno=(t.dal||"").slice(0,4);
   return `<div class="card phero"><div class="phtesta"><h3>${esc(p.nome)}${infoProfilo(p,t)}</h3><div class="phazioni"><span class="prisk ${rk[1]}">Rischio ${rk[0].toLowerCase()}</span>${window.ebPdf?ebPdf.bottone():""}</div></div>
    <div class="phnum"><div><em>Rendimento annuo</em><b class="up">${pc(t.cagr)}</b><span>media dal ${anno}</span></div>

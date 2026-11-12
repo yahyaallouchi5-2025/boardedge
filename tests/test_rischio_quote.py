@@ -68,3 +68,32 @@ class QuoteRischio(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class PerditaMeseECambio(unittest.TestCase):
+    """v7.57 perdita del mese (1 su 20) e quota di rischio dal cambio."""
+
+    def setUp(self):
+        import math
+        giorni = [(date(2019, 1, 1) + timedelta(days=i)).isoformat() for i in range(1500)]
+        giorni = [d for d in giorni if date.fromisoformat(d).weekday() < 5]
+        on = lambda a, per: [(d, 100 * math.exp(0.0002 * i + a * math.sin(i / per))) for i, d in enumerate(giorni)]
+        self.g = P.Griglia({"SPY": on(0.10, 9.0), "IEF": on(0.02, 5.0), "GLD": on(0.05, 13.0)})
+        self.fx = {d: 1.1 + 0.05 * math.sin(i / 7.0) for i, d in enumerate(giorni)}
+        self.fermo = {d: 1.1 for d in giorni}
+
+    def test_perdita_negativa_e_cresce_con_il_rischio(self):
+        poco = P.perdita_mese(self.g, {"SP500": 0.2, "CASH": 0.8})
+        tanto = P.perdita_mese(self.g, {"SP500": 1.0})
+        self.assertLess(tanto, poco)
+        self.assertLess(poco, 0)
+
+    def test_sola_liquidita_zero(self):
+        self.assertEqual(P.perdita_mese(self.g, {"CASH": 1.0}), 0.0)
+
+    def test_cambio_fermo_quota_zero(self):
+        self.assertEqual(P.quota_cambio(self.g, {"SP500": 1.0}, self.fermo), 0)
+
+    def test_cambio_mosso_quota_positiva_e_assente_senza_cambio(self):
+        self.assertGreater(P.quota_cambio(self.g, {"US10Y": 1.0}, self.fx), 50)     # mercato calmo: domina il cambio
+        self.assertIsNone(P.quota_cambio(self.g, {"SP500": 1.0}, None))

@@ -74,7 +74,7 @@ function ebVerifica(dove){try{(function(){const solaVol=dove=="vol",el=$(solaVol
   const R=P.regime,S=P.settimane,o=P.oggi,mOra=new Date().getMonth(),aOra=String(new Date().getFullYear());
   const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
   const reg=R?`<div class="card vfregime" style="--vc:${VCOL[R.nome]}"><div><h3>Regime di adesso</h3><div class="big" style="color:var(--vc)">${R.nome.toUpperCase()}</div>
-   <div class="note">ultime 4 settimane: <b>${fp(R.vol,1)}</b> di volatilit&agrave; annua, pi&ugrave; alta del <b>${R.pct}%</b> dei periodi degli ultimi 5 anni</div></div>
+   <div class="note">ultime 4 settimane: <b>${fp(R.vol,1)}</b> di volatilit&agrave; annua, pi&ugrave; alta del <b>${R.pct}%</b> dei periodi degli ultimi 5 anni${R.prev!=null?` &middot; stima prossimo mese <span class="vfprev"><b>${fp(R.prev,1)}</b> <details class="info"><summary title="Come si stima" aria-label="Come si stima">i</summary><div>Stima EWMA: i giorni recenti pesano di pi&ugrave; (ieri 6%, poi a scalare). Nelle nostre prove prevede la volatilit&agrave; del mese dopo meglio della media semplice. &Egrave; una stima, non una certezza.</div></details></span>`:""}</div></div>
    <div class="vfpct"><div class="vfpbar"><i style="left:${R.pct}%"></i></div><div class="scale"><span>calma</span><span>normale</span><span>agitata</span></div></div></div>`:"";
   // movimento in PUNTI sull'ultimo prezzo: pip per i cambi (0,01 se la quotata e' lo yen), punti indice, dollari
   const u=/^[A-Z]{6}$/.test(V.asset)?["pip",V.asset.endsWith("JPY")?0.01:0.0001]:["SP500","NASDAQ","DOW"].includes(V.asset)?["punti",1]:["$",1];
