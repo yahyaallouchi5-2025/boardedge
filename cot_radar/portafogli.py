@@ -83,7 +83,7 @@ LIQUIDITA = ("CASH", "SHY", "Liquidità", "ETF Treasury USA 1-3 anni (parcheggio
 # Quota "Azioni scelte": 5 titoli dell'Azionario a pari peso, scelti ogni mese da satellite.py (workflow delle azioni).
 # Nei calcoli e' un mercato sintetico "SAT": prezzo costruito dai rendimenti mensili dello storico simulato e, dal
 # live, dai prezzi giornalieri dei titoli registrati (vedi serie_satellite()).
-AZIONI_SCELTE = ("AZ", "SAT", "Azioni scelte", "5 azioni dell'Azionario a pari peso (1 per settore)", "azioni singole")
+AZIONI_SCELTE = ("AZ", "SAT", "Azioni scelte", "Fino a 20 azioni dell'Azionario a pari peso", "azioni singole")   # v7.61
 # Prezzi in piu' che NON entrano nei portafogli: servono alla scheda Correlazioni (correlazioni.py) -> settori USA
 # (ETF SPDR) e dollaro (UUP). Scaricati e salvati insieme agli altri, una volta al giorno.
 EXTRA = ["XLK", "XLC", "XLY", "XLF", "XLI", "XLE", "XLB", "XLV", "XLP", "XLU", "XLRE", "UUP"]
@@ -134,15 +134,22 @@ PROFILI = [
     {"id": "conservativo", "nome": "Conservativo", "rischio": "Basso", "dd": 14, "az": .05,
      "base": {"SP500": .15, "EAFE": .10, "COPPER": .025, "WTI": .025, "US10Y": .225, "GOLD": .15, "CASH": .325},
      "descr": "Protezione del capitale prima di tutto: liquidità, Treasury e oro come cuscinetto sempre presente, "
-              "azioni globali, un 5% di rame e petrolio contro l'inflazione e una piccola quota di 5 azioni scelte."},
+              "azioni globali, un 5% di rame e petrolio contro l'inflazione e una piccola quota di 5 azioni scelte.",
+     # v7.61 testo da dicembre 2026 (la quota delle azioni scelte passa all'S&P 500)
+     "descr_dic": "Protezione del capitale prima di tutto: liquidità, Treasury e oro come cuscinetto sempre presente, "
+                  "azioni globali e un 5% di rame e petrolio contro l'inflazione."},
     {"id": "moderato", "nome": "Moderato", "rischio": "Medio", "dd": 17, "az": .10,
      "base": {"SP500": .30, "EAFE": .10, "EM": .05, "COPPER": .025, "WTI": .025, "US10Y": .15, "GOLD": .15, "CASH": .20},
      "descr": "Equilibrio tra crescita e difesa: azioni USA, Europa/Asia ed emergenti bilanciate da Treasury, oro, "
-              "liquidità e un 5% di rame e petrolio, più un 10% in 5 azioni scelte ogni mese."},
+              "liquidità e un 5% di rame e petrolio, più un 10% in 5 azioni scelte ogni mese.",
+     "descr_dic": "Equilibrio tra crescita e difesa: azioni USA, Europa/Asia ed emergenti bilanciate da Treasury, oro, "
+                  "liquidità e un 5% di rame e petrolio."},
     {"id": "aggressivo", "nome": "Aggressivo", "rischio": "Alto", "dd": 20, "az": .15,
      "base": {"SP500": .35, "NASDAQ": .15, "EAFE": .10, "EM": .10, "COPPER": .025, "WTI": .025, "US10Y": .05, "GOLD": .15, "BTC": .05},
      "descr": "Massima crescita: indici azionari con tecnologia, emergenti, un 5% di rame e petrolio e una piccola quota "
-              "di Bitcoin, più il 15% in 5 azioni scelte. Drawdown più ampi, ripagati da un rendimento più alto."},
+              "di Bitcoin, più il 15% in 5 azioni scelte. Drawdown più ampi, ripagati da un rendimento più alto.",
+     "descr_dic": "Massima crescita: indici azionari con tecnologia, emergenti, un 5% di rame e petrolio, una piccola quota "
+                  "di Bitcoin e il 15% in azioni scelte ogni mese (fino a 20). Drawdown più ampi, ripagati da un rendimento più alto."},
 ]
 # Mercati SENZA filtro di trend: la difesa resta sempre in portafoglio (il filtro li faceva entrare e uscire di
 # continuo: tanti scambi, tasse e costi per un beneficio che nello studio non c'era).
@@ -175,6 +182,9 @@ LIVE_V3_DAL = "2026-11-01"     # la linea live della versione 3 parte dalla prim
 # della volatilita' (22,7% contro 10,4%) e drawdown -37% contro -23%: nessun vantaggio. I numeri della pagina
 # contavano gia' la quota come S&P 500 (misura prudente), quindi le statistiche non cambiano. Lo storico resta com'era.
 AZ_FINO = "2026-12-01"
+# v7.61 (Ya, 12/11/2026): dopo AZ_FINO la quota resta SOLO in questi profili, con la regola nuova delle azioni scelte
+# (fino a 20 titoli, quota divisa tra quelli tenuti: satellite.py). Negli altri passa all'S&P 500 come deciso il 7/11.
+AZ_DOPO = ("aggressivo",)
 for _p in PROFILI:                                   # mercati ammessi = quelli della base (per la pagina)
     _p["ammessi"] = [k for k in _p["base"] if k != "CASH"] + (["AZ"] if _p.get("az") else [])
 INIZIO = "2006-01-01"          # primo ribilanciamento (prima i dati degli ETF sono troppo pochi)
@@ -525,7 +535,7 @@ def scegli(profilo, g, i, sc, regola=None, giorno=None):
     giorno = giorno or g.date[i]
     pesi, info, esclusi = {}, {}, []
     az0 = profilo.get("az", 0)                                  # quota originale (scala la base)
-    az = az0 if giorno < AZ_FINO else 0                         # v7.1: da dicembre 2026 la quota va all'S&P 500
+    az = az0 if (giorno < AZ_FINO or profilo.get("id") in AZ_DOPO) else 0   # v7.1/v7.61: da dicembre solo l'Aggressivo
     if az:
         # QUOTA AZIONI SCELTE: accesa solo se l'S&P 500 e' sopra la sua media a 200 giorni (filtro di MERCATO:
         # nel 2008 senza filtro la quota perdeva il 55%), altrimenti va in liquidita' come gli ETF in pausa.
@@ -544,7 +554,7 @@ def scegli(profilo, g, i, sc, regola=None, giorno=None):
         else:
             pesi["CASH"] = az
             esclusi.append({"k": "AZ", "score": None, "trend": trend, "base": round(az * 100, 1),
-                            "motivo": "S&P 500 sotto la media a 200 giorni: le 5 azioni scelte sono in pausa nella liquidità"})
+                            "motivo": "S&P 500 sotto la media a 200 giorni: le azioni scelte sono in pausa nella liquidità"})
     for k, w in profilo["base"].items():
         w = w * (1 - az0)                                       # la base occupa cio' che resta dopo la quota azioni
         if k == "SP500" and az0 and not az:
@@ -1722,7 +1732,7 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
     corrente, chiusi = [], {}
     # i 5 titoli del mese della rotazione (registrati dal vivo da satellite.py; prima del live: ultima scelta simulata)
     mese_rot = (attesa or g.date[ultimo_rib])[:7]
-    satellite_n = (sat or {}).get("n") or 5
+    satellite_n = 5                                     # regola fino a novembre 2026 (v7.61: poi quota divisa tra i tenuti)
     reg = ((sat or {}).get("registro") or {}).get(mese_rot)
     ante = (sat or {}).get("anteprima") or None       # anteprima dei titoli del mese prossimo (provvisoria)
     if reg:
@@ -1818,7 +1828,10 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
                         x["eur"] = _in_euro((acq.get("prezzi") or {}).get(x["t"]), fx)
                     c["riserve"] = [{"t": r["t"], "n": r["n"], "s": r["s"], "pt": r["pt"], "eur": _in_euro(r, fx)}
                                     for r in acq.get("riserve") or [] if _in_euro(r, fx)]
-                c["peso_titolo"] = round(c["peso"] / satellite_n, 1)
+                # v7.61: quota divisa tra i titoli davvero tenuti (prima di dicembre 2026: sempre 1/5)
+                n_tit = len(titoli_az) if mese_rot >= "2026-12" else satellite_n
+                c["peso_titolo"] = round(c["peso"] / n_tit, 1) if n_tit else 0
+                c["regola20"] = mese_rot >= "2026-12"             # la pagina: riserve senza limite per settore
                 if ante and ante.get("titoli"):
                     c["anteprima"] = ante
         cambi = []
@@ -1834,14 +1847,20 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
             rq["cambio"] = quota_cambio(g, pesi, fxp)
             passate = [q for q in (quota_cambio(g, pp, fxp, fino=g.pos[d] - 1) for d, pp in storia if d in g.pos) if q is not None]
             rq["cambio_media"] = round(sum(passate) / len(passate)) if len(passate) >= 24 else None
+        # v7.61: da dicembre 2026 (AZ_FINO) la quota delle azioni scelte resta solo nei profili AZ_DOPO; negli altri
+        # la base la mostra dentro l'S&P 500 e la descrizione e' quella nuova (descr_dic)
+        dic = (attesa or g.date[ultimo_rib]) >= AZ_FINO
+        az_on = prof.get("az", 0) if (not dic or prof["id"] in AZ_DOPO) else 0
+        base_out = [{"k": k, "nome": TUTTI[k][2],
+                     "peso": round((w * (1 - prof.get("az", 0)) + (prof.get("az", 0) - az_on if k == "SP500" else 0)) * 100)}
+                    for k, w in prof["base"].items()]
         out_prof.append({
-            "id": prof["id"], "nome": prof["nome"], "descr": prof["descr"], "dd_rif": prof["dd"],
+            "id": prof["id"], "nome": prof["nome"], "descr": prof.get("descr_dic") if dic else prof["descr"],
+            "dd_rif": prof["dd"],
             "rischio": prof.get("rischio"),
-            "az": 0 if (attesa or g.date[ultimo_rib]) >= AZ_FINO else round(prof.get("az", 0) * 100),
-            "base": [{"k": k, "nome": TUTTI[k][2], "peso": round(w * (1 - prof.get("az", 0)) * 100)}
-                     for k, w in prof["base"].items()] + ([{"k": "AZ", "nome": TUTTI["AZ"][2], "peso": round(prof["az"] * 100)}]
-                                                          if prof.get("az") else []),
-            "ammessi": [{"k": k, "nome": TUTTI[k][2]} for k in prof["ammessi"]],
+            "az": round(az_on * 100),
+            "base": base_out + ([{"k": "AZ", "nome": TUTTI["AZ"][2], "peso": round(az_on * 100)}] if az_on else []),
+            "ammessi": [{"k": k, "nome": TUTTI[k][2]} for k in prof["ammessi"] if k != "AZ" or az_on],
             "composizione": comp, "esclusi": esclusi,
             "rischio_quote": rq,                                      # v7.41 quanto rischio porta ogni mercato (+ v7.57)
             "mese": rischio_mese(g, pesi, mese_rot[5:7], mese_rot),
