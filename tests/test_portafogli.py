@@ -347,14 +347,27 @@ class Simulatore(unittest.TestCase):
 
 
 class AzioniInSP500(unittest.TestCase):
-    """v7.1: dalla rotazione di dicembre 2026 la quota delle 5 azioni va all'S&P 500 (stessi pesi totali)."""
+    """v7.1: dalla rotazione di dicembre 2026 la quota delle azioni scelte va all'S&P 500 (stessi pesi totali).
+    v7.61: tranne nell'Aggressivo, che la tiene (fino a 20 titoli)."""
+
+    def test_aggressivo_tiene_az_a_dicembre(self):
+        px = P.prezzi_demo("2003-01-01", "2026-11-06")
+        px["SAT"] = list(px["SPY"])
+        g = P.Griglia(px)
+        g.p["SPY"] = [100.0 * (1.001 ** k) for k in range(len(g.date))]
+        prof = [x for x in P.PROFILI if x["id"] == "aggressivo"][0]
+        i = len(g.date) - 1
+        prima, _, _ = P.scegli(prof, g, i, {}, giorno="2026-11-02")
+        dopo, _, _ = P.scegli(prof, g, i, {}, giorno="2026-12-01")
+        self.assertEqual(prima, dopo)
+        self.assertAlmostEqual(dopo["AZ"], 0.15, places=3)
 
     def test_da_dicembre_niente_az(self):
         px = P.prezzi_demo("2003-01-01", "2026-11-06")
         px["SAT"] = list(px["SPY"])
         g = P.Griglia(px)
         g.p["SPY"] = [100.0 * (1.001 ** k) for k in range(len(g.date))]   # S&P 500 in salita: filtri accesi
-        prof = [x for x in P.PROFILI if x["id"] == "aggressivo"][0]
+        prof = [x for x in P.PROFILI if x["id"] == "moderato"][0]
         i = len(g.date) - 1
         prima, _, _ = P.scegli(prof, g, i, {}, giorno="2026-11-02")
         dopo, _, _ = P.scegli(prof, g, i, {}, giorno="2026-12-01")

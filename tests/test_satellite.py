@@ -54,9 +54,23 @@ class Satellite(unittest.TestCase):
 
     def test_scelta_regole_e_un_titolo_per_settore(self):
         tt = S.carica(self.dir, self.el)
-        sc = S.scelta(tt, S._n("2025-10"))
+        sc = S.scelta(tt, S._n("2025-10"), vecchia=True)          # regola fino a novembre 2026
         self.assertEqual(sorted(x["t"] for x in sc), ["T0", "T1", "T2", "T3", "T4"])   # i titoli in calo esclusi
         self.assertEqual(len({x["s"] for x in sc}), len(sc))
+
+    def test_v761_fino_a_20_senza_limite_settore(self):
+        tt = S.carica(self.dir, self.el)
+        ok = S.candidati(tt, S._n("2025-10"))
+        sc = S.scelta(tt, S._n("2025-10"))
+        self.assertEqual([x["t"] for x in sc], [x["t"] for x in ok][:20])   # tutti quelli che passano, max 20
+        self.assertLessEqual(len(sc), 20)
+
+    def test_v761_pesi_e_costi(self):
+        self.assertEqual(S.pesi_mese("2026-11", ["A", "B"]), {"A": 0.2, "B": 0.2})   # regola vecchia: 1/5, resto liquidita'
+        self.assertEqual(S.pesi_mese("2026-12", ["A", "B"]), {"A": 0.5, "B": 0.5})   # regola nuova: quota divisa
+        self.assertEqual(S.pesi_mese("2026-12", []), {})
+        self.assertAlmostEqual(S.costo_cambio({"A": 0.5, "B": 0.5}, {"A": 1.0}), S.COSTO * 1.0)
+        self.assertAlmostEqual(S.costo_cambio({}, {"A": 0.25, "B": 0.25, "C": 0.25, "D": 0.25}), S.COSTO)
 
     def test_registro_ultimo_giorno_e_mai_riscritto(self):
         tt = S.carica(self.dir, self.el)

@@ -1,6 +1,16 @@
 # -*- coding: utf-8 -*-
 """
-satellite.py - LE 5 AZIONI DEI PORTAFOGLI MODELLO (quota "Azioni scelte" di conservativo, moderato e aggressivo)
+satellite.py - LE AZIONI SCELTE DEI PORTAFOGLI MODELLO (quota "Azioni scelte")
+
+v7.61 (Ya, 12/11/2026) DA DICEMBRE 2026: FINO A 20 TITOLI, quanti ne passano i filtri, quota divisa in parti uguali
+  tra quelli tenuti (2 titoli = 50% ciascuno; nessuno = liquidita'), NESSUN limite per settore; la quota resta solo
+  nell'AGGRESSIVO (portafogli.py, AZ_DOPO). Studio studi/studio_numero_variabile.py con i dati SENZA bias di
+  sopravvivenza (tutte le azioni USA, anche fallite o comprate): "al massimo 20" ha reso 10,8% (2005-15) e 10,1%
+  (2016-oggi) contro 8,6% e 8,2% dell'S&P 500 con lo stesso filtro, con drawdown -23,4% e -20,7% (S&P -16,6% e -23,0%)
+  e volatilita' 15,5% contro 10,4%. Non supera la regola fissata prima (drawdown 2005-15 peggiore): scelta di Ya,
+  che accetta il drawdown per l'Aggressivo. I mesi registrati PRIMA (novembre 2026, 5 titoli) restano com'erano:
+  il registro non si riscrive mai e quei mesi si calcolano con la regola vecchia (1/5 a titolo, posti vuoti in liquidita').
+  Il testo qui sotto descrive la regola fino a novembre 2026.
 
 IDEA
   Ogni mese i portafogli tengono, accanto alla base di ETF, una quota di 5 azioni prese dall'Azionario
@@ -36,7 +46,9 @@ from datetime import date, timedelta
 from . import azioni as A
 from .log import log
 
-N = 5                          # titoli nella quota
+N = 20                         # v7.61: AL MASSIMO 20 titoli (quanti ne passano i filtri), quota divisa tra loro
+N_VECCHIO = 5                  # regola fino a novembre 2026: al massimo 5, ogni titolo 1/5 della quota
+REGOLA_V20 = "2026-12"         # primo mese registrato dal vivo con la regola nuova
 COSTO = 0.002                  # 0,20% su ogni titolo che entra o esce (commissioni + spread delle azioni)
 DAL = "2005-01"                # primo mese di decisione dello storico simulato
 LIVE_DAL = "2026-11"           # primo mese registrato dal vivo
@@ -157,32 +169,52 @@ def scelta_libera(titoli, t, n=None):
     return candidati(titoli, t)[:n or SFIDANTE_N]
 
 
-def scelta(titoli, t, n=N):
-    """I titoli scelti alla chiusura del mese intero t (per il mese t+1): righe con punteggio 'pt'."""
+def scelta(titoli, t, n=N, vecchia=False):
+    """I titoli scelti alla chiusura del mese intero t (per il mese t+1): righe con punteggio 'pt'.
+    v7.61: i primi n per punteggio tra quelli che passano i filtri, SENZA limite per settore (come nello studio).
+    vecchia=True: regola fino a novembre 2026 (al massimo N_VECCHIO titoli, 1 per settore)."""
     ok = candidati(titoli, t)
+    if not vecchia:
+        return ok[:n]
     out, settori = [], set()
     for r in ok:
-        if r["s"] in settori:
-            continue
-        settori.add(r["s"])
-        out.append(r)
-        if len(out) == n:
+        if r["s"] not in settori:
+            settori.add(r["s"])
+            out.append(r)
+        if len(out) == N_VECCHIO:
             break
     return out
+
+
+def pesi_mese(mese, tickers):
+    """{ticker: peso nella quota} per un mese 'AAAA-MM'. Da REGOLA_V20: quota divisa tra i titoli tenuti.
+    Prima: 1/N_VECCHIO a titolo (i posti vuoti restano liquidita'), come quando quei mesi furono registrati."""
+    tickers = list(tickers)
+    if not tickers:
+        return {}
+    w = 1 / len(tickers) if mese >= REGOLA_V20 else 1 / N_VECCHIO
+    return {t: w for t in tickers}
+
+
+def costo_cambio(prima, ora):
+    """Costo del cambio di composizione: COSTO x somma dei pesi comprati e venduti (prima/ora = {ticker: peso})."""
+    return COSTO * sum(abs(ora.get(t, 0) - prima.get(t, 0)) for t in set(prima) | set(ora))
 
 
 # --------------------------------------------------------------------------- storico simulato
 def storico(titoli, fino):
     """[[mese 'AAAA-MM', rendimento del mese, [ticker]]] dal DAL al mese intero `fino` incluso (mesi chiusi).
-    Rendimento = media dei titoli scelti alla fine del mese prima (posti vuoti = 0), meno i costi di cambio."""
+    v7.61: TUTTO lo storico simulato usa la regola nuova (fino a 20 titoli, quota divisa tra loro, nessun limite per
+    settore): e' una simulazione, quindi si mostra la regola che si applica da oggi. Meno i costi di cambio."""
     per = {x.t: x for x in titoli}
-    out, prima = [], set()
+    out, prima = [], {}
     for t in range(_n(DAL), fino):
         sc = scelta(titoli, t)
-        r = sum(per[x["t"]].p[t + 1] / per[x["t"]].p[t] - 1 for x in sc if t + 1 in per[x["t"]].p) / N
-        ora = {x["t"] for x in sc}
-        r -= COSTO * len(ora ^ prima) / N
-        prima = ora
+        w = 1 / len(sc) if sc else 0.0
+        r = sum(w * (per[x["t"]].p[t + 1] / per[x["t"]].p[t] - 1) for x in sc if t + 1 in per[x["t"]].p)
+        ora_p = {x["t"]: w for x in sc}
+        r -= costo_cambio(prima, ora_p)
+        prima, ora = ora_p, set(ora_p)
         # 4o elemento (v6.52): rendimento del mese di ogni titolo scelto, per il dettaglio "Ultime rotazioni"
         det = {x["t"]: round(per[x["t"]].p[t + 1] / per[x["t"]].p[t] - 1, 5) for x in sc if t + 1 in per[x["t"]].p}
         out.append([_ym(t + 1), round(r, 5), sorted(ora), det])
@@ -240,7 +272,7 @@ def registra(cartella, titoli, oggi, ora=None):
         mese, t = cur, cur - 1                 # ripiego: primo giro utile del mese, dati fino al mese prima
     if _ym(mese) < LIVE_DAL or _ym(mese) in reg:
         return reg
-    sc = scelta(titoli, t)
+    sc = scelta(titoli, t, vecchia=_ym(mese) < REGOLA_V20)   # v7.61: i mesi prima di dicembre 2026 con la regola vecchia
     voci = []
     for x in sc:
         giorno, p0 = _ultimo_prezzo(cartella, x["t"])
@@ -285,8 +317,8 @@ def _prezzo_al_giorno(cartella, t, giorno):
 def acquisto(cartella, reg, titoli, n_riserve=40):
     """v6.91 ACQUISTO DIRETTO a quote intere: ultimo prezzo e valuta dei titoli del mese registrato piu' recente e una
     lista di RISERVE (i candidati successivi della stessa regola alla stessa data, in ordine di punteggio). Se con il
-    capitale dell'utente 1 azione costa piu' della sua quota, la pagina usa la prima riserva che ci sta (altro settore
-    ammesso, sempre al massimo 1 titolo per settore). Il registro e le regole non cambiano."""
+    capitale dell'utente 1 azione costa piu' della sua quota, la pagina usa la prima riserva che ci sta (v7.61: senza
+    limite per settore, come la regola). Il registro e le regole non cambiano."""
     if not reg or not titoli:
         return None
     mese = max(reg)
@@ -311,14 +343,15 @@ def acquisto(cartella, reg, titoli, n_riserve=40):
 
 def live(cartella, reg):
     """Indice giornaliero della quota dal primo mese registrato: [[data, valore]] (parte da 1).
-    Ogni mese: media dei titoli registrati (prezzo / prezzo di registrazione; posti vuoti = 1), concatenata."""
-    out, v0, prima = [], 1.0, set()
+    Ogni mese: somma pesata dei titoli registrati (prezzo / prezzo di registrazione) + liquidita' per la parte non
+    investita; pesi da pesi_mese (regola del mese in cui furono registrati). Mesi concatenati."""
+    out, v0, prima = [], 1.0, {}
     for mese in sorted(reg):
         voci = reg[mese]["titoli"]
         dal = reg[mese]["dal"]
-        ora = {x["t"] for x in voci}
-        v0 *= 1 - COSTO * len(ora ^ prima) / N
-        prima = ora
+        pesi = pesi_mese(mese, [x["t"] for x in voci])
+        v0 *= 1 - costo_cambio(prima, pesi)
+        prima = pesi
         serie = {}
         for x in voci:
             rec = A._leggi(os.path.join(cartella, "grezzi", A._nome_file(x["t"]) + ".json")) or {}
@@ -332,7 +365,7 @@ def live(cartella, reg):
             for x in voci:
                 if d in serie[x["t"]]:
                     ultimo[x["t"]] = serie[x["t"]][d]
-            val = v0 * (sum(ultimo[x["t"]] / x["p0"] for x in voci) + (N - len(voci))) / N
+            val = v0 * (sum(pesi[x["t"]] * ultimo[x["t"]] / x["p0"] for x in voci) + (1 - sum(pesi.values())))
             out.append([d, round(val, 5)])
         v0 = val
     return out
@@ -415,7 +448,7 @@ def calcola(cartella, oggi=None, titoli=None, anomalia=False):
         sf10 = sfidante(cartella, tt if not anomalia else [], reg, oggi)
     except Exception as e:
         log.warning("satellite: sfidante a 10 titoli non calcolato: %s", e)
-    dati = {"aggiornato": oggi.isoformat(), "n": N, "costo": COSTO, "live_dal": LIVE_DAL, "titoli_universo": len(tt),
+    dati = {"aggiornato": oggi.isoformat(), "n": N, "regola_dal": REGOLA_V20, "costo": COSTO, "live_dal": LIVE_DAL, "titoli_universo": len(tt),
             "storico": st, "live": live(cartella, reg_eff), "registro": reg_eff, "anteprima": ante,
             "sfidante10": sf10,
             "acquisto": acquisto(cartella, reg_eff, tt),        # v6.91: prezzi e riserve per l'acquisto a quote intere
