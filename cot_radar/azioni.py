@@ -826,9 +826,18 @@ def main(argv):
                    "mancati": len(stato["copia"]) + len(stato["falliti"])}
     # v6.95 AUTO-GUARIGIONE delle ALTRE aree: la loro anomalia si ricalcola dalle copie salvate (senza scaricare).
     # Se nel frattempo i dati sono freschi l'avviso sparisce; se un'area resta ferma troppo a lungo, si accende.
+    # v7.61 RECUPERO: GitHub a volte ritarda di ore o salta un giro programmato (12/11/2026: giro Europa partito con 5 ore
+    # di ritardo, la striscia "In manutenzione" e' rimasta accesa per ore con i dati di un'area indietro di 2 sedute).
+    # Se un'ALTRA area risulta indietro, i suoi titoli si scaricano subito in questo giro (solo quando serve).
     for a in AREE:
         if a in aree and (sel != "tutte" and a != sel):
-            aree[a]["anomalia"] = freschezza(cartella, [t for t in tutti if area(t) == a], CHIUSURA.get(a, CHIUSURA_UTC))
+            tit_a = [t for t in tutti if area(t) == a]
+            aree[a]["anomalia"] = freschezza(cartella, tit_a, CHIUSURA.get(a, CHIUSURA_UTC))
+            if aree[a]["anomalia"] and not stato.get("fermo"):
+                log.warning("azioni: area %s indietro (giro saltato o in ritardo): recupero in questo giro", a)
+                rec = aggiorna(cartella, tit_a, chiusura=CHIUSURA.get(a, CHIUSURA_UTC))
+                aree[a] = {"quando": rec["quando"], "anomalia": rec.get("anomalia"), "ok": rec["ok"],
+                           "mancati": len(rec["copia"]) + len(rec["falliti"]), "recupero": True}
     stato["area"], stato["aree"] = sel, aree
     stato["anomalia"] = next((v["anomalia"] for v in aree.values() if v.get("anomalia")), None)
     if sel in ("usa", "tutte"):

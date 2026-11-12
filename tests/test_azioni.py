@@ -283,6 +283,27 @@ class TestTreGiri(unittest.TestCase):
             self.assertIn("europa", st["aree"])
             self.assertIsNone(st["anomalia"])
 
+    def test_v761_area_indietro_recuperata_nello_stesso_giro(self):
+        """Giro Asia saltato da GitHub: il giro Europa scarica anche i titoli asiatici rimasti indietro."""
+        el = [{"t": "BBB.MI", "nome": "B", "s": "fin", "l": ["mib"]},
+              {"t": "CCC.T", "nome": "C", "s": "ind", "l": ["n225"]}]
+        with open(os.path.join(self.dir, "stato.json"), "w") as f:      # l'Asia c'era, ma senza dati freschi
+            json.dump({"aree": {"asia": {"quando": "2026-11-01 11:00", "anomalia": None, "ok": 1, "mancati": 0}}}, f)
+        chiesti = []
+
+        def sca(t, *a, **k):
+            chiesti.append(t)
+            return finto(t, *a, **k)
+        with mock.patch.object(A, "elenco", return_value=el), mock.patch.object(A, "INDICI", []), \
+                mock.patch.object(A, "scarica", sca), mock.patch.object(A, "PAUSA", 0), \
+                mock.patch("cot_radar.azioni.aggiorna.__defaults__",
+                           (None, None, sca, 0, None, A.CHIUSURA_UTC, None)):
+            A.main(["x", self.dir, "--area", "europa"])
+            self.assertEqual(set(chiesti), {"BBB.MI", "CCC.T"})
+            st = json.load(open(os.path.join(self.dir, "stato.json")))
+            self.assertTrue(st["aree"]["asia"].get("recupero"))
+            self.assertIsNone(st["anomalia"])
+
 
 class TestParacadute(unittest.TestCase):
     """v6.95: "in manutenzione" solo se i dati sono davvero vecchi (oltre una seduta), non per un giro fallito."""

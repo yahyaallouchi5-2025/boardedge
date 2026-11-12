@@ -8,6 +8,8 @@
    - se l'aggiornamento della sera non e' riuscito (indice.anomalia) o il file non arriva: popup comune di
      manutenzione (manutenzione.js) con giorno e ora dell'anomalia, e la scheda mostra gli ultimi dati validi.
    DEBUG: F12 -> Console -> window.__azioni (dati caricati). */
+// v7.61 nomi corti dei settori nelle card (il nome lungo andava a capo e disallineava la riga di card)
+const NOME_CARD={cstap:"Prima necessità"};
 try{(function(){const el=$("azioni");if(!el)return;
  const BASE="../azioni/",PAG=50;                       // titoli per pagina della tabella
  const ST={dati:null,list:"tutti",set:"tutti",ord:"pt",dir:-1,cerca:"",pag:1,per:"1a",tit:null};
@@ -198,10 +200,11 @@ try{(function(){const el=$("azioni");if(!el)return;
    <div class="azidx">${d.indici.map(i=>`<div class="card azi${ST.list==i.l?" on":""}" data-l="${i.l}" role="button" tabindex="0"><span>${esc(i.n)}</span><b>${Number(i.p).toLocaleString("it-IT",{maximumFractionDigits:0,useGrouping:"always"})}</b>
     <em><span>oggi ${pc(i.v1g,2)}</span><span>anno ${pc(i.vytd)}</span></em>${spark(i.sp,(i.v1a||0)>=0?"su":"giu")}</div>`).join("")}</div>
    <h3 class="vft">Settori${ST.list!="tutti"?` <span class="small">${esc(nomeList(ST.list))}</span>`:""} <details class="info"><summary title="Come leggere i settori" aria-label="Informazioni">i</summary><div>Media dei titoli del settore: <b>numero grande</b> = rendimento da inizio anno, sotto il rendimento dell'ultimo mese. La <b>barra</b> = quota di titoli in trend rialzista (prezzo sopra la media a 200 giorni): piena = settore forte.</div></details></h3>
+   ${/* v7.61 nome corto nella card (una riga per tutte, card allineate); il nome intero resta nel title */""}
    <div class="azset"><button class="azsc${ST.set=="tutti"?" on":""}" data-s="tutti"><span>Tutti i settori</span><b>${base.length}</b><em>titoli</em></button>
     ${d.settori.map(s=>{const t=base.filter(x=>x.s==s.id);if(!t.length)return "";const y=media(t.map(x=>x.vytd)),m=media(t.map(x=>x.v1m)),
      sopra=Math.round(100*t.filter(x=>x.t200!=null&&x.t200>0).length/Math.max(1,t.filter(x=>x.t200!=null).length));
-     return `<button class="azsc${ST.set==s.id?" on":""}" data-s="${s.id}"><span>${esc(s.nome)} <small>${t.length}</small></span><b class="${y>=0?"up":"down"}">${y==null?"n/d":(y>0?"+":"")+fx(y,1)+"%"}</b>
+     return `<button class="azsc${ST.set==s.id?" on":""}" data-s="${s.id}" title="${esc(s.nome)}"><span><i>${esc(NOME_CARD[s.id]||s.nome)}</i><small>${t.length}</small></span><b class="${y>=0?"up":"down"}">${y==null?"n/d":(y>0?"+":"")+fx(y,1)+"%"}</b>
       <em>1 mese ${m==null?"n/d":(m>0?"+":"")+fx(m,1)+"%"}</em><span class="azbr" title="${sopra}% dei titoli sopra la media a 200 giorni"><i style="width:${sopra}%"></i></span><small class="azbrt">${sopra}% in trend rialzista</small></button>`;}).join("")}</div>
    <div class="azclt"><h3 class="vft azcl">${ST.set=="tutti"?"Classifica":esc(nomeSet(ST.set))} <span class="small">${righe.length} titoli${ST.cerca?" per &laquo;"+esc(ST.cerca)+"&raquo;":""}</span></h3>
     <button type="button" class="aztrf${ST.soloSu?" on":""}" aria-pressed="${!!ST.soloSu}" title="Mostra solo i titoli in trend rialzista">${trIcon(1)}Solo trend rialzista</button>${window.ebPdf?ebPdf.bottone():""}</div>
