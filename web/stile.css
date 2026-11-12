@@ -2356,3 +2356,6 @@ html.ptmod-on{overflow:hidden}
 
 /* v7.47 prezzo a borsa chiusa: niente pallino pulsante, colore neutro */
 .azlvt.azchiuso{color:var(--mute);font-weight:600}
+
+/* v7.48 scheda Volatilita' (menu Mercati): titolo con (i) accanto, come le altre schede */
+#volat .vltesta{display:flex;align-items:center;gap:10px;margin:0 0 6px}#volat .vltesta h2{margin:0}

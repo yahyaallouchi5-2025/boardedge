@@ -3,13 +3,17 @@
      LIVE     = segnali veri, con data e ora di generazione, salvati per sempre con una catena di hash (D.reg)
      BACKTEST = segnali SIMULATI sulle settimane passate dal 1986 con le stesse regole (D.bt)
    Calcoli in cot_radar/motore.py; qui solo la presentazione. Ingresso = prima chiusura dopo il segnale. */
-function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!el)return;
+// v7.48 dove = "vol": disegna solo la Volatilita' nella scheda #volat (menu Mercati, dati gia' nella pagina: D.vol);
+//       senza argomento: scheda "Verifica dei segnali" con le sole viste Registro live e Backtest (Carry tolto).
+function ebVerifica(dove){try{(function(){const solaVol=dove=="vol",el=$(solaVol?"volat":"verifica"),R=D.reg,B=D.bt;if(!el)return;
  // finestra, durata del trade (giorni di mercato 1..20 o "fine"), storico usato, strumento (volatilita' e drawdown),
  // unita' del grafico del drawdown ("pct" = in %, "vol" = in settimane tipiche di quel mercato)
  const V={fin:"live",d:5,per:"tutti",asset:"EURUSD",strum:"tutti",unita:"pct"};
  try{const s=JSON.parse(localStorage.getItem("ebVerifica")||"{}");if(s.fin)V.fin=s.fin;if(s.d=="fine"||(s.d>=1&&s.d<=20))V.d=s.d;if(s.per)V.per=s.per;if(s.asset)V.asset=s.asset;
   if(s.strum)V.strum=s.strum;if(s.unita=="vol")V.unita="vol";}catch(e){}
- const salva=()=>{try{localStorage.setItem("ebVerifica",JSON.stringify(V));}catch(e){}};
+ if(solaVol)V.fin="vol";else if(!["live","bt"].includes(V.fin))V.fin="live";   // v7.48 viste rimaste
+ const salva=()=>{try{const s=Object.assign({},V);if(solaVol)delete s.fin;            // la scheda Volatilita' non cambia la vista della Verifica
+  localStorage.setItem("ebVerifica",JSON.stringify(Object.assign(JSON.parse(localStorage.getItem("ebVerifica")||"{}"),s)));}catch(e){}};
  const pc=(x,d=2)=>x==null||isNaN(x)?"n/d":(x>0?"+":x<0?"−":"")+Math.abs(x).toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d})+"%";
  const col=x=>x==null?"":x>0?"up":x<0?"down":"flat";
  const prezzo=p=>{if(p==null)return"n/d";const d=p>=1000?2:p>=100?3:p>=10?3:4;return p.toLocaleString("it-IT",{minimumFractionDigits:d,maximumFractionDigits:d});};
@@ -332,9 +336,14 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
   box.querySelectorAll(".vfunita button").forEach(b=>b.onclick=()=>{V.unita=b.dataset.u;salva();aggiorna();});
   const alt=$("vfaltro");if(alt)alt.onclick=()=>{$("vfchiusi").innerHTML=R.chiusi.map(s=>scheda(s)).join("");alt.remove();};}
 
- function disegna(){el.innerHTML=`<h2>Backtest storico</h2><p class="sub">Ogni segnale misurato con prezzi veri dall'uscita dei dati: ingresso alla prima chiusura dopo il segnale, poi quanto va contro (drawdown), quanto guadagna al massimo e come finisce, per la durata del trade che scegli tu (da 1 giorno a 4 settimane, oppure fino al cambio di segnale). L'obiettivo &egrave; capire il rischio: quanto spazio lasciare allo stop rispetto alla volatilit&agrave; di ogni mercato.</p>
-  <div class="vfswitch"><button data-f="live" class="${V.fin=="live"?"on":""}">Registro live</button><button data-f="bt" class="${V.fin=="bt"?"on":""}">Backtest <span class="vfsimtag">SIMULATO</span></button><button data-f="vol" class="${V.fin=="vol"?"on":""}">Volatilit&agrave; per asset</button><button data-f="carry" class="${V.fin=="carry"?"on":""}">Carry</button></div>
-  <div class="vfcorpo">${V.fin=="live"?live():V.fin=="vol"?volatilitaVista():V.fin=="carry"?ebCarryVista({kcard,infoBtn,infoP,pc}):backtest()}</div>`;
+ function disegna(){
+  if(solaVol){el.innerHTML=`<div class="vltesta"><h2>Volatilit&agrave;</h2>${infoBtn("vlinfo","Cosa mostra")}</div>${infoP("vlinfo","Quanto si muove ogni strumento: regime di adesso, settimana tipica, giorno della settimana, mese del calendario e anno per anno. Serve a dimensionare le posizioni e a capire il rischio, non a prevedere la direzione.")}
+   <div class="vfcorpo">${volatilitaVista()}</div>`;
+   const sa=$("vfasset");if(sa)sa.onchange=()=>{V.asset=sa.value;salva();aggiorna();};
+   aggiorna();return;}
+  el.innerHTML=`<h2>Verifica dei segnali</h2><p class="sub">Ogni segnale misurato con prezzi veri dall'uscita dei dati: ingresso alla prima chiusura dopo il segnale, poi quanto va contro (drawdown), quanto guadagna al massimo e come finisce, per la durata del trade che scegli tu (da 1 giorno a 4 settimane, oppure fino al cambio di segnale). L'obiettivo &egrave; capire il rischio: quanto spazio lasciare allo stop rispetto alla volatilit&agrave; di ogni mercato.</p>
+  <div class="vfswitch"><button data-f="live" class="${V.fin=="live"?"on":""}">Registro live</button><button data-f="bt" class="${V.fin=="bt"?"on":""}">Backtest <span class="vfsimtag">SIMULATO</span></button></div>
+  <div class="vfcorpo">${V.fin=="live"?live():backtest()}</div>`;
   el.querySelectorAll(".vfswitch button").forEach(b=>b.onclick=()=>{V.fin=b.dataset.f;salva();disegna();});
   el.querySelectorAll(".vforz button").forEach(b=>b.onclick=()=>{V.d=b.dataset.h=="fine"?"fine":+b.dataset.h;const r=$("vfgiorni");if(r&&V.d!="fine")r.value=V.d;salva();aggiorna();});
   el.querySelectorAll(".vfper button").forEach(b=>b.onclick=()=>{V.per=b.dataset.p;el.querySelectorAll(".vfper button").forEach(x=>x.classList.toggle("on",x==b));salva();aggiorna();});
@@ -342,7 +351,8 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
   const sa=$("vfasset");if(sa)sa.onchange=()=>{V.asset=sa.value;salva();aggiorna();};
   const ss=$("vfstrum");if(ss)ss.onchange=()=>{V.strum=ss.value;salva();aggiorna();};
   aggiorna();}
- disegna();})();}catch(e){fail('Backtest storico','verifica',e);}}
+ disegna();})();}catch(e){fail(dove=="vol"?"Volatilit\u00e0":"Verifica dei segnali",dove=="vol"?"volat":"verifica",e);}}
+ebVerifica("vol");                                       // v7.48 scheda Volatilita' (dati gia' nella pagina)
 
 /* CARICAMENTO A RICHIESTA (v6.35): sul sito registro live + backtest (~600 KB, piu' di meta' della pagina) stanno in
    un file a parte, terminale/verifica.json (D.verifica = indirizzo), e si scaricano solo la prima volta che si apre
@@ -353,11 +363,11 @@ function ebVerifica(){try{(function(){const el=$("verifica"),R=D.reg,B=D.bt;if(!
  let stato="";                                           // "" = da caricare, "in corso", "ok"
  const sk=(w,h)=>`<i class="sk" style="width:${w};height:${h}px;display:block;margin-bottom:14px;border-radius:12px"></i>`;
  function carica(){if(stato)return;stato="in corso";
-  el.innerHTML=`<h2>Backtest storico</h2>${sk("40%",16)}${sk("100%",120)}${sk("100%",320)}`;
+  el.innerHTML=`<h2>Verifica dei segnali</h2>${sk("40%",16)}${sk("100%",120)}${sk("100%",320)}`;
   fetch(D.verifica,{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();})
    .then(v=>{D.reg=v.reg;D.bt=v.bt;D.carry_st=v.carry_st;stato="ok";el.innerHTML="";ebVerifica();})
    .catch(e=>{stato="";console.warn("[BoardEdge] verifica.json:",e);
-    el.innerHTML=`<h2>Backtest storico</h2><div class="card" style="padding:18px 20px"><p class="small">I dati della verifica non si sono caricati (connessione). </p><button class="tvbtn vfriprova">Riprova</button></div>`;
+    el.innerHTML=`<h2>Verifica dei segnali</h2><div class="card" style="padding:18px 20px"><p class="small">I dati della verifica non si sono caricati (connessione). </p><button class="tvbtn vfriprova">Riprova</button></div>`;
     const b=el.querySelector(".vfriprova");if(b)b.onclick=carica;});}
  if(el.classList.contains("on"))carica();
  new MutationObserver(()=>{if(el.classList.contains("on"))carica();}).observe(el,{attributes:true,attributeFilter:["class"]});
