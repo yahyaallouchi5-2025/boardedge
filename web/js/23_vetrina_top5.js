@@ -20,6 +20,10 @@ try{(function(){const el=$("topaz");if(!el)return;
  // scheletro mentre arriva il file
  el.innerHTML=`<div class="card tz tzsk"><i class="sk" style="width:180px;height:14px"></i><i class="sk" style="width:55%;height:28px;margin-top:12px"></i><i class="sk" style="width:100%;height:120px;margin-top:16px;border-radius:14px"></i></div>`;
  fetch("../azioni/top.json",{cache:"no-cache"}).then(r=>{if(!r.ok)throw new Error("HTTP "+r.status);return r.json();}).then(d=>{window.__top=d;disegna(d);
+   // v7.46 "Dati al" dell'Azionario spostato nella sidebar (Stato dati): verde se aggiornato, rosso se c'e' un'anomalia
+   // o se l'ultima seduta ha piu' di 4 giorni (copre weekend + un festivo)
+   {const eta=d.aggiornato?(Date.now()-new Date(d.aggiornato+"T22:00:00Z").getTime())/864e5:99;
+    window.ebRigaStato&&ebRigaStato("srow-az","Azionario",d.aggiornato?"Dati al "+gg(d.aggiornato):"n/d",(d.anomalia||eta>4)?"late":"ok","ogni sera dopo la chiusura USA");}
    if(d.anomalia)ebManutenzione({scheda:"sig",codice:d.anomalia.codice,quando:d.anomalia.quando,dal:d.aggiornato});})
   .catch(e=>{console.error("[BoardEdge] vetrina azioni non caricata:",e);el.innerHTML="";});
 

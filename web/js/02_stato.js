@@ -8,6 +8,12 @@ var STX={ok:"aggiornato",cache:"dati salvati (offline)",late:"IN RITARDO",err:"e
 /* stato delle fonti nella sidebar: pallino + nome, sotto data e prossimo aggiornamento (a barra ridotta resta il pallino) */
 $("status").innerHTML=D.sources.filter(s=>s.st!="err").map(s=>`<div class="srow" title="${esc(s.name)}: ${esc(s.last)} (${STX[s.st]}) - prossimo: ${esc(s.next)}"><i style="background:${DOT[s.st]};color:${DOT[s.st]}"></i>
  <div class="stx"><b>${s.name}</b><small>${s.last} &middot; ${STX[s.st]}</small><small>Prossimo: ${s.next}</small></div></div>`).join("");
+/* v7.46 RIGA DI STATO EXTRA nella sidebar (es. Azionario, dal file top.json caricato all'apertura): stessa grafica delle
+   fonti; se la riga esiste gia' (id) viene sostituita. st: "ok" verde, "late" rosso lampeggiante (anomalia o dati vecchi). */
+window.ebRigaStato=function(id,nome,ultimo,st,prossimo){try{const box=$("status");if(!box)return;
+ const html=`<div class="srow" id="${id}" title="${esc(nome)}: ${esc(ultimo)} (${STX[st]}) - prossimo: ${esc(prossimo)}"><i style="background:${DOT[st]};color:${DOT[st]}"></i>
+ <div class="stx"><b>${esc(nome)}</b><small>${esc(ultimo)} &middot; ${STX[st]}</small><small>Prossimo: ${esc(prossimo)}</small></div></div>`;
+ const v=document.getElementById(id);if(v)v.outerHTML=html;else box.insertAdjacentHTML("beforeend",html);}catch(e){}};
 /* ERRORI DI DOWNLOAD (righe "Download ..."): MAI una barra rossa per gli utenti. Il dettaglio tecnico resta nel registro
    admin; solo se un'intera fonte e' ferma (s.grave) compare il popup di manutenzione con il codice (es. "Errore server 504").
    Lo stesso per FRED "in manutenzione": la pagina usa gli ultimi dati validi senza allarmare. */

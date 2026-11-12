@@ -2348,3 +2348,8 @@ html.ptmod-on{overflow:hidden}
 .avedu a:hover{border-color:var(--warn)}
 .ptest-edu{margin:14px 0 0;font-size:12px;color:var(--mute);line-height:1.5}
 @media (max-width:600px){.avedu{font-size:12px;padding:8px 12px;align-items:flex-start}.avedu svg{margin-top:1px}}
+
+/* v7.46 Azionario: titolo con (i) accanto (riga "1230 titoli..." tolta); la data dei dati vive nella sidebar */
+#azioni .aztesta{display:flex;align-items:center;gap:10px;margin:0 0 14px;position:relative}#azioni .aztesta h2{margin:0}
+#azioni .aztesta .info{display:inline-block}
+@media (max-width:600px){#azioni .aztesta .info{position:static}#azioni .aztesta .info div{left:0!important;right:0!important;top:calc(100% + 6px);width:auto;max-width:none}}
