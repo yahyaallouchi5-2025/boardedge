@@ -33,7 +33,7 @@ ORARI_BASE = {"US": ("America/New_York", "09:30", "16:00"), "TO": ("America/Toro
               "MC": ("Europe/Madrid", "09:00", "17:30"), "MI": ("Europe/Rome", "09:00", "17:30"),
               "AU": ("Australia/Sydney", "10:00", "16:00")}
 RIFAI_GIORNI = 7
-RAW = "https://raw.githubusercontent.com/yahyaallouchi5-2025/cot-radar/azioni/pubblico/calendario.json"
+RAW = "https://raw.githubusercontent.com/" + (os.environ.get("GITHUB_REPOSITORY") or "yahyaallouchi5-2025/cot-radar") + "/azioni/pubblico/calendario.json"   # v7.59 nome automatico
 
 
 def riassunto(js):

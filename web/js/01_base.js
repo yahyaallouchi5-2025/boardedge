@@ -16,6 +16,12 @@
    DEBUG: F12 -> Console. Scrivi D per vedere i dati, D.assets.EUR per un singolo strumento.
           Un errore in rosso nella Console indica file e riga del problema.
    ========================================================================== */
+// v7.59 NOME DEL SITO AUTOMATICO: sul sito vero e' la prima cartella dell'indirizzo (utente.github.io/<nome>/...),
+//   cosi' rinominare il repository non rompe i dati in tempo reale. In locale (prove) si usa il nome attuale.
+const EB_REPO=(()=>{try{return location.hostname.endsWith("github.io")&&location.pathname.split("/")[1]||"cot-radar";}catch(e){return "cot-radar";}})();
+const EB_RAW="https://raw.githubusercontent.com/yahyaallouchi5-2025/"+EB_REPO+"/";   // file dei rami live e pattern
+const EB_SITO="https://yahyaallouchi5-2025.github.io/"+EB_REPO+"/";                 // pagina di presentazione
+
 const M=D.meta;            // impostazioni (pesi, soglie, ora di aggiornamento)
 
 const COL={"STRONG BUY":"var(--sb)","BUY":"var(--b)","NEUTRO":"var(--n)","SELL":"var(--s)","STRONG SELL":"var(--ss)"};

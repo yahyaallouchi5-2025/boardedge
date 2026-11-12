@@ -3,7 +3,7 @@
    EODHD degli strumenti dei Portafogli. Qui lo si rilegge ogni minuto (solo con la pagina visibile) e si avvisano le
    schede interessate con l'evento "eb-live" (window.ebLive = dati). Le decisioni del modello restano sulle chiusure. */
 try{(function(){
- const RAW="https://raw.githubusercontent.com/yahyaallouchi5-2025/cot-radar/live/live.json";
+ const RAW=EB_RAW+"live/live.json";
  let ultimo=0;
  async function leggi(){if(document.hidden)return;
   try{const r=await fetch(RAW+"?t="+Date.now(),{cache:"no-store"});if(!r.ok)return;const d=await r.json();

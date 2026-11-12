@@ -35,7 +35,7 @@ from .log import log
 
 FILE = "economie.json"
 RIFAI_ORE = 20
-UA = "cot-radar/economie (+https://github.com/yahyaallouchi5-2025/cot-radar)"
+UA = "BoardEdge/economie (+https://github.com/" + (os.environ.get("GITHUB_REPOSITORY") or "yahyaallouchi5-2025/cot-radar") + ")"
 # id, nome, codice OCSE (CLI e disoccupazione), codice BIS (inflazione), valuta (punteggio COT nella Dashboard)
 ECONOMIE = [("usa", "USA", "USA", "US", "DXY"), ("eur", "Eurozona", None, "XM", "EUR"),
             ("jpn", "Giappone", "JPN", "JP", "JPY"), ("gbr", "Regno Unito", "GBR", "GB", "GBP"),

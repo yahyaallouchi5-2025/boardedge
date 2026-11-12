@@ -63,7 +63,7 @@ try{(function(){const el=$("azioni");if(!el)return;
  // --- v7.22 PREZZI LIVE (cot_radar/live.py -> live_az.json nel ramo "live", ogni 15 minuti a borsa aperta, ritardo
  //     ~15 min): prezzo e variazione di oggi accanto a ogni titolo e nella scheda, con un lampo quando cambiano.
  //     Si rilegge ogni minuto SOLO se la scheda Azionario o il dettaglio di un titolo sono visibili.
- const LIVE="https://raw.githubusercontent.com/yahyaallouchi5-2025/cot-radar/live/live_az.json";
+ const LIVE=EB_RAW+"live/live_az.json";
  const LV={p:{},quando:0};
  const lv=t=>{const v=LV.p[t.t];if(!v||!v[0])return null;
   if(t.data&&v[2]&&new Date(v[2]*1000).toISOString().slice(0,10)<t.data)return null;   // piu' vecchio della chiusura
@@ -320,7 +320,7 @@ try{(function(){const el=$("azioni");if(!el)return;
  const sufT=tk=>{const m=/\.([A-Z]+)$/.exec(tk);return m?m[1]:"";};
  const haIntra=t=>!t.t.startsWith("^")&&INTRA_SUF.includes(sufT(t.t));
  const gruppoMkt=tk=>({"":"USA",TO:"Canada",L:"Londra",AX:"Australia"})[sufT(tk)]||"Europa";
- const RAWL="https://raw.githubusercontent.com/yahyaallouchi5-2025/cot-radar/live/oggi/";
+ const RAWL=EB_RAW+"live/oggi/";
  const CINTRA={};
  const giornoS=ts=>new Date((ts+7200)*1000).toISOString().slice(0,10);
  const oraIt=ts=>new Date(ts*1000).toLocaleTimeString("it-IT",{timeZone:"Europe/Rome",hour:"2-digit",minute:"2-digit"});

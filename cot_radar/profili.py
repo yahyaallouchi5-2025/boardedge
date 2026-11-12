@@ -50,7 +50,7 @@ BORSE = {"": ("nasdaq", "new york stock exchange", "nyse"), "MI": ("borsa italia
 
 def _ua():
     c = os.environ.get("SEC_CONTATTO", "").strip()
-    return "BoardEdge/1.0 (https://github.com/yahyaallouchi5-2025/cot-radar" + (f"; {c}" if "@" in c else "") + ")"
+    return "BoardEdge/1.0 (https://github.com/" + (os.environ.get("GITHUB_REPOSITORY") or "yahyaallouchi5-2025/cot-radar") + (f"; {c}" if "@" in c else "") + ")"
 
 
 def _get(url, timeout=40):

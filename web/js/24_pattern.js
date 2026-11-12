@@ -12,7 +12,7 @@
    - anomalia (Yahoo fermo) o file assente: popup comune di manutenzione con giorno e ora.
    DEBUG: F12 -> Console -> window.__pattern */
 try{(function(){const el=$("pattern");if(!el)return;
- const RAW="https://raw.githubusercontent.com/yahyaallouchi5-2025/cot-radar/pattern/pattern.json",LOC="../pattern/pattern.json";
+ const RAW=EB_RAW+"pattern/pattern.json",LOC="../pattern/pattern.json";
  const ST={d:null,tf:"h4",g:"tutti"};
  try{const s=JSON.parse(localStorage.getItem("ebPattern")||"{}");if(s.tf)ST.tf=s.tf;if(s.g)ST.g=s.g;}catch(e){}
  const salva=()=>{try{localStorage.setItem("ebPattern",JSON.stringify({tf:ST.tf,g:ST.g}));}catch(e){}};

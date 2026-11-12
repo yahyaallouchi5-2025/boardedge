@@ -3,7 +3,7 @@
    2) INVITA AMICI: su telefono apre la condivisione del sistema (WhatsApp, Telegram...); dove non c'e' (PC),
       copia il link della pagina di presentazione e lo conferma con un piccolo avviso che sparisce da solo. */
 try{(function(){
- const LINK="https://yahyaallouchi5-2025.github.io/cot-radar/";              // pagina di presentazione (landing)
+ const LINK=EB_SITO;              // pagina di presentazione (landing)
  const TESTO="BoardEdge: analisi dei mercati (COT, forex, portafogli) gratis. Dai un'occhiata:";
  document.querySelectorAll(".blhome").forEach(a=>a.addEventListener("click",e=>{
   e.preventDefault();

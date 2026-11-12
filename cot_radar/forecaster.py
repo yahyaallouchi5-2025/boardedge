@@ -53,7 +53,7 @@ MIN_PREV = 60                   # previsioni minime prima del giudizio sulla pre
 Z = 2.58                        # intervallo al 99% (stesso rigore degli altri studi del sito)
 ANNI_STAG_MODELLO = 5           # anni minimi per la stagionalita' usata dal modello
 APERTURA_UTC = (13, 30)         # apertura di Wall Street (ora UTC, ora legale): oltre = registrazione in ritardo
-PROVA = "https://github.com/yahyaallouchi5-2025/cot-radar/commits/storico/forecaster/registro.jsonl"
+PROVA = "https://github.com/" + (os.environ.get("GITHUB_REPOSITORY") or "yahyaallouchi5-2025/cot-radar") + "/commits/storico/forecaster/registro.jsonl"
 
 MERCATI = [u[0] for u in P.UNIVERSO]
 SFIDANTI = [

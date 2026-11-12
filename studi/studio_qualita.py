@@ -28,7 +28,8 @@ import urllib.request
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from cot_radar import azioni as A, eodhd, fondamentali as F   # noqa: E402
 
-SITO = "https://yahyaallouchi5-2025.github.io/cot-radar/azioni/bilanci_storia/{}.json"
+SITO = "https://yahyaallouchi5-2025.github.io/" + os.environ.get("GITHUB_REPOSITORY", "x/cot-radar").split("/")[-1] \
+    + "/azioni/bilanci_storia/{}.json"     # nome del repository automatico (resta valido se viene rinominato)
 ANNI = range(2010, 2026)
 TAGLIO = 2018
 ESCLUSI = ("fin", "imm")

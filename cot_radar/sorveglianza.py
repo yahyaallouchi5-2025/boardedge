@@ -31,8 +31,9 @@ import sys
 import urllib.request
 from datetime import datetime, timedelta, timezone
 
-SITO = "https://yahyaallouchi5-2025.github.io/cot-radar/"
-REPO = "yahyaallouchi5-2025/cot-radar"
+# v7.59 nome del repository automatico (resta valido se viene rinominato)
+REPO = os.environ.get("GITHUB_REPOSITORY") or "yahyaallouchi5-2025/cot-radar"
+SITO = "https://" + REPO.split("/")[0] + ".github.io/" + REPO.split("/")[1] + "/"
 LIVE = "https://raw.githubusercontent.com/" + REPO + "/live/live.json"
 ORE_SITO = 30            # il sito si ricostruisce almeno 2 volte al giorno nei feriali
 ORE_AZIONI = 30          # tre giri al giorno (Asia, Europa, USA)
