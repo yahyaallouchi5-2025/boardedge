@@ -10,7 +10,8 @@
    Il testo completo sta nelle Note legali (/legale/), qui c'e' la sintesi che l'utente deve accettare.
    Nelle statistiche anonime conta come evento "consenso" (accettato / rifiutato). */
 (function(){try{
- const CONSENSO_VERSIONE="2026-11-12";             // v7.43: rischi anche senza leva, solo scopo educativo
+ const CONSENSO_VERSIONE="2026-11-12b";            // v7.45: condizioni d'uso complete (10 punti): tutti riaccettano
+ const DATA_TESTO="12 novembre 2026";                // data mostrata nel testo (separata dalla versione tecnica)
  // Il consenso si ricorda in TRE posti (come fanno i grandi siti), cosi' non viene richiesto a ogni accesso anche
  // se un browser ne cancella uno: archiviazione locale (principale), cookie tecnico di 1 anno (alcuni browser e le
  // app tipo Telegram/Instagram svuotano l'archiviazione locale ma tengono i cookie) e archiviazione di sessione
