@@ -3,11 +3,11 @@
    Dati da D.port (vedi cot_radar/portafogli.py): tre profili (conservativo, moderato, aggressivo), solo acquisti,
    rotazione il primo giorno di borsa di ogni mese. In alto un selettore a segmenti (Conservativo / Moderato /
    Aggressivo: "stesso motore, rischio diverso") e la CARD PRINCIPALE del profilo: rischio, descrizione, rendimento
-   annuo, max drawdown, 10.000 euro dall'inizio dello storico, composizione per classe, le 5 azioni scelte del mese
+   annuo, max drawdown, 10.000 euro dall'inizio dello storico, composizione per classe, le azioni scelte del mese
    e la spiegazione apribile della rotazione. Sotto, per il profilo scelto:
      1. "Portafoglio di <mese>" del profilo scelto: righe raggruppate per classe (Azionario, Obbligazionario,
         Materie prime, Cripto, Liquidita'), per ogni mercato lo strumento UCITS/ETC/ETP da comprare in Europa con
-        ISIN copiabile, peso e importo in euro sul capitale scritto dall'utente; le 5 azioni scelte elencate una per
+        ISIN copiabile, peso e importo in euro sul capitale scritto dall'utente; le azioni scelte elencate una per
         una (o l'ANTEPRIMA provvisoria del mese prossimo); esposizione al dollaro stimata;
         in alto il CONTO ALLA ROVESCIA al prossimo ribilanciamento (giorno di rotazione, 09:00 ora italiana);
      2. il rischio del MESE della rotazione (es. ottobre): la composizione di oggi tenuta in ogni ottobre dello
@@ -91,12 +91,13 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const ue=c.ue?`<div class="pue"><span class="pue-n">${esc(c.ue.nome)}</span><button class="pisin" data-isin="${esc(c.ue.isin)}" title="Copia l'ISIN da cercare nell'app del broker"><code>${esc(c.ue.isin)}</code><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/></svg></button></div>`
    :`<span>${esc(c.strumento)}</span>`;
   let tit="";
-  if(c.k=="AZ"){const reg=c.titoli&&c.titoli.length,an=c.anteprima,lista=reg?c.titoli:(an&&an.titoli)||[];
+  // v7.61 fino a 20 titoli: in pagina i primi VISIBILI, gli altri in un elenco che si apre (meno rumore visivo)
+  if(c.k=="AZ"){const VISIBILI=5,reg=c.titoli&&c.titoli.length,an=c.anteprima,lista=reg?c.titoli:(an&&an.titoli)||[];
    const quota=lista.length?c.peso/lista.length:0;
    if(lista.length)tit=`<div class="paz">${reg?"":`<div class="paz-ante"><b>Anteprima per ${MESI[+an.mese.slice(5,7)-1]}</b> &middot; calcolata il ${gg(an.al)} con i prezzi di oggi. La lista definitiva si fissa l'ultimo giorno di borsa dopo la chiusura ed entra il ${gg(P.prossima)}.</div>`}
-    ${lista.map(x=>{const b=borsa(x.t),sett=(SETT[x.s]||[x.s||""])[0];return `<button class="paz-r clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">
-     <span class="paz-id"><b>${esc(x.t)}</b><span class="paz-n">${esc(x.n)}</span>${x.sost?`<span class="paz-sost" title="${esc(x.sost_n||x.sost)} (${esc(x.sost)}) non si compra su Scalable: sostituito dal candidato acquistabile successivo, stessi filtri">al posto di ${esc(x.sost_n||x.sost)}</span>`:""}<span class="paz-isin" data-isinaz="${esc(x.t)}" hidden></span></span><span class="paz-s">${esc(sett)}</span><span class="paz-b${b[1]?"":" no"}" title="${b[1]?"Borsa di quotazione":"Di solito non acquistabile dai broker europei per privati"}">${b[0]}</span><span class="paz-p"><b>${fx(quota,1)}%</b><em data-peso="${quota}">${eur(capitale*quota/100)}</em></span></button>`;}).join("")}</div>`;
-   else tit=`<div class="small paz-vuoto">I 5 titoli si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.</div>`;}
+    ${lista.map((x,ix)=>{const b=borsa(x.t),sett=(SETT[x.s]||[x.s||""])[0];return `<button class="paz-r clic" data-az="${esc(x.t)}" title="Apri nell'Azionario">
+     <span class="paz-id"><b>${esc(x.t)}</b><span class="paz-n">${esc(x.n)}</span>${x.sost?`<span class="paz-sost" title="${esc(x.sost_n||x.sost)} (${esc(x.sost)}) non si compra su Scalable: sostituito dal candidato acquistabile successivo, stessi filtri">al posto di ${esc(x.sost_n||x.sost)}</span>`:""}<span class="paz-isin" data-isinaz="${esc(x.t)}" hidden></span></span><span class="paz-s">${esc(sett)}</span><span class="paz-b${b[1]?"":" no"}" title="${b[1]?"Borsa di quotazione":"Di solito non acquistabile dai broker europei per privati"}">${b[0]}</span><span class="paz-p"><b>${fx(quota,quota<1?2:1)}%</b><em data-peso="${quota}">${eur(capitale*quota/100)}</em></span></button>${ix==VISIBILI-1&&lista.length>VISIBILI+1?`<details class="paz-piu"><summary>Altre ${lista.length-VISIBILI} azioni</summary><div class="paz">`:""}${ix==lista.length-1&&lista.length>VISIBILI+1?"</div></details>":""}`;}).join("")}</div>`;
+   else tit=`<div class="small paz-vuoto">Le azioni (fino a 20) si scelgono l'ultimo giorno di borsa del mese, dopo la chiusura, ed entrano con la rotazione del ${gg(P.prossima)}.</div>`;}
   // l'elenco dei titoli sta su una riga a parte della griglia, a tutta larghezza (leggibile anche su telefono)
   return `<div class="prow${c.k=="AZ"?" prow-az":""}"><i style="background:${col}"></i><div class="pnome"><b>${esc(c.nome)}<details class="info pmot"><summary title="Perch&eacute; &egrave; in portafoglio" aria-label="Perch&eacute; &egrave; in portafoglio">i</summary><div>${mot}${c.ue&&c.ue.nota?`<br>${esc(c.ue.nota)}`:""}</div></details></b>${ue}</div>
    <div class="ppeso"><b>${fx(c.peso,1)}%</b><span class="peur">${eur(capitale*c.peso/100)}</span><span class="pbar"><i style="width:${Math.min(100,c.peso*2.5)}%;background:${col}"></i></span></div>${tit}</div>`;}
@@ -116,8 +117,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
 
  // --- v6.91 ACQUISTO DIRETTO A QUOTE INTERE (Scalable e gli altri broker: con l'ordine normale si comprano solo quote
  //     intere). Per ogni strumento: quote = parte intera di (obiettivo / prezzo di 1 quota, con 0,5% di margine perche'
- //     il prezzo e' quello di chiusura e durante il giorno si muove). Le 5 azioni: se 1 azione costa piu' della sua
- //     quota, al suo posto la prima RISERVA (stessa regola, punteggio successivo) che ci sta, max 1 titolo per settore.
+ //     il prezzo e' quello di chiusura e durante il giorno si muove). Le azioni scelte: se 1 azione costa piu' della sua
+ //     quota, al suo posto la prima RISERVA (stessa regola, punteggio successivo) che ci sta (fino a novembre 2026
+ //     max 1 titolo per settore; v7.61 da dicembre nessun limite per settore, come la regola fino a 20 titoli).
  //     Quello che avanza resta sul conto. Il modello e il registro live non cambiano: e' solo come lo realizzi tu.
  const MARG=1.005;
  // --- v7.6 VERSIONE COMPATTA (capitali sotto P.compatto.sotto): Nasdaq unito all'S&P 500 (pesi calcolati dal backend,
@@ -134,12 +136,12 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  function piano(p,cap){cap=cap||capitale;const righe=[];let spesa=0;
   const ordine=[];MACRO.forEach(g=>compAcq(p,cap).filter(c=>g[1].includes(c.classe)).forEach(c=>ordine.push(c)));
   ordine.forEach(c=>{const obi=cap*c.peso/100;
-   if(c.k=="AZ"){const lista=c.titoli||[];if(!lista.length)return;const per=obi/lista.length,ris=(c.riserve||[]).slice(),settori=new Set(lista.map(x=>x.s));
+   if(c.k=="AZ"){const lista=c.titoli||[];if(!lista.length)return;const per=obi/lista.length,ris=(c.riserve||[]).slice(),settori=new Set(c.regola20?[]:lista.map(x=>x.s));
     lista.forEach(x=>{let t=x,nota=null;
      if(!x.eur||x.eur*MARG>per){                                // 1 azione costa piu' della quota (o prezzo mancante)
-      settori.delete(x.s);const i=ris.findIndex(r=>r.eur*MARG<=per&&!settori.has(r.s)&&!lista.some(y=>y.t==r.t));
+      settori.delete(x.s);const i=ris.findIndex(r=>r.eur*MARG<=per&&(c.regola20||!settori.has(r.s))&&!lista.some(y=>y.t==r.t));
       if(i>=0){t=ris.splice(i,1)[0];nota=`al posto di ${x.n}${x.eur?` (1 azione &asymp; ${eur(x.eur)})`:""}`;}else{t=null;nota=`${x.n}: 1 azione costa pi&ugrave; della quota e nessuna riserva ci sta, resta sul conto`;}
-      if(t)settori.add(t.s);}
+      if(t&&!c.regola20)settori.add(t.s);}
      if(!t){righe.push({az:true,nome:x.n,tk:x.t,q:0,prezzo:x.eur,obi:per,nota});return;}
      const q=Math.floor(per/(t.eur*MARG));spesa+=q*t.eur;righe.push({az:true,nome:t.n,tk:t.t,q,prezzo:t.eur,obi:per,nota});});
     return;}
@@ -179,7 +181,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ora=dt?(oggi?"":dt.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit"})+" ")+dt.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):null;
   return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
     ${statoPrezzi(ora,oggi,dt)}
-    <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>5 azioni</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta (massimo 1 per settore). Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.<br><br><b>A borsa chiusa</b> i prezzi sono quelli di chiusura dell'ultima seduta (Xetra, 17:30). Su Scalable (gettex) gli ordini si possono inviare anche la sera: il prezzo &egrave; quello del market maker in quel momento e pu&ograve; scostarsi dalla chiusura.</div></details></div>
+    <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>azioni scelte</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta. Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.<br><br><b>A borsa chiusa</b> i prezzi sono quelli di chiusura dell'ultima seduta (Xetra, 17:30). Su Scalable (gettex) gli ordini si possono inviare anche la sera: il prezzo &egrave; quello del market maker in quel momento e pu&ograve; scostarsi dalla chiusura.</div></details></div>
    ${compatto(capitale)?compattoHTML(p):""}
    <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash&&!r.nota?"nessun acquisto":r.cash?"":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?(r.cash&&!r.neg?r.nota:`${r.cash?"":" &middot; "}<em>${r.nota}</em>`):""}</span></div>
     <div class="pacq-q">${r.cash?`<b>${eur(r.obi)}</b><span>resta sul conto</span>`:r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
@@ -303,7 +305,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   if(!m){if(!cor||cor.attesa||cor.r==null)return `<div class="prisul small">mese in corso</div>`;
    return `<div class="prisul"><span class="pmc-b">Provvisorio</span><span>Risultato <b class="${cor.r>=0?"up":"down"}">${pc(cor.r)}</b></span><span>drawdown <b class="down">${pc(cor.dd)}</b></span>${cor.gg&&cor.tot?`<span>giorno di borsa <b>${cor.gg}</b> di ${cor.tot}</span>`:""}</div>`;}
   const riga=a=>`<tr><td>${esc(a.nome)}${a.titoli&&a.titoli.length?`<div class="ptit">${a.titoli.map(t=>`<span>${esc(t.n)} <em class="${t.r==null?"":t.r>=0?"up":"down"}">${t.r==null?"in corso":pc(t.r)}</em></span>`).join("")}</div>`:""}</td>
-   <td class="num">${fx(a.w,0)}%</td>${a.attesa?`<td class="num small" colspan="3" title="I rendimenti delle 5 azioni di questo mese arrivano con il prossimo aggiornamento dell'Azionario">dati in arrivo</td>`:`<td class="num ${a.r>=0?"up":"down"}">${pc(a.r)}</td><td class="num ${a.c>=0?"up":"down"}">${a.c>0?"+":""}${fx(a.c,2)}</td><td class="num down">${pc(a.dd)}</td>`}</tr>`;
+   <td class="num">${fx(a.w,0)}%</td>${a.attesa?`<td class="num small" colspan="3" title="I rendimenti delle azioni scelte di questo mese arrivano con il prossimo aggiornamento dell'Azionario">dati in arrivo</td>`:`<td class="num ${a.r>=0?"up":"down"}">${pc(a.r)}</td><td class="num ${a.c>=0?"up":"down"}">${a.c>0?"+":""}${fx(a.c,2)}</td><td class="num down">${pc(a.dd)}</td>`}</tr>`;
   const peg=m.asset.filter(x=>x.c!=null).sort((x,y)=>x.c-y.c)[0];
   return `<div class="prisul">${tagFonte(!!live)}<span>Risultato <b class="${m.r>=0?"up":"down"}">${pc(m.r)}</b></span><span>drawdown <b class="down">${pc(m.dd)}</b></span></div>
    <details class="pdet"><summary>Dettaglio del mese</summary>
@@ -390,7 +392,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   pos.forEach(r=>{if(r.pm>0&&r.pr){cst+=r.q*r.pm;gain+=r.q*(r.pr-r.pm);}});
   altri.forEach(a=>{if(a.c>0){cst+=a.c;gain+=a.v-a.c;}});
   const comp=compAcq(p,T),haAZ=comp.some(c=>c.k=="AZ"),peso=k=>((comp.find(c=>c.k==k)||{}).peso||0)/100;
-  // v7.17 i titoli singoli contano nella quota delle 5 azioni SOLO se sono tra le 5 del modello (nome o ticker):
+  // v7.17 i titoli singoli contano nella quota delle azioni scelte SOLO se sono tra quelle del modello (nome o ticker):
   //     gli altri (es. eBay quando esce dal modello) sono "fuori dal modello"
   const az=comp.find(c=>c.k=="AZ"),listaAZ=az?((az.titoli&&az.titoli.length?az.titoli:(az.anteprima||{}).titoli)||[]):[];
   const norm=x=>String(x||"").toLowerCase().replace(/[^a-z0-9]/g,"");
