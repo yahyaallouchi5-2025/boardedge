@@ -30,6 +30,9 @@ import json
 import math
 import os
 import sys
+import time
+import urllib.parse
+import urllib.request
 from datetime import datetime, timezone
 from statistics import NormalDist
 from zoneinfo import ZoneInfo
@@ -145,6 +148,84 @@ def calcola_simbolo(ore):
     }
 
 
+# --------------------------------------------------------------------------- v7.64 giornaliero da Yahoo
+# EODHD non fornisce piu' candele orarie di oro e argento dopo ottobre 2020 (e il venerdi' sera manca): per le viste
+# Giornaliero, Settimanale e Mensile si usano i future continui di Yahoo (COMEX, dal 2000). L'Orario resta EODHD.
+# ORA DI ROMA: la sessione COMEX va dalle 18:00 alle 17:00 di New York = dalle 00:00 alle 23:00 di Roma (6 ore di
+# scarto quasi tutto l'anno), quindi la data di Yahoo (fuso di New York, ora legale compresa) e' la giornata di Roma.
+# La "chiusura" giornaliera di Yahoo e' il prezzo di regolamento COMEX delle 13:30 di New York (19:30 di Roma):
+# verificato il 13/11/2026 confrontando 2013-2020 con le candele orarie EODHD (correlazione massima su quell'ora).
+# RENDIMENTO = chiusura / chiusura del giorno prima: l'apertura di Yahoo nei primi anni e' spesso uguale alla
+# chiusura (non affidabile). Settimana e mese = ultima chiusura / ultima chiusura del periodo prima; quelli in corso
+# si tolgono. Il cambio di scadenza del future aggiunge un piccolo salto in alcuni giorni (oro: circa lo 0,3%).
+YAHOO_GIORNO = {"XAUUSD.FOREX": "GC=F", "XAGUSD.FOREX": "SI=F"}
+YAHOO_URL = "https://{h}.finance.yahoo.com/v8/finance/chart/{t}?{q}"
+
+
+def yahoo_chiusure(ticker, cartella, tentativi=3):
+    """{data ISO: chiusura} dei future giornalieri di Yahoo dal 2000. Copia in <cartella>/_yahoo_<ticker>.json:
+    se Yahoo non risponde si usa l'ultima copia salvata (lo storico non cambia)."""
+    copia = os.path.join(cartella, "_yahoo_" + ticker.replace("=", "_") + ".json")
+    q = urllib.parse.urlencode({"period1": 0, "period2": int(time.time()), "interval": "1d"})
+    for n in range(tentativi):
+        try:
+            req = urllib.request.Request(YAHOO_URL.format(h=("query1", "query2")[n % 2], t=urllib.parse.quote(ticker), q=q),
+                                         headers={"User-Agent": "cot-radar/stagionalita"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                res = json.load(r)["chart"]["result"][0]
+            # ATTENZIONE: gmtoffset e' lo scarto di OGGI (-5 h d'inverno): applicato alle candele estive (mezzanotte di
+            # New York = 04:00 UTC) le sposterebbe al giorno prima. Si usa il fuso della borsa con l'ora legale giusta.
+            fuso = ZoneInfo(res["meta"].get("exchangeTimezoneName") or "America/New_York")
+            qq = res["indicators"]["quote"][0]
+            out, prima = {}, None
+            for ts, c, v in zip(res.get("timestamp") or [], qq.get("close") or [], qq.get("volume") or []):
+                if c is None or c <= 0:
+                    continue
+                if prima is not None and c == prima and not v:      # festivo: riga copiata senza scambi
+                    continue
+                out[datetime.fromtimestamp(ts, fuso).date().isoformat()] = float(c)
+                prima = c
+            if len(out) > 1000:
+                with open(copia, "w") as fh:
+                    json.dump(out, fh, separators=(",", ":"))
+                return out
+            log.warning("Yahoo %s: storico troppo corto (%d giorni)", ticker, len(out))
+        except Exception as e:
+            log.warning("Yahoo %s: %s (tentativo %d/%d)", ticker, getattr(e, "code", type(e).__name__), n + 1, tentativi)
+        time.sleep(2 * (3 ** n))
+    try:
+        with open(copia) as fh:
+            log.info("Yahoo %s: uso la copia salvata", ticker)
+            return json.load(fh)
+    except (OSError, ValueError):
+        return {}
+
+
+def calcola_giorni(chiusure):
+    """{data ISO: chiusura} -> tabelle gsett, gmese, data, sett, mese (stesse colonne e filtri delle tabelle orarie)."""
+    gs, gm, gd, sett, mese = {}, {}, {}, {}, {}
+    fine_s, fine_m = {}, {}                                  # ultima chiusura di ogni settimana ISO e di ogni mese
+    prec = None
+    for ds in sorted(chiusure):
+        d = datetime.strptime(ds, "%Y-%m-%d").date()
+        c = chiusure[ds]
+        if prec is not None:
+            r = (c / prec - 1) * 100
+            gs.setdefault(d.weekday(), []).append(r)
+            gm.setdefault(d.day, []).append(r)
+            gd.setdefault(f"{d.month:02d}-{d.day:02d}", []).append(r)
+        prec = c
+        iso = d.isocalendar()
+        fine_s[(iso[0], iso[1])] = c
+        fine_m[(d.year, d.month)] = c
+    for fine, out in ((fine_s, sett), (fine_m, mese)):
+        ks = sorted(fine)[:-1]                               # l'ultimo periodo puo' essere ancora in corso
+        for a, b in zip(ks, ks[1:]):
+            out.setdefault(b[1], []).append((fine[b] / fine[a] - 1) * 100)
+    return {"gsett": tabella(gs, MIN_N["gsett"]), "gmese": tabella(gm, MIN_N["gmese"]),
+            "data": tabella(gd, MIN_N["data"]), "sett": tabella(sett, MIN_N["sett"]), "mese": tabella(mese, MIN_N["mese"])}
+
+
 def nome(sym):
     s = sym.split(".")[0]
     if sym.endswith(".FOREX") and len(s) == 6:
@@ -170,6 +251,11 @@ def calcola(cartella, uscita):
         al = datetime.fromtimestamp(max(ore), ROMA).date().isoformat()
         breve = int(dal[:4]) >= 2020
         out = {"s": sym, "n": nome(sym), "f": fase, "dal": dal, "al": al, "breve": breve, **tab}
+        if sym in YAHOO_GIORNO:                         # v7.64 Giornaliero, Settimanale e Mensile dai future di Yahoo
+            ch = yahoo_chiusure(YAHOO_GIORNO[sym], cartella)
+            if ch:
+                out.update(calcola_giorni(ch))
+                out["dal_g"], out["al_g"] = min(ch), max(ch)
         with open(os.path.join(uscita, sym.replace("/", "_") + ".json"), "w") as fh:
             json.dump(out, fh, separators=(",", ":"))
         indice.append({"s": sym, "n": nome(sym), "f": fase, "dal": dal, "al": al, "breve": breve})

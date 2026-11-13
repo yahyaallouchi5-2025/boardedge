@@ -105,3 +105,25 @@ class OraDiRoma(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestGiorniYahoo(unittest.TestCase):
+    """v7.64 Giornaliero/Settimanale/Mensile di oro e argento dai future di Yahoo (chiusura su chiusura)."""
+
+    def test_calcola_giorni(self):
+        from datetime import date, timedelta
+        from cot_radar.stagionalita_orari import calcola_giorni
+        ch, p, d = {}, 100.0, date(2020, 1, 1)
+        while d < date(2024, 3, 15):        # oltre 200 venerdi (minimo per il giorno della settimana)
+            if d.weekday() < 5:
+                p *= 1.002 if d.weekday() == 4 else 0.999      # il venerdi' sale sempre
+                ch[d.isoformat()] = p
+            d += timedelta(days=1)
+        t = calcola_giorni(ch)
+        self.assertEqual(set(t["gsett"]), {"0", "1", "2", "3", "4"})
+        self.assertEqual(t["gsett"]["4"][1], 100.0)            # venerdi': 100% in rialzo
+        self.assertTrue(t["gsett"]["4"][7])                    # e affidabile
+        self.assertEqual(t["gsett"]["0"][1], 0.0)
+        # il mese in corso (marzo 2024) e il primo mese (senza mese precedente) non entrano
+        self.assertEqual(t["mese"]["3"][0], 4)                  # marzo 2020-2023 (marzo 2024 in corso: escluso)
+        self.assertEqual(t["mese"]["1"][0], 4)                  # gennaio 2021-2024 (gennaio 2020 e' il primo)
