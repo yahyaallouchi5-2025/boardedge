@@ -204,6 +204,8 @@ def main(argv):
     cartella = argv[1] if len(argv) > 1 and not argv[1].startswith("-") else "dati_orari"
     tempo = int(argv[argv.index("--tempo") + 1]) if "--tempo" in argv else 18000
     fase = int(argv[argv.index("--fase") + 1]) if "--fase" in argv else None
+    from .log import setup                              # messaggi a schermo (log di GitHub Actions)
+    setup()
     if not eodhd.attivo():
         log.error("orari: manca EODHD_API_KEY")
         return 1

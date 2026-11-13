@@ -181,4 +181,6 @@ def calcola(cartella, uscita):
 
 
 if __name__ == "__main__":
+    from .log import setup                              # messaggi a schermo (log di GitHub Actions)
+    setup()
     sys.exit(0 if calcola(sys.argv[1], sys.argv[2]) is not None else 2)   # 2 = ora legale sbagliata -> job fallito
