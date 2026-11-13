@@ -1,0 +1,29 @@
+mesi 2006-01 - 2026-10 (250)
+STESSO MESE   oro/dollaro -0.46   oro/Treasury +0.33
+MESE DOPO     dollaro di ieri -> oro di oggi +0.02   Treasury di ieri -> oro di oggi +0.06   (|0,13| = soglia del caso al 5%)
+
+                             STUDIO -2015          |        VERIFICA 2016+         | mesi in oro
+                      CAGR   Vol   MaxDD   R/V  Calm|  CAGR   Vol   MaxDD   R/V  Calm|
+oro sempre             5.1  19.3  -42.9  0.27  0.12|  12.3  15.9  -26.5  0.77  0.46|  239  
+G1 dollaro giu'        5.8  12.9  -27.3  0.45  0.21|   4.5  11.2  -21.7  0.40  0.21|  115  scartata
+G2 tassi giu'          5.0  17.0  -33.3  0.30  0.15|   8.6  11.2  -12.3  0.76  0.70|  140  scartata
+G3 entrambi            5.8  10.9  -17.1  0.53  0.34|   4.2   8.6  -11.2  0.49  0.37|   73  scartata
+G4 uno dei due         5.1  18.4  -43.0  0.27  0.12|   9.0  13.4  -26.9  0.68  0.34|  182  scartata
+G5 trend 10 mesi       6.7  14.7  -33.0  0.46  0.20|   7.2  13.6  -29.4  0.53  0.24|  162  scartata
+
+RENDIMENTO MEDIO DELL'ORO NEL MESE DOPO: segnale acceso - spento
+  G1 dollaro giu'   studio    acceso +0.96% (56)  spento +0.16% (53)  t = +0.75
+  G1 dollaro giu'   verifica  acceso +0.77% (59)  spento +1.33% (71)  t = -0.68
+  G2 tassi giu'     studio    acceso +0.73% (75)  spento +0.21% (34)  t = +0.49
+  G2 tassi giu'     verifica  acceso +1.38% (65)  spento +0.76% (65)  t = +0.77
+  G3 entrambi       studio    acceso +1.31% (37)  spento +0.19% (72)  t = +1.01
+  G3 entrambi       verifica  acceso +1.02% (36)  spento +1.09% (94)  t = -0.08
+  G4 uno dei due    studio    acceso +0.64% (94)  spento +0.11% (15)  t = +0.41
+  G4 uno dei due    verifica  acceso +1.12% (88)  spento +0.98% (42)  t = +0.17
+  G5 trend 10 mesi  studio    acceso +0.94% (69)  spento -0.06% (40)  t = +0.87
+  G5 trend 10 mesi  verifica  acceso +0.92% (93)  spento +1.44% (37)  t = -0.59
+
+ORO, 21 GIORNI DOPO LA FINE MESE (senza leva): escursione contraria (MAE) e favorevole (MFE)
+  tutti i mesi     n 239  MAE mediana  -1.86%  MAE peggiore 10%  -6.97%  MFE mediana  3.10%  MFE migliore 25%  5.69%  finale medio +0.82%  positivi 56%
+  G5 trend acceso  n 162  MAE mediana  -1.95%  MAE peggiore 10%  -6.18%  MFE mediana  3.11%  MFE migliore 25%  5.47%  finale medio +0.81%  positivi 54%
+  G1 dollaro giu'  n 115  MAE mediana  -2.00%  MAE peggiore 10%  -6.42%  MFE mediana  3.11%  MFE migliore 25%  5.24%  finale medio +0.77%  positivi 55%

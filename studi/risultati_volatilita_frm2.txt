@@ -1,0 +1,25 @@
+strumenti: 48
+
+=== ORIZZONTE 1 GIORNI
+  studio   M1 storico     superamenti  5.17%  Kupiec onesto 42/48  errore   15.07
+  studio   M3 EWMA+code   superamenti  4.98%  Kupiec onesto 48/48  errore   13.69
+  studio   M3 ha errore piu' basso su 46/48 strumenti (riduzione media 9.2%)
+  verifica M1 storico     superamenti  4.66%  Kupiec onesto 34/48  errore   12.94
+  verifica M3 EWMA+code   superamenti  4.83%  Kupiec onesto 48/48  errore   12.16
+  verifica M3 ha errore piu' basso su 45/48 strumenti (riduzione media 6.0%)
+
+=== ORIZZONTE 5 GIORNI
+  studio   M1 storico     superamenti  5.17%  Kupiec onesto 46/48  errore   32.69
+  studio   M3 EWMA+code   superamenti  5.06%  Kupiec onesto 48/48  errore   30.93
+  studio   M3 ha errore piu' basso su 40/48 strumenti (riduzione media 5.4%)
+  verifica M1 storico     superamenti  4.75%  Kupiec onesto 44/48  errore   28.73
+  verifica M3 EWMA+code   superamenti  4.93%  Kupiec onesto 48/48  errore   27.66
+  verifica M3 ha errore piu' basso su 33/48 strumenti (riduzione media 3.7%)
+
+=== ORIZZONTE 21 GIORNI
+  studio   M1 storico     superamenti  5.83%  Kupiec onesto 46/47  errore   69.67
+  studio   M3 EWMA+code   superamenti  5.74%  Kupiec onesto 46/47  errore   65.21
+  studio   M3 ha errore piu' basso su 31/47 strumenti (riduzione media 6.4%)
+  verifica M1 storico     superamenti  4.88%  Kupiec onesto 47/48  errore   57.80
+  verifica M3 EWMA+code   superamenti  4.94%  Kupiec onesto 45/48  errore   57.16
+  verifica M3 ha errore piu' basso su 17/48 strumenti (riduzione media 1.1%)
