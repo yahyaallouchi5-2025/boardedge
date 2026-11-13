@@ -21,7 +21,8 @@ COLONNE (come il backtester di MT5): N casi, % rialzo, media %, media dei rialzi
 AFFIDABILE (filtri contro le coincidenze, decisi prima di vedere i risultati):
   - abbastanza casi (orario e giorno della settimana 200, giorno del mese 60, data/settimana/mese 10);
   - la % di rialzo e' diversa da quella NORMALE dello strumento (stessa unita', tutte le celle insieme) oltre il caso:
-    test binomiale z con correzione di Bonferroni sul numero di celle della tabella (5% complessivo);
+    test binomiale z con correzione di Bonferroni sul numero di celle della tabella (5% complessivo); per ORE e
+    GIORNI DELLA SETTIMANA soglia fissa |z| >= 2,58 (v7.64, vedi Z_FISSO: verificata fuori campione);
   - stabile: nella prima meta' e nella seconda meta' dello storico la differenza ha lo stesso verso.
   Le celle che non passano restano visibili in grigio (scelta di Ya).
 USO: python -m cot_radar.stagionalita_orari <cartella orari> <cartella uscita>
@@ -45,6 +46,11 @@ MIN_MINUTI = 30
 MIN_ORE_GIORNO = 4
 MIN_N = {"ora": 200, "gsett": 200, "gmese": 60, "data": 10, "sett": 10, "mese": 10}
 ALFA = 0.05
+# v7.64 STUDIO FUORI CAMPIONE (13/11/2026, 81 strumenti): una tendenza trovata nella prima meta' dello storico con
+# |z| >= 2,58 si e' ripetuta nella seconda meta' il 75% delle volte per le ORE (439 casi) e il 93% per i GIORNI DELLA
+# SETTIMANA (46 casi). Per giorno del mese, settimana e mese invece ~50% (= caso): li' resta la soglia corretta
+# per il numero di caselle (Bonferroni), piu' severa. Con la sola Bonferroni le ore vere risultavano quasi tutte "neutre".
+Z_FISSO = 2.58
 NOMI = {"EUR": "Euro", "GBP": "Sterlina", "AUD": "Dollaro australiano", "NZD": "Dollaro neozelandese",
         "USD": "Dollaro USA", "CAD": "Dollaro canadese", "CHF": "Franco svizzero", "JPY": "Yen",
         "XAU": "Oro", "XAG": "Argento", "XPT": "Platino", "XPD": "Palladio"}
@@ -68,7 +74,7 @@ def controlla_ora_legale(anni=None):
 
 
 # --------------------------------------------------------------------------- statistiche
-def cella(rs, p0, k_celle, minimo):
+def cella(rs, p0, k_celle, minimo, z_fisso=None):
     """[N, % rialzo, media %, media rialzi, media ribassi, rapporto, z, affidabile] di una lista di rendimenti %
     ordinati nel tempo. p0 = quota di rialzi normale dello strumento per questa unita'."""
     n = len(rs)
@@ -81,7 +87,8 @@ def cella(rs, p0, k_celle, minimo):
     media = sum(rs) / n
     rap = (sum(su) / -sum(giu)) if giu else None
     z = (k - n * p0) / math.sqrt(n * p0 * (1 - p0)) if 0 < p0 < 1 else 0.0
-    zc = NormalDist().inv_cdf(1 - ALFA / (2 * max(1, k_celle)))
+    # z_fisso (v7.64, ore e giorni della settimana): soglia fissa invece di quella corretta per il numero di caselle
+    zc = z_fisso if z_fisso else NormalDist().inv_cdf(1 - ALFA / (2 * max(1, k_celle)))
     met = n // 2
     a, b = rs[:met], rs[met:]
     stab = bool(a and b) and ((sum(r > 0 for r in a) / len(a) - p0) * (sum(r > 0 for r in b) / len(b) - p0) > 0)
@@ -91,14 +98,14 @@ def cella(rs, p0, k_celle, minimo):
             None if rap is None else round(rap, 2), round(z, 2), ok]
 
 
-def tabella(gruppi, minimo):
+def tabella(gruppi, minimo, z_fisso=None):
     """{chiave: [rendimenti]} -> {chiave: cella}, con p0 = quota di rialzi su tutte le celle."""
     tutti = [r for v in gruppi.values() for r in v]
     if not tutti:
         return {}
     p0 = sum(r > 0 for r in tutti) / len(tutti)
     k = sum(1 for v in gruppi.values() if v)
-    return {str(c): cella(v, p0, k, minimo) for c, v in gruppi.items() if v}
+    return {str(c): cella(v, p0, k, minimo, z_fisso) for c, v in gruppi.items() if v}
 
 
 def calcola_simbolo(ore):
@@ -141,9 +148,10 @@ def calcola_simbolo(ore):
             out.setdefault(chiave(k), []).append((c / o - 1) * 100)
     giorni_sett = sorted({k[0] for k in ora_g})
     return {
-        "ora": {"tutti": tabella(ora_t, MIN_N["ora"]),
-                **{str(g): tabella({h: v for (gg, h), v in ora_g.items() if gg == g}, MIN_N["ora"]) for g in giorni_sett}},
-        "gsett": tabella(gs, MIN_N["gsett"]), "gmese": tabella(gm, MIN_N["gmese"]),
+        "ora": {"tutti": tabella(ora_t, MIN_N["ora"], Z_FISSO),
+                **{str(g): tabella({h: v for (gg, h), v in ora_g.items() if gg == g}, MIN_N["ora"], Z_FISSO)
+                   for g in giorni_sett}},
+        "gsett": tabella(gs, MIN_N["gsett"], Z_FISSO), "gmese": tabella(gm, MIN_N["gmese"]),
         "data": tabella(gd, MIN_N["data"]), "sett": tabella(sett, MIN_N["sett"]), "mese": tabella(mese, MIN_N["mese"]),
     }
 
@@ -222,7 +230,7 @@ def calcola_giorni(chiusure):
         ks = sorted(fine)[:-1]                               # l'ultimo periodo puo' essere ancora in corso
         for a, b in zip(ks, ks[1:]):
             out.setdefault(b[1], []).append((fine[b] / fine[a] - 1) * 100)
-    return {"gsett": tabella(gs, MIN_N["gsett"]), "gmese": tabella(gm, MIN_N["gmese"]),
+    return {"gsett": tabella(gs, MIN_N["gsett"], Z_FISSO), "gmese": tabella(gm, MIN_N["gmese"]),
             "data": tabella(gd, MIN_N["data"]), "sett": tabella(sett, MIN_N["sett"]), "mese": tabella(mese, MIN_N["mese"])}
 
 
