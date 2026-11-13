@@ -1,0 +1,105 @@
+
+=== A) MEDIE MOBILI (Droke)  
+                               STUDIO -2015          |        VERIFICA 2016+         |
+                        CAGR   Vol   MaxDD   R/V  Calm|  CAGR   Vol   MaxDD   R/V  Calm|
+SPY    compra e tieni        9.0  18.9  -55.2  0.47  0.16|  14.7  17.7  -33.7  0.83  0.44|
+       A1 30 settimane   6.0  11.4  -35.6  0.52  0.17|  10.4  11.4  -15.1  0.92  0.69| ENTRA
+       A2 30 giorni      0.2  10.2  -32.4  0.02  0.01|   6.0   9.7  -22.4  0.62  0.27| scartata
+       A3 30/60 giorni   5.4  12.5  -35.6  0.43  0.15|   7.9  12.3  -36.6  0.65  0.22| scartata
+QQQ    compra e tieni        5.4  29.5  -83.0  0.18  0.06|  19.1  22.3  -35.1  0.86  0.54|
+       A1 30 settimane   6.4  15.9  -48.3  0.41  0.13|  14.7  16.5  -25.2  0.89  0.58| ENTRA
+       A2 30 giorni      2.6  15.4  -37.8  0.17  0.07|   9.1  12.8  -28.0  0.71  0.33| scartata
+       A3 30/60 giorni   8.4  18.3  -38.0  0.46  0.22|   7.9  17.0  -38.4  0.47  0.21| scartata
+IWM    compra e tieni        7.4  24.5  -59.0  0.30  0.12|  10.3  22.7  -41.1  0.45  0.25|
+       A1 30 settimane   5.3  13.6  -26.6  0.39  0.20|   5.5  13.6  -26.9  0.40  0.20| scartata
+       A2 30 giorni     -0.1  13.4  -40.6 -0.01 -0.00|   0.7  13.7  -32.5  0.05  0.02| scartata
+       A3 30/60 giorni   3.0  16.1  -34.6  0.19  0.09|   5.6  15.7  -43.3  0.36  0.13| scartata
+DIA    compra e tieni        6.8  19.1  -51.9  0.36  0.13|  12.9  17.3  -36.7  0.75  0.35|
+       A1 30 settimane   2.9  10.1  -41.2  0.28  0.07|   5.2  10.7  -27.7  0.48  0.19| scartata
+       A2 30 giorni     -1.1  10.0  -35.0 -0.11 -0.03|   5.2   9.4  -16.0  0.55  0.32| scartata
+       A3 30/60 giorni   2.3  11.9  -37.7  0.19  0.06|   6.7  11.5  -30.7  0.58  0.22| scartata
+EFA    compra e tieni        4.9  23.0  -61.0  0.21  0.08|   8.6  17.2  -34.2  0.50  0.25|
+       A1 30 settimane   6.3  11.9  -25.2  0.53  0.25|   2.8  10.3  -20.9  0.27  0.13| scartata
+       A2 30 giorni      2.4  12.0  -28.0  0.20  0.08|   1.2  10.2  -21.1  0.11  0.06| scartata
+       A3 30/60 giorni   5.7  14.1  -22.7  0.40  0.25|   5.2  11.3  -20.1  0.45  0.26| scartata
+EEM    compra e tieni       10.6  31.6  -66.4  0.34  0.16|   8.5  21.1  -39.8  0.40  0.21|
+       A1 30 settimane   4.2  16.5  -35.8  0.25  0.12|   2.7  13.8  -29.9  0.19  0.09| scartata
+       A2 30 giorni      6.8  16.1  -30.5  0.43  0.22|   3.4  12.8  -30.8  0.27  0.11| scartata
+       A3 30/60 giorni   5.0  19.3  -41.0  0.26  0.12|   6.3  14.7  -30.2  0.43  0.21| scartata
+VNQ    compra e tieni        9.2  34.1  -73.1  0.27  0.13|   5.5  20.4  -42.4  0.27  0.13|
+       A1 30 settimane   7.7  16.1  -28.0  0.48  0.28|  -0.0  11.3  -31.2 -0.00 -0.00| scartata
+       A2 30 giorni     -0.3  18.3  -56.9 -0.01 -0.00|  -1.9  11.3  -29.2 -0.17 -0.07| scartata
+       A3 30/60 giorni   2.6  20.5  -36.8  0.13  0.07|  -2.7  14.4  -46.1 -0.19 -0.06| scartata
+TLT    compra e tieni        7.0  13.9  -26.6  0.51  0.26|  -0.8  14.6  -48.4 -0.06 -0.02|
+       A1 30 settimane   3.8  10.7  -19.8  0.35  0.19|   1.1   9.5  -29.7  0.12  0.04| scartata
+       A2 30 giorni      1.3   9.8  -27.5  0.13  0.05|  -3.1   9.8  -38.1 -0.31 -0.08| scartata
+       A3 30/60 giorni   5.5  11.0  -18.0  0.50  0.30|   1.5  10.5  -28.0  0.15  0.05| scartata
+IEF    compra e tieni        5.2   7.0  -10.4  0.74  0.50|   1.0   6.5  -23.9  0.15  0.04|
+       A1 30 settimane   2.7   5.6  -10.9  0.49  0.25|   1.2   4.3  -14.7  0.27  0.08| scartata
+       A2 30 giorni      1.2   5.2  -13.5  0.24  0.09|  -1.1   4.6  -19.7 -0.23 -0.05| scartata
+       A3 30/60 giorni   3.6   5.5   -8.8  0.66  0.41|   1.7   4.6  -17.2  0.37  0.10| scartata
+GLD    compra e tieni        7.7  19.9  -45.6  0.39  0.17|  12.5  16.6  -28.3  0.76  0.44|
+       A1 30 settimane   8.2  14.3  -27.5  0.57  0.30|   8.1  13.9  -30.8  0.58  0.26| scartata
+       A2 30 giorni      2.5  13.5  -27.6  0.19  0.09|   5.0  12.7  -19.1  0.40  0.26| scartata
+       A3 30/60 giorni   5.9  14.9  -29.6  0.40  0.20|  10.6  13.8  -22.9  0.77  0.46| ENTRA
+SLV    compra e tieni       -0.5  34.8  -72.4 -0.01 -0.01|  12.4  32.1  -57.8  0.39  0.21|
+       A1 30 settimane   4.0  21.6  -55.7  0.19  0.07|   7.3  26.6  -45.4  0.27  0.16| scartata
+       A2 30 giorni      7.4  20.6  -36.7  0.36  0.20|   7.3  23.4  -46.7  0.31  0.16| scartata
+       A3 30/60 giorni  -2.2  23.8  -69.4 -0.09 -0.03|  11.6  25.8  -47.6  0.45  0.24| scartata
+USO    compra e tieni      -17.1  34.1  -90.9 -0.50 -0.19|   4.5  39.9  -86.8  0.11  0.05|
+       A1 30 settimane   2.0  16.6  -48.1  0.12  0.04|   5.2  24.6  -55.0  0.21  0.10| scartata
+       A2 30 giorni      0.9  17.3  -44.6  0.05  0.02|   4.8  23.2  -42.3  0.21  0.11| scartata
+       A3 30/60 giorni   0.7  19.8  -48.8  0.04  0.01|   7.4  25.6  -38.9  0.29  0.19| scartata
+UNG    compra e tieni      -35.7  42.4  -98.6 -0.84 -0.36| -21.4  53.8  -94.3 -0.40 -0.23|
+       A1 30 settimane  -0.6  15.7  -49.7 -0.04 -0.01|  -5.5  29.8  -59.6 -0.18 -0.09| scartata
+       A2 30 giorni    -11.7  22.1  -66.9 -0.53 -0.17| -11.6  34.8  -75.3 -0.33 -0.15| scartata
+       A3 30/60 giorni  -6.6  22.9  -64.7 -0.29 -0.10|  -9.2  34.4  -84.2 -0.27 -0.11| scartata
+CORN   compra e tieni       -3.0  25.9  -59.7 -0.12 -0.05|  -1.8  19.4  -51.1 -0.09 -0.04|
+       A1 30 settimane   0.2  14.3  -20.2  0.02  0.01|   2.4  12.6  -32.7  0.19  0.07| scartata
+       A2 30 giorni      1.9  16.6  -30.4  0.11  0.06|  -2.0  13.0  -41.3 -0.15 -0.05| scartata
+       A3 30/60 giorni   1.0  18.8  -33.7  0.05  0.03|   1.8  14.4  -36.3  0.13  0.05| scartata
+SOYB   compra e tieni       -8.0  21.2  -40.2 -0.37 -0.20|   3.8  16.8  -38.3  0.23  0.10|
+       A1 30 settimane  -2.0  11.0  -21.9 -0.18 -0.09|   1.2  11.5  -34.0  0.10  0.03| scartata
+       A2 30 giorni    -10.7  13.2  -37.8 -0.81 -0.28|  -0.4  11.5  -40.4 -0.03 -0.01| scartata
+       A3 30/60 giorni  -9.6  14.6  -41.7 -0.66 -0.23|   2.5  12.5  -34.8  0.20  0.07| scartata
+WEAT   compra e tieni      -20.8  26.2  -64.1 -0.79 -0.32|  -6.5  26.5  -67.8 -0.24 -0.10|
+       A1 30 settimane  -0.6   9.4  -15.7 -0.07 -0.04|  -0.3  17.8  -38.9 -0.01 -0.01| scartata
+       A2 30 giorni    -13.1  15.8  -44.9 -0.83 -0.29|  -4.8  18.9  -49.6 -0.25 -0.10| scartata
+       A3 30/60 giorni  -7.4  14.0  -34.0 -0.53 -0.22|  -8.7  19.3  -64.9 -0.45 -0.13| scartata
+CPER   compra e tieni      -12.9  45.5  -57.8 -0.28 -0.22|   9.4  24.3  -38.4  0.39  0.24|
+       A1 30 settimane  -2.7   3.9  -13.0 -0.69 -0.20|  -1.1  18.4  -46.2 -0.06 -0.02| scartata
+       A2 30 giorni    -10.3  11.0  -43.0 -0.94 -0.24|  -1.7  17.4  -40.1 -0.10 -0.04| scartata
+       A3 30/60 giorni  -8.2   9.8  -32.5 -0.83 -0.25|   5.7  19.0  -30.8  0.30  0.18| scartata
+PPLT   compra e tieni       -9.8  19.1  -57.6 -0.51 -0.17|   4.5  29.2  -51.1  0.16  0.09|
+       A1 30 settimane  -3.0   8.1  -26.8 -0.37 -0.11|   1.9  20.9  -45.2  0.09  0.04| scartata
+       A2 30 giorni     -7.0  10.7  -42.2 -0.65 -0.17|   3.0  20.5  -37.9  0.15  0.08| scartata
+       A3 30/60 giorni  -8.2  11.6  -44.5 -0.71 -0.18|   3.3  22.0  -36.9  0.15  0.09| scartata
+  A1 30 settimane: entra su 2 ETF su 18
+  A2 30 giorni: entra su 0 ETF su 18
+  A3 30/60 giorni: entra su 1 ETF su 18
+
+=== B) ORO / ARGENTO   beta argento su oro (mensile): 1.50
+                               STUDIO -2015          |        VERIFICA 2016+         |
+GLD compra e tieni       2.3  18.6  -42.9  0.12  0.05|  12.4  15.8  -26.5  0.79  0.47|
+B1 rapporto oro/arg.     2.7  23.8  -51.8  0.11  0.05|  15.4  21.3  -26.5  0.73  0.58| scartata  (mesi in SLV: 75)
+
+=== C) SCALE TRADING (Wiest)  capitale = 10 scaglioni, nessuna leva
+                               STUDIO -2015          |        VERIFICA 2016+         |
+USO    compra e tieni      -25.3  29.4  -76.4 -0.86 -0.33|   4.5  39.9  -86.8  0.11  0.05|
+       C1 scaglioni      -4.3   9.0  -23.6 -0.48 -0.18|   2.6  11.6  -39.8  0.23  0.07| scartata  (operazioni 45, giorni con 10 scaglioni pieni 5, valore finale 1.08)
+UNG    compra e tieni      -13.2  38.5  -75.0 -0.34 -0.18| -21.4  53.8  -94.3 -0.40 -0.23|
+       C1 scaglioni      -2.0   9.1  -29.4 -0.22 -0.07|  -2.2  18.8  -48.1 -0.12 -0.05| scartata  (operazioni 73, giorni con 10 scaglioni pieni 69, valore finale 0.73)
+CORN   compra e tieni      -13.3  21.4  -21.4 -0.62 -0.62|  -1.8  19.4  -51.1 -0.09 -0.04|
+       C1 scaglioni      -2.5   3.3   -3.0 -0.76 -0.83|   1.1   3.6  -13.0  0.29  0.08| scartata  (operazioni 21, giorni con 10 scaglioni pieni 0, valore finale 1.10)
+SOYB   compra e tieni                    -               |   3.2  16.7  -33.9  0.19  0.09|
+       C1 scaglioni                   -               |   0.6   2.2   -7.2  0.28  0.08| scartata  (operazioni 12, giorni con 10 scaglioni pieni 0, valore finale 1.06)
+WEAT   compra e tieni                    -               |  -4.7  26.9  -67.8 -0.17 -0.07|
+       C1 scaglioni                   -               |   0.9   3.5   -6.5  0.25  0.13| scartata  (operazioni 21, giorni con 10 scaglioni pieni 0, valore finale 1.09)
+CPER   compra e tieni                    -               |   8.8  24.2  -38.4  0.36  0.23|
+       C1 scaglioni                   -               |   0.3   0.8   -2.5  0.41  0.12| scartata  (operazioni 6, giorni con 10 scaglioni pieni 0, valore finale 1.03)
+GLD    compra e tieni       -1.6  17.5  -45.6 -0.09 -0.04|  12.5  16.6  -28.3  0.76  0.44|
+       C1 scaglioni      -0.3   1.0   -2.8 -0.34 -0.11|   0.4   0.8   -1.9  0.52  0.20| scartata  (operazioni 4, giorni con 10 scaglioni pieni 0, valore finale 1.02)
+SLV    compra e tieni      -23.8  31.6  -72.1 -0.75 -0.33|  12.4  32.1  -57.8  0.39  0.21|
+       C1 scaglioni      -0.6   2.7   -5.0 -0.24 -0.13|   1.0   1.6   -4.3  0.60  0.22| scartata  (operazioni 12, giorni con 10 scaglioni pieni 0, valore finale 1.08)
+PPLT   compra e tieni      -29.4  19.8  -35.7 -1.49 -0.82|   4.5  29.2  -51.1  0.16  0.09|
+       C1 scaglioni      -6.4   5.2   -8.8 -1.23 -0.73|   1.4   3.6  -10.0  0.38  0.14| scartata  (operazioni 14, giorni con 10 scaglioni pieni 0, valore finale 1.09)

@@ -1,0 +1,12 @@
+mercati 44, operazioni 53301
+                                   STUDIO -2014       |      VERIFICA 2015+      |
+                                 n  media%  vinte     t|     n  media%  vinte     t|
+R1 prezzo su, OI su           9111   0.528   52.9  7.35|  7425   0.464   51.6  5.40|
+R2 prezzo giu, OI su          5992  -0.730   45.1 -7.66|  6147  -0.539   46.9 -5.52|
+R3 prezzo su, OI giu          5811   0.247   51.5  2.63|  5891   0.374   49.7  3.72|
+R4 prezzo giu, OI giu         6726  -0.578   44.4 -6.31|  5888  -0.775   45.6 -7.49|
+FORTI (R1+R2)                15103   0.029   49.8  0.50| 13572   0.010   49.5  0.15|
+DEBOLI (R3+R4)               12537  -0.196   47.7 -2.98| 11779  -0.200   47.7 -2.77|
+solo prezzo (tutte)          27640  -0.073   48.8 -1.68| 25351  -0.088   48.6 -1.82|
+studio: forti - deboli = +0.224% a operazione, t = 2.57
+verifica: forti - deboli = +0.210% a operazione, t = 2.17

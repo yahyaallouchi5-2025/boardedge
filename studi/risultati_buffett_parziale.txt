@@ -1,0 +1,12 @@
+titoli con prezzi: 20123, abbinati a un bilancio SEC: 8175 (di cui usciti dalla borsa: 4737)
+periodo 2010-02 - 2026-10; aziende con bilancio nell'universo: media 327 su 500 (min 24, max 393)
+
+                                       STUDIO 2010-2017       |        VERIFICA 2018+        |
+                                  CAGR   Vol  MaxDD   R/V  tit|  CAGR   Vol  MaxDD   R/V  tit|  t verif.
+B1 riacquisti                     18.8  12.6  -14.0  1.50   39|  15.4  21.0  -29.1  0.73   48|  1.19  scartata
+B2 owner earnings                 10.2  11.8  -19.1  0.86    0|   1.0   3.8   -4.7  0.28    0| -1.94  scartata
+B3 qualita'                       15.5  13.4  -15.3  1.15   88|  13.1  18.8  -27.7  0.70  103|  0.06  scartata
+B4 qualita' + prezzo               0.0   0.0    0.0  0.00    0|   0.0   0.0    0.0  0.00    0| -2.15  scartata
+B5 riacquisti + qualita'          17.8  13.4  -15.7  1.33   17|  16.8  20.9  -29.2  0.80   21|  1.50  scartata
+Confronto (tutte con bilancio)    15.0  13.7  -19.2  1.10  291|  12.9  19.4  -27.8  0.66  359|  0.00
+SPY                               14.5  11.9  -16.2  1.22    1|  14.2  16.2  -23.9  0.88    1|  0.30
