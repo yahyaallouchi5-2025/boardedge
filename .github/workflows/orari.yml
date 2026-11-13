@@ -1,0 +1,55 @@
+# orari.yml - v7.62 ARCHIVIO ORARIO EODHD + STAGIONALITA' IN ORA DI ROMA (cot_radar/orari.py, stagionalita_orari.py).
+# Ogni notte (e a mano): riprende lo storico da dove si era fermato (barre da 1 minuto dal 2004/2009 raggruppate in ore,
+# poi barre orarie), aggiunge i giorni nuovi, ricalcola le tabelle in ora di Roma e salva tutto nel ramo "orari"
+# (un solo commit, sovrascritto). La pagina legge i file da raw.githubusercontent.com: niente ripubblicazione del sito.
+# Se l'ora legale di Roma non corrisponde alle regole (ultima domenica di marzo/ottobre) il job fallisce apposta
+# -> GitHub manda la mail all'admin. La chiave EODHD arriva solo dai Secrets.
+name: Orari
+on:
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency:
+  group: orari
+  cancel-in-progress: false
+jobs:
+  orari:
+    runs-on: ubuntu-latest
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Giro precedente (ramo "orari")
+        run: |
+          mkdir -p dati_orari
+          if git ls-remote --exit-code --heads origin orari >/dev/null; then
+            git fetch -q --depth 1 origin orari && git archive FETCH_HEAD | tar -x -C dati_orari
+          fi
+      - name: Download EODHD (al massimo 5 ore)
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: python -m cot_radar.orari dati_orari --tempo 18000
+      - name: Stagionalita' in ora di Roma
+        id: st
+        run: |
+          set +e
+          python -m cot_radar.stagionalita_orari dati_orari dati_orari/pubblico
+          echo "codice=$?" >> "$GITHUB_OUTPUT"
+      - name: Salva nel ramo "orari"
+        if: always()
+        run: |
+          cd dati_orari
+          git init -q -b orari
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A && git commit -qm "orari: $(date -u '+%F %H:%M')"
+          git push -q -f "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" orari:orari
+      - name: Avviso all'admin (ora legale o calcolo non riuscito)
+        if: steps.st.outputs.codice != '0'
+        run: |
+          echo "::error::Stagionalita' oraria non calcolata: controlla il log (ora legale di Roma o dati mancanti)."
+          exit 1
