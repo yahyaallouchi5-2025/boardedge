@@ -7,7 +7,7 @@ FONTE: "Financial Statement Data Sets" della SEC (un archivio zip a trimestre da
 in quel trimestre, con la DATA DI DEPOSITO = il giorno in cui il pubblico ha visto i numeri). Le aziende uscite dalla
 borsa restano negli archivi: nessun bias di sopravvivenza.
 COSA SI TIENE (solo i valori dell'azienda intera: niente segmenti, niente societa' collegate):
-  azioni in circolazione, valore di mercato del flottante, utile netto, ammortamenti, investimenti (capex), riacquisti ed emissioni di azioni, dividendi pagati,
+  azioni in circolazione, valore di mercato del flottante (da sub.txt), utile netto, ammortamenti, investimenti (capex), riacquisti ed emissioni di azioni, dividendi pagati,
   flusso di cassa operativo, debito a lungo termine, cassa, patrimonio netto.
 USCITA (scritta riga per riga: poca memoria anche con 17 anni di archivi):
   <cartella>/sec_valori_<anno>.csv.gz  righe "cik,deposito,fine_periodo,trimestri,voce,valore"
@@ -37,7 +37,6 @@ VOCI = {
     "DepreciationAmortizationAndAccretionNet": "ammort3", "Depreciation": "ammort4",
     "PaymentsToAcquirePropertyPlantAndEquipment": "capex", "PaymentsToAcquireProductiveAssets": "capex2",
     "PaymentsForRepurchaseOfCommonStock": "riacquisti", "ProceedsFromIssuanceOfCommonStock": "emissioni",
-    "EntityPublicFloat": "flottante",            # valore di mercato del flottante (per la capitalizzazione vera)
     "PaymentsOfDividends": "dividendi", "PaymentsOfDividendsCommonStock": "dividendi2",
     "NetCashProvidedByUsedInOperatingActivities": "fco",
     "LongTermDebt": "debito", "LongTermDebtNoncurrent": "debito_lungo",
@@ -75,8 +74,17 @@ def leggi_trimestre(grezzo, scrittore, nomi):
     with z.open("sub.txt") as f:
         for r in csv.DictReader(io.TextIOWrapper(f, "utf-8", errors="replace"), delimiter="\t"):
             if r.get("form") in MODULI:
-                sub[r["adsh"]] = (r["cik"], r.get("filed", ""))
+                dep = r.get("filed", "")
+                sub[r["adsh"]] = (r["cik"], dep)
                 nomi.setdefault(r["cik"], set()).add(r.get("name", ""))
+                # il valore del flottante sta qui (non in num.txt): solo quello dell'intera azienda (floataxis vuoto)
+                fl, fd = (r.get("pubfloatusd") or "").strip(), (r.get("floatdate") or "").strip()
+                if fl and len(fd) == 8 and not (r.get("floataxis") or "").strip():
+                    try:
+                        scrittore.writerow([r["cik"], f"{dep[:4]}-{dep[4:6]}-{dep[6:8]}", f"{fd[:4]}-{fd[4:6]}-{fd[6:8]}",
+                                            0, "flottante", f"{float(fl):.6g}"])
+                    except ValueError:
+                        pass
     righe = {}                                           # adsh -> righe (si tiene solo il periodo piu' recente)
     with z.open("num.txt") as f:
         for r in csv.DictReader(io.TextIOWrapper(f, "utf-8", errors="replace"), delimiter="\t"):
