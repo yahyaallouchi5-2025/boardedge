@@ -805,7 +805,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      <button type="button" data-tol="-1" class="${test.tol==-1?"on":""}"><b>Nessuna perdita</b><small>non accetto che il conto scenda</small></button></div>${piede}</div>`;}
   // RISULTATO
   const r=esitoTest();
-  if(r.liq)return `<div class="ptest esito">${testa("Per te: liquidit&agrave;, non un portafoglio")}<p class="ptest-p">Tutti i portafogli hanno avuto periodi in perdita. Se non accetti che il conto scenda, tieni i soldi sul conto o in un ETF monetario come <b>XEON</b> (rende circa il tasso BCE, oscillazioni minime).</p><div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><span class="ptest-dx"><button type="button" class="ptest-salta" data-t="reset" title="Cancella risposte ed esito (solo in questo browser)">Reset</button><button type="button" class="ptest-salta" data-t="chiudi">Chiudi</button></span></div></div>`;
+  if(r.liq)return `<div class="ptest esito">${testa("Per te: liquidit&agrave;, non un portafoglio")}<p class="ptest-p">Tutti i portafogli hanno avuto periodi in perdita. Se non accetti che il conto scenda, tieni i soldi sul conto o in un ETF monetario come <b>XEON</b> (rende circa il tasso BCE, oscillazioni minime).</p><div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><button type="button" class="ptest-salta" data-t="chiudi">Chiudi</button></div></div>`;
   const p=r.p,st=statT(p,cap),sm=simT(p,test.anni),orz=ORZ.find(o=>o[0]==test.anni);
   const motivo=r.breve?`Con un orizzonte sotto i 2 anni ogni profilo ha chiuso in perdita in circa 1 anno su 8: per i soldi che ti servono a breve &egrave; pi&ugrave; adatta la liquidit&agrave; (XEON).`
    :r.limite=="orizzonte"?`Deciso dall'<b>orizzonte</b>: con ${orz[1].toLowerCase()} i profili pi&ugrave; rischiosi hanno chiuso in perdita troppo spesso.`
@@ -817,7 +817,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <div><small>Rendimento medio annuo</small><b class="up">${pc(st.cagr)}</b><span>dal ${String(st.dal||"").slice(0,4)}, costi inclusi</span></div></div>
    <p class="ptest-p">${motivo}${compatto(cap)?` Con ${eur(cap)} si usa la <b>versione compatta</b>.`:""}</p>${avvisoCap(p,cap)}
    <p class="ptest-edu">Esempio didattico del modello, uguale per tutti: non &egrave; una consulenza personalizzata. Puoi perdere il capitale anche senza leva.</p>
-   <div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><span class="ptest-dx"><button type="button" class="ptest-salta" data-t="reset" title="Cancella risposte ed esito (solo in questo browser)">Reset</button><button type="button" class="ptest-usa" data-t="usa">Usa questo profilo</button></span></div></div>`;}
+   <div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><button type="button" class="ptest-usa" data-t="usa">Usa questo profilo</button></div></div>`;}
  // avviso se con quel capitale, a quote intere e ai prezzi di oggi, il conto si allontana troppo dal modello
  function avvisoCap(p,cap){const sc=piano(p,cap).scost;if(sc<=SCOST_OK)return "";
   const min=minimoCap(p),alt=P.profili.slice(0,P.profili.indexOf(p)).reverse().find(x=>piano(x,cap).scost<=SCOST_OK);
@@ -870,19 +870,19 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const rot=P.attesa
    ?`<span class="pdl">Nuova rotazione</span><div class="pcv"><b class="pcb acc">${gg(P.rotazione)}</b><small>decisa sulla chiusura del ${gg(P.decisa_al)}</small></div>
      <div class="pcpiede"><span class="pcpiede-t">Si applica all'apertura del ${gg(P.prossima)}</span></div>`
-   :`<span class="pdl">Rotazione in vigore</span><div class="pcv"><b class="pcb">${gg(P.rotazione)}</b><small>si ribilancia il primo giorno di borsa del mese</small></div>
+   :`<span class="pdl">Rotazione in corso</span><div class="pcv"><b class="pcb">${gg(P.rotazione)}</b></div>
      <div class="pcpiede">${c.gg&&c.tot?`<span class="pcpiede-t">Giorno di borsa <b>${c.gg}</b> di ${c.tot}</span><span class="pcpiede-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></span>`:""}</div>`;
   const prof=test.esito?(P.profili.find(x=>x.id==test.esito)||{}).nome||"":"";
   // v7.64 RESET sempre disponibile se il test e' stato iniziato o concluso, anche quando l'esito e' "liquidita'"
   //  (prima il bottone compariva solo con un profilo scelto: chi aveva avuto "liquidita'" non poteva azzerare)
   const liq=!prof&&test.passo>3&&test.tol<0;
   return `<div class="pcell">${rot}</div>
-   <div class="pcell"><span class="pdl">${P.attesa?"Si esegue tra":"Prossimo ribilanciamento"}</span>
+   <div class="pcell"><span class="pdl">${P.attesa?"Si esegue tra":"Prossima rotazione"}</span>
     <div class="pcv pcount" data-t="${P.prossima||""}" title="${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${q("--","giorni")}${q("--","ore")}${q("--","min")}${q("--","sec")}</div>
-    <div class="pcpiede"><span class="pcpiede-t">${giorno(P.prossima)} ${gg(P.prossima)}, ore 9:00</span></div></div>
-   <div class="pcell pcell-prof"><span class="pdl">Il tuo profilo</span>
-    <div class="pcv">${prof?`<b class="pcb acc">${esc(prof)}</b><small>scelto con il test, su ${eur(test.cap||capitale)}</small>`:liq?`<b class="pcb">Liquidit&agrave;</b><small>esito del test: per ora nessun portafoglio</small>`:`<b class="pcb">Non ancora scelto</b><small>3 domande, meno di un minuto</small>`}</div>
-    <div class="pcpiede"><button type="button" class="ptest-apri${prof||liq?"":" nuovo"}">${prof||liq?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button>${prof||test.passo>0?`<button type="button" class="ptest-reset" title="Cancella risposte ed esito del test (solo in questo browser)">Reset</button>`:""}</div></div>`;}
+    <div class="pcpiede"></div></div>
+   <div class="pcell pcell-prof"><span class="pdl">Questionario</span>
+    <div class="pcv">${prof?`<b class="pcb acc">${esc(prof)}</b><small>scelto con il test, su ${eur(test.cap||capitale)}</small>`:liq?`<b class="pcb">Liquidit&agrave;</b>`:`<b class="pcb">Non ancora scelto</b><small>3 domande, meno di un minuto</small>`}</div>
+    <div class="pcpiede"><button type="button" class="ptest-apri${prof||liq?"":" nuovo"}">${prof||liq?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button></div></div>`;}
  // nome del giorno della settimana ("lunedi'") di una data AAAA-MM-GG
  function giorno(ymd){try{const [y,m,d]=ymd.split("-").map(Number);return ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][new Date(Date.UTC(y,m-1,d)).getUTCDay()];}catch(e){return "";}}
  function disegna(){const p=P.profili.find(x=>x.id==sel);
