@@ -2575,3 +2575,8 @@ html.ptmod-on{overflow:hidden}
  .qe-main>.qe-ind .qe-i span{font-size:12px}}
 @container (min-width:1250px){.qe-main>.qe-ind{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media (max-width:900px){.qe-main>.qe-ind .qe-i{align-content:start}}   /* telefono: valori delle schede sulla stessa linea */
+/* v7.64 card della Dashboard: un nome lungo (es. "NY Harbor ULSD (Heating Oil)") non allarga piu' la card.
+   Senza min-width:0 la card si allargava fino al testo intero e anello e riquadri uscivano dal bordo. */
+.grid>.card{min-width:0}
+.card.clic{grid-template-columns:minmax(0,1fr)}.card.clic>*{min-width:0}   /* la card e' una griglia: anche i figli non devono allargarla */
+.card.clic .pairhead>:last-child{flex:none}
