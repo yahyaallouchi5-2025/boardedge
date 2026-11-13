@@ -7,7 +7,7 @@ FONTE: "Financial Statement Data Sets" della SEC (un archivio zip a trimestre da
 in quel trimestre, con la DATA DI DEPOSITO = il giorno in cui il pubblico ha visto i numeri). Le aziende uscite dalla
 borsa restano negli archivi: nessun bias di sopravvivenza.
 COSA SI TIENE (solo i valori dell'azienda intera: niente segmenti, niente societa' collegate):
-  azioni in circolazione, utile netto, ammortamenti, investimenti (capex), riacquisti di azioni, dividendi pagati,
+  azioni in circolazione, valore di mercato del flottante, utile netto, ammortamenti, investimenti (capex), riacquisti ed emissioni di azioni, dividendi pagati,
   flusso di cassa operativo, debito a lungo termine, cassa, patrimonio netto.
 USCITA (scritta riga per riga: poca memoria anche con 17 anni di archivi):
   <cartella>/sec_valori_<anno>.csv.gz  righe "cik,deposito,fine_periodo,trimestri,voce,valore"
@@ -36,7 +36,8 @@ VOCI = {
     "DepreciationDepletionAndAmortization": "ammort", "DepreciationAndAmortization": "ammort2",
     "DepreciationAmortizationAndAccretionNet": "ammort3", "Depreciation": "ammort4",
     "PaymentsToAcquirePropertyPlantAndEquipment": "capex", "PaymentsToAcquireProductiveAssets": "capex2",
-    "PaymentsForRepurchaseOfCommonStock": "riacquisti",
+    "PaymentsForRepurchaseOfCommonStock": "riacquisti", "ProceedsFromIssuanceOfCommonStock": "emissioni",
+    "EntityPublicFloat": "flottante",            # valore di mercato del flottante (per la capitalizzazione vera)
     "PaymentsOfDividends": "dividendi", "PaymentsOfDividendsCommonStock": "dividendi2",
     "NetCashProvidedByUsedInOperatingActivities": "fco",
     "LongTermDebt": "debito", "LongTermDebtNoncurrent": "debito_lungo",
