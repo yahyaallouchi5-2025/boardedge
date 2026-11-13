@@ -261,9 +261,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <span class="pmc-b">Composizione decisa &middot; si entra il ${gg(c.dal)}</span></div>
    <div class="pmc-k pk3">${tk("Giorni di borsa","",c.tot,"","nel mese")}${tk("Positivo",NM,wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",pos)}${tk("Media storica",NM,m&&m.media!=null?pc(m.media):"n/d",m&&m.media>=0?"up":"down","rendimento medio del mese")}</div>
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}</div>`;
-  return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in corso <span class="pbprof">${esc(p.nome)}</span><details class="info pmci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div>Risultato del mese dalla chiusura del giorno di rotazione all'ultima chiusura. La barra sotto confronta il mese con gli stessi mesi degli anni passati (minimo, media, massimo). Il risultato &egrave; provvisorio fino a fine mese.</div></details></h3>
-    <span class="pmc-b${c.live?"":" sim"}">${c.live?"Provvisorio &middot; si chiude a fine mese":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
-   <div class="pmc-g"><b class="${cl}">${pc(r)}</b><span>da inizio mese &middot; ingresso alla chiusura del ${gg(c.dal)} &middot; <em class="pmc-al${fermi(c.al)?" fermo":""}" title="${fermi(c.al)?"Prezzi non aggiornati: il risultato non include le ultime sedute":"Ultima chiusura usata"}">prezzi al ${gg(c.al)}${fermi(c.al)?" (in aggiornamento)":""}</em></span></div>
+  return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} <span class="pbprof">${esc(p.nome)}</span><details class="info pmci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div><b>Risultato del mese</b> da inizio mese: ingresso alla chiusura del ${gg(c.dal)}, prezzi all'ultima chiusura (${gg(c.al)}). A borsa aperta il numero grande include anche la variazione di <b>oggi</b> (prezzi Xetra con circa 15 minuti di ritardo): &egrave; una stima, il risultato ufficiale usa le chiusure. <b>In corso</b>: il mese si chiude all'ultimo giorno di borsa. La barra sotto confronta il mese con gli stessi mesi degli anni passati (minimo, media, massimo).</div></details></h3>
+    <span class="pmc-b${c.live?"":" sim"}">${c.live?"In corso":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
+   <div class="pmc-g"><b class="${cl}" data-chiusura="${c.r}">${pc(r)}</b>${fermi(c.al)?`<span><em class="pmc-al fermo" title="Prezzi non aggiornati: il risultato non include le ultime sedute">prezzi al ${gg(c.al)} (in aggiornamento)</em></span>`:""}</div>
    <div class="pmc-oggi" hidden></div>
    <div class="pmc-k pk3">
     ${tk("Giorno di borsa","",`${c.gg} <span class="pk-di">di ${c.tot}</span>`,"",`<span class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></span>`)}
@@ -963,8 +963,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    else if(v&&v.p&&v.prev){r+=x.peso/100*(v.p/v.prev-1)*100;w+=x.peso;t=Math.max(t,v.t||0);}});
   const giorno=t?new Date(t*1000).toISOString().slice(0,10):null;if(!giorno||giorno<=c.al||w<50){box.hidden=true;return;}
   const ora=new Date(t*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),mese=((1+c.r/100)*(1+r/100)-1)*100;
-  box.hidden=false;box.innerHTML=`<span class="plive on"><i></i>Oggi alle ${ora}</span><b class="${r>=0?"up":"down"}">${pc(r,2)}</b><span>mese stimato <b class="${mese>=0?"up":"down"}">${pc(mese)}</b></span>
-   <details class="info"><summary title="Come si calcola" aria-label="Come si calcola">i</summary><div>Variazione di oggi degli ETF in euro su Xetra (ritardo di borsa di circa 15-20 minuti), pesata con la composizione del mese. &Egrave; una stima: il risultato ufficiale del mese usa le chiusure di fine giornata.</div></details>`;}
+  box.hidden=false;box.innerHTML=`<span class="plive on"><i></i>Oggi alle ${ora}</span><b class="${r>=0?"up":"down"}">${pc(r,2)}</b>`;
+  // v7.64 il numero grande del mese include oggi (prima: due numeri del mese diversi, "-2,0%" e "mese stimato -3,2%")
+  const g=el.querySelector(".pmc-g b");if(g){g.textContent=pc(Math.abs(mese)<0.05?0:mese);g.className=mese>0.05?"up":mese<-0.05?"down":"flat";}}
  window.addEventListener("eb-live",()=>{const p=P.profili.find(x=>x.id==sel);if(!p)return;aggiornaEuro(p);liveOggi(p);
   // v7.30 se l'utente sta leggendo un fumetto (i) del conto non si ridisegna (prima si chiudeva da solo all'arrivo dei prezzi)
   const b=el.querySelector("#pconto");if(b&&!contoEdit&&!b.querySelector("details[open]")){b.innerHTML=contoHTML(p);contoEventi(p);}});
