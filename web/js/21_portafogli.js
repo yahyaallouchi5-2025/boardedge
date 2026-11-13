@@ -869,7 +869,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  function disegna(){const p=P.profili.find(x=>x.id==sel);
   el.innerHTML=`<h2>Portafogli modello</h2><p class="sub">Tre profili di rischio, solo acquisti, controllo ogni mese. Numeri in euro, costi inclusi. Come funziona: Guida, sezione 9.</p>
    <div class="ptop">${testa()}</div>
-   <div class="pseg" role="tablist" aria-label="Scegli il portafoglio">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
+   <div class="pseg-lab" id="pseg-lab">Seleziona un portafoglio</div>
+   <div class="pseg" role="tablist" aria-labelledby="pseg-lab">${P.profili.map(x=>`<button role="tab" aria-selected="${x.id==sel}" class="${x.id==sel?"on":""}" data-p="${x.id}">${x.nome}</button>`).join("")}</div>
    <div class="ptool"><div class="pvista" role="tablist" aria-label="Sezione della scheda">${VISTE.map(v=>`<button role="tab" aria-selected="${vista==v[0]}" class="${vista==v[0]?"on":""}" data-v="${v[0]}">${v[1]}</button>`).join("")}</div>
    ${vista=="oggi"?`<label class="pcap pcapbar">Il tuo capitale <input type="text" inputmode="numeric" value="${mil(capitale)}" aria-label="Capitale da investire in euro"> &euro;</label>`:""}</div>
    ${vista=="oggi"?`

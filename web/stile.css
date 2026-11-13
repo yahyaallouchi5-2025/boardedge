@@ -2472,3 +2472,13 @@ html.ptmod-on{overflow:hidden}
 .pacq-chiuso .pacq-tg::before{transform:translateY(-2px) rotate(45deg)}
 .pacq-chiuso>:not(.pacq-t){display:none}.pacq-chiuso .pacq-t{margin-bottom:0}
 @media (max-width:640px){.pacq-t{padding-right:76px}.pacq-t .pacq-i{right:40px}.pacq-t .pacq-tg{position:absolute;top:-4px;right:0}}
+/* v7.64 sopra i 3 profili: spazio e titolo "Seleziona un portafoglio" (prima i bottoni erano attaccati alle card) */
+.pseg-lab{margin:10px 0 10px;font-size:12px;font-weight:800;letter-spacing:.8px;text-transform:uppercase;color:var(--mute)}
+/* v7.64 "Il tuo capitale" piu' visibile: si cerca spesso. Cornice e testo nel colore del sito, campo piu' grande */
+.ptool .pcapbar{border:1px solid color-mix(in srgb,var(--acc) 55%,var(--line));background:color-mix(in srgb,var(--acc) 9%,var(--card));
+ color:var(--acc);font-size:14px;font-weight:800;padding:6px 6px 6px 18px;min-height:52px;box-shadow:0 6px 20px rgba(46,196,182,.12)}
+.ptool .pcapbar input{width:132px;height:40px;font-size:16px;font-weight:800;text-align:right;color:var(--ink);
+ border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+/* v7.64 con la 4a sezione "Il mio conto" le etichette restano su una riga anche da telefono */
+.pvista button{white-space:nowrap}
+@media (max-width:600px){.pvista button{flex:1 1 auto;padding:9px 4px;font-size:12.5px}}
