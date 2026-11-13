@@ -509,6 +509,16 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  //     con rischio (volatilita' annua e drawdown sul periodo), mesi negativi, peggior mese, correlazione e la spiegazione
  //     automatica di ogni mese negativo (il mercato che ha pesato di piu'). Interruttore: profilo in evidenza.
  let cfrSel=null;
+ // v7.64 sezioni apribili dello Storico: lo stato aperto/chiuso resta quando la pagina si ridisegna (prima, cambiando
+ //  profilo nel confronto, tutta la scheda si ridisegnava e "Confronto dei 3 profili" si richiudeva con uno scatto)
+ const SEZ={rischio:true,confronto:false};
+ function legaSez(){el.querySelectorAll("details.psez[data-sez]").forEach(d=>d.addEventListener("toggle",()=>{SEZ[d.dataset.sez]=d.open;}));}
+ // interruttore del profilo in evidenza nei due confronti: ridisegna SOLO le due tabelle, nessun salto di pagina
+ function legaCfr(){el.querySelectorAll(".pcfsw button").forEach(b=>b.onclick=()=>{if(cfrSel==b.dataset.c)return;cfrSel=b.dataset.c;
+   el.querySelectorAll(".card.pcfr").forEach(c=>{const t=document.createElement("div");t.innerHTML=c.classList.contains("prcfr")?rischioCfr():confronto();
+    const n=t.querySelector(".card.pcfr");if(n)c.replaceWith(n);});
+   try{if(typeof etichetteInfo=="function")etichetteInfo(el);}catch(e){}
+   legaCfr();});}
  // --- v7.51 RISCHIO E COSTI A CONFRONTO: i 3 profili affiancati sullo storico intero (euro, acquisto prudente).
  //     Dati: p.stat.totale (rendimento, drawdown, recupero, Calmar) e p.rischio_ext (Sortino, peggiori 12 mesi,
  //     asimmetria, capitale scambiato e costo annuo: cot_radar/portafogli.py, rischio_esteso). In verde il migliore
@@ -904,8 +914,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${tabella(p)}
    ${simulatoreHTML(p)}
    ${crisiHTML(p)}
-   <details class="psez" open><summary><h3 class="vft">Rischio e costi a confronto</h3><details class="info prinfo" onclick="event.stopPropagation()"><summary title="Come si leggono" aria-label="Come si leggono">i</summary><div><b>S&amp;P 500</b>: la scelta pi&ugrave; semplice, un solo ETF comprato e tenuto, misurata allo stesso modo (in euro): un profilo ha senso solo se fa meglio su rendimento <i>e</i> rischio. <b>Max drawdown</b>: la perdita pi&ugrave; grande dal massimo al minimo. <b>Mesi per recuperare</b>: dal massimo prima del drawdown al ritorno sopra quel livello. <b>Peggiori 12 mesi</b>: il risultato pi&ugrave; basso su un anno qualsiasi, non solo da gennaio a dicembre. <b>Drawdown in 1 anno su 10</b>: partendo da un mese qualsiasi, la perdita massima nei 12 mesi successivi &egrave; stata almeno questa in un caso su dieci: un anno &laquo;brutto&raquo; ma non il peggiore. <b>Media dei mesi peggiori</b> (CVaR): la perdita media nel 5% dei mesi peggiori, quanto fa male un mese davvero cattivo. <b>Sortino</b>: rendimento oltre la liquidit&agrave; diviso le sole oscillazioni negative (sopra 1 &egrave; buono): a differenza della volatilit&agrave; non penalizza i rialzi. <b>Calmar</b>: rendimento annuo diviso il drawdown massimo. <b>Capitale scambiato</b>: quanto del portafoglio si compra e vende in un anno con le rotazioni. <b>Costo annuo</b>: lo scambiato per il costo del modello (0,10%); con il tuo broker pu&ograve; essere diverso. Numeri storici simulati: non garantiscono risultati futuri.</div></details><span class="small">i 3 profili affiancati</span></summary>${rischioCfr()}</details>
-   <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
+   <details class="psez" data-sez="rischio"${SEZ.rischio?" open":""}><summary><h3 class="vft">Rischio e costi a confronto</h3><details class="info prinfo" onclick="event.stopPropagation()"><summary title="Come si leggono" aria-label="Come si leggono">i</summary><div><b>S&amp;P 500</b>: la scelta pi&ugrave; semplice, un solo ETF comprato e tenuto, misurata allo stesso modo (in euro): un profilo ha senso solo se fa meglio su rendimento <i>e</i> rischio. <b>Max drawdown</b>: la perdita pi&ugrave; grande dal massimo al minimo. <b>Mesi per recuperare</b>: dal massimo prima del drawdown al ritorno sopra quel livello. <b>Peggiori 12 mesi</b>: il risultato pi&ugrave; basso su un anno qualsiasi, non solo da gennaio a dicembre. <b>Drawdown in 1 anno su 10</b>: partendo da un mese qualsiasi, la perdita massima nei 12 mesi successivi &egrave; stata almeno questa in un caso su dieci: un anno &laquo;brutto&raquo; ma non il peggiore. <b>Media dei mesi peggiori</b> (CVaR): la perdita media nel 5% dei mesi peggiori, quanto fa male un mese davvero cattivo. <b>Sortino</b>: rendimento oltre la liquidit&agrave; diviso le sole oscillazioni negative (sopra 1 &egrave; buono): a differenza della volatilit&agrave; non penalizza i rialzi. <b>Calmar</b>: rendimento annuo diviso il drawdown massimo. <b>Capitale scambiato</b>: quanto del portafoglio si compra e vende in un anno con le rotazioni. <b>Costo annuo</b>: lo scambiato per il costo del modello (0,10%); con il tuo broker pu&ograve; essere diverso. Numeri storici simulati: non garantiscono risultati futuri.</div></details><span class="small">i 3 profili affiancati</span></summary>${rischioCfr()}</details>
+   <details class="psez" data-sez="confronto"${SEZ.confronto?" open":""}><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
    ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <span class="pbprof">${esc(p.nome)}</span><details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div><b>Entrati</b>: mercati comprati nella rotazione. <b>Usciti</b>: venduti. <b>Restano</b>: tenuti dal mese prima (con i pesi aggiornati). La riga in alto &egrave; la rotazione in vigore, con il risultato provvisorio del mese; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato. Cambiando profilo cambiano mercati, pesi e liquidit&agrave;.<br><br><b>Live</b>: mese seguito dal vivo (da novembre 2026). <b>Simulato</b>: mese precedente, calcolato dal modello con le stesse regole e i prezzi reali di quel mese, senza essere stato seguito in tempo reale.</div></details></h3>${rotazioni(p)}</div>`:""}`;
   legaProfilo();   // v7.37 azzera il profilo   // v7.36 test nel popup
   el.querySelectorAll(".pvista button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{localStorage.setItem("ebPortVista",vista);}catch(e){}ridisegna(".pvista");});
@@ -913,7 +923,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   // clic su un titolo delle azioni scelte: apre la sua scheda nell'Azionario (azioni.js)
   el.querySelectorAll("[data-az]").forEach(b=>b.onclick=()=>{if(window.ebApriTitolo)window.ebApriTitolo(b.dataset.az);});
   el.querySelectorAll(".pper button").forEach(b=>b.onclick=()=>{per=b.dataset.per;ridisegna(".pper");});
-  el.querySelectorAll(".pcfsw button").forEach(b=>b.onclick=()=>{cfrSel=b.dataset.c;ridisegna(".pcfsw");});
+  legaCfr();legaSez();
   const bt=el.querySelector(".ptutte");if(bt)bt.onclick=()=>{tutteRot=!tutteRot;ridisegna(".ptutte");};
   isinAzioni(el);
   // v6.78 pulsante "Scarica PDF" del profilo scelto (01b_pdf.js)
