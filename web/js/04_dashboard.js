@@ -27,7 +27,7 @@ try{
  const rd=rotA?`${GG[rotA.getDay()]} ${rotA.getDate()} ${MM[rotA.getMonth()]}`:"n/d";
  $("kpis").className="kzg";
  $("kpis").innerHTML=`<a class="kz kz1" href="#cards" data-scorri="cards" title="Vai al posizionamento">${testa("seg","Posizionamento","Dove puntano oggi gli speculatori?")}
-   <div class="kzb"><div class="kzbig">${su+giu}</div>${strong?`<span class="kzchip" title="Posizionamenti più forti">&#9733; ${strong} ${strong==1?"FORTE":"FORTI"}</span>`:""}</div>
+   <div class="kzb"><div class="kzbig">${su+giu}</div>${strong?`<span class="kzforti" title="${strong} posizionament${strong==1?"o":"i"} pi&ugrave; fort${strong==1?"e":"i"}">&#9733;${strong}</span>`:""}</div>
    <div class="kzsplit"><i class="su" style="width:${su/tot*100}%"></i><i class="giu" style="width:${giu/tot*100}%"></i></div>
    <div class="kzleg"><span><b class="up">&#9650; ${su}</b> al rialzo</span><span>al ribasso <b class="dn">&#9660; ${giu}</b></span></div></a>
   <a class="kz kz2" href="#mkt" data-vai="mkt" title="Vai al clima di mercato" style="--clima:${rc}">${testa("clima","Clima del mercato","Gli investitori hanno paura o fiducia?")}
@@ -35,11 +35,11 @@ try{
      <path d="M12 66 A54 54 0 0 1 120 66" fill="none" stroke="#121d31" stroke-width="12" stroke-linecap="round"/><path d="M12 66 A54 54 0 0 1 120 66" fill="none" stroke="url(#kzarco)" stroke-width="12" stroke-linecap="round" opacity=".9"/>
      <g class="kzago" style="transform:rotate(${ang}deg)"><line x1="66" y1="66" x2="66" y2="22" stroke="#f1f5fb" stroke-width="3.5" stroke-linecap="round"/></g><circle cx="66" cy="66" r="6" fill="#f1f5fb"/></svg>
      <div class="kzestremi"><span class="p">PAURA</span><span class="f">FIDUCIA</span></div></div><div class="kzstato">${rl}</div></div>
-   <div class="kzn">Misurato su paura (VIX), rischio delle obbligazioni e tassi, ultime 4 settimane</div></a>
+   <div class="kzn" title="Misurato su paura (VIX), rischio delle obbligazioni e tassi, ultime 4 settimane">Paura (VIX), obbligazioni e tassi</div></a>
   <a class="kz kz3" href="#port" data-vai="port" title="Apri i Portafogli">${testa("rot","Prossima rotazione","Quando si aggiornano i portafogli?")}
    <div class="kzcd" data-cd="rot"></div><div class="kzprog"><i data-pr="rot"></i></div><div class="kzquando"><b>${rd}</b>${rotA?" &middot; ore 9:00":""}</div></a>
   <a class="kz kz4" href="#assets" data-vai="assets" title="Vedi la forza di ogni strumento">${testa("cot","Nuovi dati COT","Quando arrivano i dati nuovi?")}
-   <div class="kzcd" data-cd="cot"></div><div class="kzprog"><i data-pr="cot"></i></div><div class="kzquando"><b>${esc(cot.next||"n/d")}</b>${cot.last?` &middot; ora i dati sono del ${esc(String(cot.last).replace(/^\w+ /,"").slice(0,5))}`:""}</div></a>`;
+   <div class="kzcd" data-cd="cot"></div><div class="kzprog"><i data-pr="cot"></i></div><div class="kzquando"><b>${esc(cot.next||"n/d")}</b>${cot.last?` &middot; dati del ${esc(String(cot.last).replace(/^\w+ /,"").slice(0,5))}`:""}</div></a>`;
  // clic su "Segnali attivi": scorre alle card dei segnali nella stessa scheda
  const s1=$("kpis").querySelector("[data-scorri]");if(s1)s1.onclick=e=>{e.preventDefault();const t=$("cards");if(t)t.scrollIntoView({behavior:"smooth",block:"start"});};
  const z=n=>String(n).padStart(2,"0");

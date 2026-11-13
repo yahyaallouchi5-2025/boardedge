@@ -2523,3 +2523,16 @@ html.ptmod-on{overflow:hidden}
 .ptop .pcpiede-bar i::after{content:"";position:absolute;right:-7px;top:50%;width:14px;height:14px;border-radius:50%;
  transform:translateY(-50%);background:var(--ink);border:3px solid var(--acc);box-sizing:border-box;animation:pnowPulse 1.8s ease-out infinite}
 @media (prefers-reduced-motion:reduce){.ptop .pcpiede-bar i::after{animation:none}}
+/* v7.64 Dashboard, 4 card in alto: le righe in fondo (rialzo/ribasso, misura del clima, data della rotazione e dei dati
+   COT) stanno sulla STESSA linea orizzontale: card della stessa altezza e piede spinto in fondo; barre subito sopra */
+.kzg{align-items:stretch}
+.kz>.kzleg,.kz>.kzn,.kz>.kzquando{margin-top:auto}
+.kz>.kzsplit,.kz>.kzprog{margin-top:auto}
+.kz>.kzsplit+.kzleg,.kz>.kzprog+.kzquando{margin-top:0}
+.kzn{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* stelle dei posizionamenti forti: stessa grandezza del numero accanto, senza la scritta */
+.kzforti{font-size:40px;font-weight:800;line-height:1;letter-spacing:-1px;color:var(--warn,#e9b44c);font-variant-numeric:tabular-nums}
+@media (max-width:600px){.kzforti{font-size:34px}}
+@container (max-width:300px){.kzforti{font-size:34px}}
+/* con la barra laterale, sotto ~1480 px le 4 card diventerebbero troppo strette (testi a capo, "NEUTRO" fuori): 2 x 2 */
+@media (min-width:601px) and (max-width:1480px){.kzg{grid-template-columns:repeat(2,minmax(0,1fr))}}
