@@ -131,3 +131,17 @@ def add_month(m, k):
     while mo < 1:
         y, mo = y - 1, mo + 12
     return f"{y:04d}-{mo:02d}"
+
+
+def data_yahoo(ts, meta):
+    """v7.64 DATA DI BORSA di una candela giornaliera di Yahoo (timestamp `ts`, `meta` della risposta).
+    PRIMA si sommava meta["gmtoffset"], che e' lo scarto di OGGI: d'inverno (-5 h) le candele ESTIVE dei future
+    (mezzanotte di New York = 04:00 UTC) finivano sul GIORNO PRIMA (lunedi' -> domenica, venerdi' -> giovedi';
+    trovato il 14/11/2026: nello storico dei future c'erano 376 domeniche e solo 205 venerdi' dal 2015).
+    Ora si usa il fuso della borsa con l'ora legale di quel giorno. Senza fuso (o senza zoneinfo): vecchio metodo."""
+    from datetime import datetime, timezone
+    try:
+        from zoneinfo import ZoneInfo
+        return datetime.fromtimestamp(ts, ZoneInfo(meta["exchangeTimezoneName"])).date().isoformat()
+    except Exception:
+        return datetime.fromtimestamp(ts + (meta.get("gmtoffset") or 0), tz=timezone.utc).date().isoformat()

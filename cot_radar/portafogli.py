@@ -50,6 +50,7 @@ from bisect import bisect_left
 from datetime import date, datetime, timedelta, timezone
 
 from .backtest import punteggi
+from .calcoli import data_yahoo
 from .config import ASSETS, NORMAL, PREZZI_YAHOO, ROOT
 from .cot import cot_series
 from .log import log
@@ -226,12 +227,11 @@ def scarica_yahoo(ticker, timeout=20, tentativi=TENTATIVI, attesa=2):
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 js = json.load(r)
             res = js["chart"]["result"][0]
-            off = res["meta"].get("gmtoffset", 0)
             adj = res["indicators"]["adjclose"][0]["adjclose"]
             out = {}
             for ts, v in zip(res["timestamp"], adj):
                 if v is not None and v > 0:
-                    out[datetime.fromtimestamp(ts + off, tz=timezone.utc).date().isoformat()] = round(float(v), 6)
+                    out[data_yahoo(ts, res["meta"])] = round(float(v), 6)   # v7.64 fuso della borsa (vedi calcoli.data_yahoo)
             pts = _valida(sorted(out.items()))
             if pts:
                 return pts

@@ -36,6 +36,7 @@ import urllib.request
 import zlib
 from datetime import date, datetime, timedelta, timezone
 
+from .calcoli import data_yahoo
 from .log import log
 
 QUI = os.path.dirname(os.path.abspath(__file__))
@@ -179,13 +180,12 @@ def scarica(ticker, intervallo="1d", periodo="2y", timeout=20, tentativi=TENTATI
             with urllib.request.urlopen(req, timeout=timeout) as r:
                 res = json.load(r)["chart"]["result"][0]
             m = res["meta"]
-            off = m.get("gmtoffset", 0)
             ind = res["indicators"]
             valori = (ind.get("adjclose") or [{}])[0].get("adjclose") or ind["quote"][0]["close"]
             out = {}
             for ts, v in zip(res.get("timestamp") or [], valori):
                 if v is not None and v > 0:
-                    d = datetime.fromtimestamp(ts + off, tz=timezone.utc).date().isoformat()
+                    d = data_yahoo(ts, m)                   # v7.64 fuso della borsa (vedi calcoli.data_yahoo)
                     out[d[:7] if intervallo == "1mo" else d] = round(float(v), 4)
             pts = _valida(sorted(out.items()), min_punti(intervallo, periodo))
             if pts and intervallo == "1mo" and not mensile_ok(pts):

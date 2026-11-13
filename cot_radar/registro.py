@@ -28,6 +28,7 @@ from datetime import date, timezone
 
 from . import motore, volatilita
 from .eventi import Calendario as eventi_cal
+from .calcoli import data_yahoo
 from .config import PREZZI_YAHOO, PRICES, ROOT
 from .log import log
 from .stagionalita import prezzo_coppia
@@ -111,12 +112,11 @@ def _yahoo_fx(cur, timeout=15):
     req = urllib.request.Request(YAHOO_FX.format(t=cur), headers={"User-Agent": "cot-radar/registro"})
     with urllib.request.urlopen(req, timeout=timeout) as r:
         res = json.load(r)["chart"]["result"][0]
-    off = res["meta"].get("gmtoffset", 0)
     chiusure = res["indicators"]["quote"][0]["close"]
     out = {}
     for ts, c in zip(res.get("timestamp") or [], chiusure):
         if c and c > 0:
-            out[dt.fromtimestamp(ts + off, tz=timezone.utc).date().isoformat()] = 1 / c
+            out[data_yahoo(ts, res["meta"])] = 1 / c
     return sorted(out.items())
 
 
