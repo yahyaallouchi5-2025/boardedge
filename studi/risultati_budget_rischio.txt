@@ -1,0 +1,31 @@
+Periodo 2006-01-03 - 2026-10-30 (20.8 anni). Misura: EURO, acquisto prudente, AZ = S&P 500
+
+=== Conservativo ===
+                                      STUDIO 2006-2015     |  FUORI CAMPIONE 2016+   |
+                                    CAGR   Vol  MaxDD  R/V|  CAGR   Vol  MaxDD  R/V|
+0 attuale                            5.1   6.1   -8.9 0.836|   5.1   5.3   -7.1 0.962|
+A rischio uguale                     3.9   5.9   -8.4 0.661|   4.2   5.0   -6.6 0.840|  scartata
+B rischio uguale, stessa vol.        4.6   7.9  -11.0 0.582|   5.4   6.0   -7.2 0.900|  scartata
+C budget = pesi del profilo          4.8   5.8   -8.0 0.828|   3.5   4.8   -6.9 0.729|  scartata
+  pesi di oggi  attuale: {'AZ': 5.0, 'CASH': 30.9, 'COPPER': 2.4, 'EAFE': 9.5, 'GOLD': 14.2, 'SP500': 14.2, 'US10Y': 21.4, 'WTI': 2.4}
+  pesi di oggi  A      : {'AZ': 7.3, 'CASH': 30.9, 'COPPER': 3.1, 'EAFE': 6.1, 'GOLD': 3.4, 'SP500': 7.3, 'US10Y': 33.5, 'WTI': 8.5}
+
+=== Moderato ===
+                                      STUDIO 2006-2015     |  FUORI CAMPIONE 2016+   |
+                                    CAGR   Vol  MaxDD  R/V|  CAGR   Vol  MaxDD  R/V|
+0 attuale                            6.2   7.9  -11.2 0.785|   7.0   7.2   -8.6 0.972|
+A rischio uguale                     4.8   6.6   -9.7 0.727|   4.8   5.7   -6.9 0.842|  scartata
+B rischio uguale, stessa vol.        5.9   8.8  -13.2 0.670|   5.7   7.0   -8.8 0.814|  scartata
+C budget = pesi del profilo          5.0   6.6   -9.5 0.758|   5.1   5.7   -8.3 0.895|  scartata
+  pesi di oggi  attuale: {'AZ': 10.0, 'CASH': 18.0, 'COPPER': 2.2, 'EAFE': 9.0, 'EM': 4.5, 'GOLD': 13.5, 'SP500': 27.0, 'US10Y': 13.5, 'WTI': 2.2}
+  pesi di oggi  A      : {'AZ': 7.7, 'CASH': 18.0, 'COPPER': 3.4, 'EAFE': 6.4, 'EM': 3.9, 'GOLD': 3.8, 'SP500': 7.7, 'US10Y': 37.6, 'WTI': 11.5}
+
+=== Aggressivo ===
+                                      STUDIO 2006-2015     |  FUORI CAMPIONE 2016+   |
+                                    CAGR   Vol  MaxDD  R/V|  CAGR   Vol  MaxDD  R/V|
+0 attuale                            7.5  10.8  -13.6 0.694|  13.8  10.8  -12.7 1.278|
+A rischio uguale                     5.2   7.5  -10.9 0.693|   7.7   7.2   -8.9 1.069|  scartata
+B rischio uguale, stessa vol.        5.8   9.0  -13.1 0.644|   8.4   7.8   -9.5 1.077|  scartata
+C budget = pesi del profilo          5.6   8.1  -11.4 0.691|   9.0   8.0  -11.2 1.125|  scartata
+  pesi di oggi  attuale: {'AZ': 15.0, 'BTC': 4.2, 'COPPER': 2.1, 'EAFE': 8.5, 'EM': 8.5, 'GOLD': 12.8, 'NASDAQ': 12.8, 'SP500': 29.8, 'US10Y': 4.2, 'WTI': 2.1}
+  pesi di oggi  A      : {'AZ': 7.9, 'BTC': 3.0, 'CASH': 0.0, 'COPPER': 3.6, 'EAFE': 7.1, 'EM': 4.1, 'GOLD': 4.2, 'NASDAQ': 5.1, 'SP500': 7.9, 'US10Y': 49.3, 'WTI': 7.9}
