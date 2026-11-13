@@ -857,13 +857,16 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    :`<span class="pdl">Rotazione in vigore</span><div class="pcv"><b class="pcb">${gg(P.rotazione)}</b><small>si ribilancia il primo giorno di borsa del mese</small></div>
      <div class="pcpiede">${c.gg&&c.tot?`<span class="pcpiede-t">Giorno di borsa <b>${c.gg}</b> di ${c.tot}</span><span class="pcpiede-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></span>`:""}</div>`;
   const prof=test.esito?(P.profili.find(x=>x.id==test.esito)||{}).nome||"":"";
+  // v7.64 RESET sempre disponibile se il test e' stato iniziato o concluso, anche quando l'esito e' "liquidita'"
+  //  (prima il bottone compariva solo con un profilo scelto: chi aveva avuto "liquidita'" non poteva azzerare)
+  const liq=!prof&&test.passo>3&&test.tol<0;
   return `<div class="pcell">${rot}</div>
    <div class="pcell"><span class="pdl">${P.attesa?"Si esegue tra":"Prossimo ribilanciamento"}</span>
     <div class="pcv pcount" data-t="${P.prossima||""}" title="${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${q("--","giorni")}${q("--","ore")}${q("--","min")}${q("--","sec")}</div>
     <div class="pcpiede"><span class="pcpiede-t">${giorno(P.prossima)} ${gg(P.prossima)}, ore 9:00</span></div></div>
    <div class="pcell pcell-prof"><span class="pdl">Il tuo profilo</span>
-    <div class="pcv">${prof?`<b class="pcb acc">${esc(prof)}</b><small>scelto con il test, su ${eur(test.cap||capitale)}</small>`:`<b class="pcb">Non ancora scelto</b><small>3 domande, meno di un minuto</small>`}</div>
-    <div class="pcpiede"><button type="button" class="ptest-apri${prof?"":" nuovo"}">${prof?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button>${prof?`<button type="button" class="ptest-reset" title="Cancella il profilo scelto (solo in questo browser)">Azzera</button>`:""}</div></div>`;}
+    <div class="pcv">${prof?`<b class="pcb acc">${esc(prof)}</b><small>scelto con il test, su ${eur(test.cap||capitale)}</small>`:liq?`<b class="pcb">Liquidit&agrave;</b><small>esito del test: per ora nessun portafoglio</small>`:`<b class="pcb">Non ancora scelto</b><small>3 domande, meno di un minuto</small>`}</div>
+    <div class="pcpiede"><button type="button" class="ptest-apri${prof||liq?"":" nuovo"}">${prof||liq?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button>${prof||test.passo>0?`<button type="button" class="ptest-reset" title="Cancella risposte ed esito del test (solo in questo browser)">Reset</button>`:""}</div></div>`;}
  // nome del giorno della settimana ("lunedi'") di una data AAAA-MM-GG
  function giorno(ymd){try{const [y,m,d]=ymd.split("-").map(Number);return ["domenica","lunedì","martedì","mercoledì","giovedì","venerdì","sabato"][new Date(Date.UTC(y,m-1,d)).getUTCDay()];}catch(e){return "";}}
  function disegna(){const p=P.profili.find(x=>x.id==sel);

@@ -2482,3 +2482,5 @@ html.ptmod-on{overflow:hidden}
 /* v7.64 con la 4a sezione "Il mio conto" le etichette restano su una riga anche da telefono */
 .pvista button{white-space:nowrap}
 @media (max-width:600px){.pvista button{flex:1 1 auto;padding:9px 4px;font-size:12.5px}}
+/* v7.64 Reset del test a destra nella card "Il tuo profilo" */
+.pcell-prof .ptest-reset{margin-left:auto}
