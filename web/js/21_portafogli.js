@@ -44,7 +44,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  const nomeK=k=>{for(const p of P.profili){const c=p.composizione.find(x=>x.k==k);if(c)return c.nome;const a=p.ammessi.find(x=>x.k==k);if(a)return a.nome;}return k;};
  let sel=P.profili[1].id,per="tutto",tutteRot=false;
  // v7.9 la scheda in 3 sezioni (meno scorrimento, soprattutto da telefono): Oggi / Storico / Rotazioni (ricordata)
- const VISTE=[["oggi","Oggi"],["storico","Storico"],["rotazioni","Rotazioni"]];
+ // v7.64 "Il mio conto" diventa una sezione propria (prima era una card in "Oggi": rumore per chi non la usa)
+ const VISTE=[["oggi","Oggi"],["storico","Storico"],["rotazioni","Rotazioni"],["conto","Il mio conto"]];
+ // v7.64 "Acquisto diretto" si apre e si chiude (ricordato nel browser); chiuso di partenza: in "Oggi" resta il riassunto
+ let acqAperto=false;try{acqAperto=localStorage.getItem("ebAcqAperto")=="1";}catch(e){}
  let vista="oggi";try{const v=localStorage.getItem("ebPortVista");if(VISTE.some(x=>x[0]==v))vista=v;}catch(e){}
  try{const s=localStorage.getItem("ebProfilo");if(s&&P.profili.some(p=>p.id==s))sel=s;}catch(e){}
 
@@ -164,7 +167,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  const minimoCap=p=>{let m=null;for(let i=GRIGLIA_CAP.length-1;i>=0;i--){if(piano(p,GRIGLIA_CAP[i]).scost<=SCOST_OK)m=GRIGLIA_CAP[i];else break;}return m;};
  window.__scostamento=(id,cap)=>{const p=P.profili.find(x=>x.id==id);return p?{scost:piano(p,cap).scost,minimo:minimoCap(p)}:null;};   // DEBUG
  function compattoHTML(p){const c=p.compatto,s=c&&c.stat.totale,t=p.stat.totale||{};
-  return `<div class="pacq-cmp"><span class="pacq-cb">Versione compatta</span><span class="small">sotto ${eur(P.compatto.sotto)}</span>
+  return `<div class="pacq-cmp"><span class="small">Versione compatta: capitale sotto ${eur(P.compatto.sotto)}</span>
    <details class="info"><summary title="Cos'&egrave;" aria-label="Cos'&egrave;">i</summary><div>Con meno di ${eur(P.compatto.sotto)} alcune quote intere costano troppo (S&amp;P 500 circa 700 &euro;, Nasdaq-100 circa 1.300 &euro;) e il conto si allontana dal modello. Qui l'<b>S&amp;P 500</b> si compra con l'ETF Vanguard: stesso indice, quota pi&ugrave; piccola.${c?` Il <b>Nasdaq-100</b> &egrave; unito all'S&amp;P 500, che lo contiene gi&agrave; in buona parte.<br><br><b>Nello storico</b>: ${fx(s.cagr,1)}% l'anno contro ${fx(t.cagr,1)}% del modello completo, drawdown massimo ${pc(s.maxdd)} contro ${pc(t.maxdd)}. Stessa misura del sito: euro, costi inclusi.`:" Il resto del portafoglio non cambia."}</div></details></div>`;}
  // v7.25 STATO DEI PREZZI di "Acquisto diretto": verde a Xetra aperta con prezzi di oggi; rosso a borsa chiusa (con la
  // prossima apertura, festivita' comprese: 02b_mercati.js) e la data della chiusura usata. Mai un orario "nudo" vecchio.
@@ -179,9 +182,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const L=window.ebLive,tt=L&&L.ue?Math.max(0,...Object.values(L.ue).map(v=>v.t||0)):0,dt=tt?new Date(tt*1000):null,
    oggi=dt&&dt.toDateString()==new Date().toDateString(),
    ora=dt?(oggi?"":dt.toLocaleDateString("it-IT",{day:"2-digit",month:"2-digit"})+" ")+dt.toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}):null;
-  return `<div class="pacq-t"><h3>Acquisto diretto <span class="small">quote intere su ${eur(capitale)}</span></h3>
+  return `<div class="pacq-t"><h3 class="pacq-h" role="button" tabindex="0" aria-expanded="${acqAperto}">Acquisto diretto</h3>
     ${statoPrezzi(ora,oggi,dt)}
-    <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>azioni scelte</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta. Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.<br><br><b>A borsa chiusa</b> i prezzi sono quelli di chiusura dell'ultima seduta (Xetra, 17:30). Su Scalable (gettex) gli ordini si possono inviare anche la sera: il prezzo &egrave; quello del market maker in quel momento e pu&ograve; scostarsi dalla chiusura.</div></details></div>
+    <details class="info pacq-i"><summary title="Come si calcola" aria-label="Informazioni">i</summary><div>Con l'ordine normale il broker compra solo <b>quote intere</b>: per ogni strumento il numero di quote &egrave; la parte intera di importo del modello &divide; prezzo di 1 quota (prezzo di chiusura, con 0,5% di margine). Quello che avanza resta sul conto. Le <b>azioni scelte</b>: se 1 azione costa pi&ugrave; della sua quota, al suo posto c'&egrave; il candidato successivo della stessa regola che ci sta. Con capitali piccoli lo <b>scostamento dal modello</b> &egrave; normale; il modello e i risultati pubblicati non cambiano. Prezzi indicativi: controllali sul broker prima di confermare.<br><br><b>A borsa chiusa</b> i prezzi sono quelli di chiusura dell'ultima seduta (Xetra, 17:30). Su Scalable (gettex) gli ordini si possono inviare anche la sera: il prezzo &egrave; quello del market maker in quel momento e pu&ograve; scostarsi dalla chiusura.</div></details><button type="button" class="pacq-tg" aria-label="${acqAperto?"Chiudi":"Apri"} Acquisto diretto" aria-expanded="${acqAperto}"></button></div>
    ${compatto(capitale)?compattoHTML(p):""}
    <div class="pacq-l">${pi.righe.map(r=>`<div class="pacq-r${r.q===0?" zero":""}"><div class="pacq-n"><b>${esc(r.nome)}</b><span>${r.cash&&!r.nota?"nessun acquisto":r.cash?"":r.isin?`ISIN ${esc(r.isin)}`:esc(r.tk||"")}${r.nota?(r.cash&&!r.neg?r.nota:`${r.cash?"":" &middot; "}<em>${r.nota}</em>`):""}</span></div>
     <div class="pacq-q">${r.cash?`<b>${eur(r.obi)}</b><span>resta sul conto</span>`:r.q==null?`<span class="small">prezzo n/d &middot; ${eur(r.obi)}</span>`:`<b>${r.q} ${r.q==1?"quota":"quote"}</b><span>${r.prezzo?"&times; "+fx(r.prezzo,2)+" € = "+eur(r.q*r.prezzo):""}</span>`}</div></div>`).join("")}</div>
@@ -872,9 +875,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    ${vista=="oggi"?`
    ${hero(p)}
    ${corso(p)}
-   <div class="card pacq" id="pacq">${acquistoHTML(p)}</div>
-   <div class="card pconto" id="pconto">${contoHTML(p)}</div>
+   <div class="card pacq${acqAperto?"":" pacq-chiuso"}" id="pacq">${acquistoHTML(p)}</div>
    <div class="pgrid">${composizione(p)}${contro(p)}</div>`:""}
+   ${vista=="conto"?`<div class="card pconto" id="pconto">${contoHTML(p)}</div>`:""}
    ${vista=="storico"?`<h3 class="vft">Andamento del capitale <details class="info"><summary title="Come leggerlo" aria-label="Come leggerlo">i</summary><div>Base 100, scala logaritmica: la stessa percentuale ha la stessa altezza in ogni periodo. Linea turchese = portafoglio, tratteggio = 60/40 di confronto, linea luminosa = live dalla prima rotazione pubblicata.</div></details></h3>
    <div class="vfswitch pper">${[["tutto","Tutto"],["oos","Dal 2016"]].map(x=>`<button data-per="${x[0]}" class="${per==x[0]?"on":""}">${x[1]}</button>`).join("")}</div>
    <div class="card pgraf">${curva(p)}</div>
@@ -905,6 +908,12 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   simEventi(p);
   crEventi(p);
   contoEventi(p);
+  const acq=el.querySelector("#pacq");
+  if(acq){const gira=()=>{acqAperto=!acqAperto;try{localStorage.setItem("ebAcqAperto",acqAperto?"1":"0");}catch(e){}
+    acq.classList.toggle("pacq-chiuso",!acqAperto);
+    acq.querySelectorAll(".pacq-h,.pacq-tg").forEach(x=>x.setAttribute("aria-expanded",acqAperto));};
+   acq.addEventListener("click",e=>{if(e.target.closest(".pacq-h,.pacq-tg"))gira();});
+   acq.addEventListener("keydown",e=>{if((e.key=="Enter"||e.key==" ")&&e.target.closest(".pacq-h")){e.preventDefault();gira();}});}
   liveOggi(p);
   tipMesi(el.querySelector(".pcontro"),p);
   conto();

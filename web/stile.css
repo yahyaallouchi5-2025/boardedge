@@ -2461,3 +2461,14 @@ html.ptmod-on{overflow:hidden}
 .ptmod .ptest-t .info{position:static}
 .ptmod .ptest-t .info div{left:14px;right:14px;top:58px;width:auto;max-height:calc(100% - 72px);overflow:auto;z-index:8;box-sizing:border-box}
 .ptmod .ptest:has(.ptest-t .info[open]){min-height:min(380px,calc(100vh - 80px))}
+/* v7.64 Acquisto diretto apribile: chiuso resta solo l'intestazione (titolo, stato dei prezzi, (i), freccia) */
+.pacq-h{cursor:pointer;user-select:none}.pacq-h:hover{color:var(--acc)}
+.pacq-h:focus-visible{outline:2px solid var(--acc);outline-offset:3px;border-radius:6px}
+.pacq-tg{width:30px;height:30px;flex:0 0 30px;border-radius:50%;border:1px solid var(--line);background:transparent;cursor:pointer;
+ display:inline-flex;align-items:center;justify-content:center;color:var(--mute);transition:border-color .2s,color .2s}
+.pacq-tg::before{content:"";width:8px;height:8px;border-right:2px solid currentColor;border-bottom:2px solid currentColor;
+ transform:translateY(2px) rotate(-135deg);transition:transform .25s}
+.pacq-tg:hover{border-color:var(--acc);color:var(--acc)}
+.pacq-chiuso .pacq-tg::before{transform:translateY(-2px) rotate(45deg)}
+.pacq-chiuso>:not(.pacq-t){display:none}.pacq-chiuso .pacq-t{margin-bottom:0}
+@media (max-width:640px){.pacq-t{padding-right:76px}.pacq-t .pacq-i{right:40px}.pacq-t .pacq-tg{position:absolute;top:-4px;right:0}}
