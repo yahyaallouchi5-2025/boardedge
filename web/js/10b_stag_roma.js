@@ -46,9 +46,10 @@ try{(function(){const el=$("stag");if(!el)return;
  //  sbiadita = non affidabile, bordo bianco = affidabile, bagliore = adesso. Mouse o tocco: fumetto con i 6 dati della tabella.
  //  La scala si adatta ai dati (scarto massimo da 50, almeno 4 punti) e la legenda mostra i due estremi.
  const scala=celle=>{let m=4;celle.forEach(c=>{if(c)m=Math.max(m,Math.abs(c[1]-50));});return Math.min(25,Math.ceil(m));};
- const colore=(su,sc)=>{const t=Math.max(-1,Math.min(1,(su-50)/sc)),a=[58,66,86],q=t>0?[52,211,153]:[248,113,113],k=Math.abs(t);
-  return `rgb(${a.map((v,i)=>Math.round(v+(q[i]-v)*k))})`;};
- const casella=(c,tit,ora,sc,et)=>c?`<div class="sr-c ${c[7]?"ok":"no"}${ora?" ora":""}" data-tit="${esc(tit)}" data-c="${c.join("|")}" style="background:${colore(c[1],sc)}">${et?`<small>${et}</small>`:""}${fx(c[1],0)}</div>`:`<div class="sr-c vuota">${et?`<small>${et}</small>`:""}&ndash;</div>`;
+ // ok=false: solo lo sfondo si sbiadisce (alfa 0,4), il numero resta bianco acceso e leggibile
+ const colore=(su,sc,ok=true)=>{const t=Math.max(-1,Math.min(1,(su-50)/sc)),a=[58,66,86],q=t>0?[52,211,153]:[248,113,113],k=Math.abs(t);
+  return `rgba(${a.map((v,i)=>Math.round(v+(q[i]-v)*k))},${ok?1:.4})`;};
+ const casella=(c,tit,ora,sc,et)=>c?`<div class="sr-c ${c[7]?"ok":"no"}${ora?" ora":""}" data-tit="${esc(tit)}" data-c="${c.join("|")}" style="background:${colore(c[1],sc,c[7])}">${et?`<small>${et}</small>`:""}${fx(c[1],0)}</div>`:`<div class="sr-c vuota">${et?`<small>${et}</small>`:""}&ndash;</div>`;
  const legenda=sc=>`<div class="sr-leg"><span>% in rialzo</span><span>${50-sc}%</span><span class="sr-lbar"></span><span>${50+sc}%</span>
   <span><i class="l-no"></i>sbiadita = non affidabile</span><span><i class="l-ok"></i>bordo bianco = affidabile</span><span><i class="l-ora"></i>adesso</span></div>`;
  // orario: righe "Tutti" + 7 giorni, colonne 24 ore; sul telefono si gira (ore in verticale) per tenere le caselle grandi
