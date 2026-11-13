@@ -112,7 +112,8 @@ try{(function(){
   const mappa=`<div class="qe-mappa" role="img" aria-label="Fase: ${x.regime}"><span class="qe-ax qe-ay">Crescita &#9650;</span>
     ${ORD.map(r=>`<div class="qe-c ${FASI[r][1]}${r==x.regime?" on":""}"><b>${r}</b>${r==x.regime?'<i class="cd-fr" aria-hidden="true">&#9660;</i>':""}</div>`).join("")}
     <span class="qe-ax qe-ax2">Inflazione &#9654;</span></div>`;
-  const tiles=[ind("Anticipatore OCSE",fx(x.cli,1),`3 mesi fa ${fx(x.cli3,1)} &middot; 100 = media`,fr(x.cli,x.cli3,"bene")),
+  // v7.64 "100 = media" spostato nel fumetto (i) dell intestazione: le schede non vanno a capo
+  const tiles=[ind("Anticipatore OCSE",fx(x.cli,1),`3 mesi fa ${fx(x.cli3,1)}`,fr(x.cli,x.cli3,"bene")),
    ind("Inflazione",fx(x.infl,1)+"%",`<em class="qe-ti">${x.tipo_infl}</em> &middot; 6 mesi fa ${fx(x.infl6,1)}%`,fr(x.infl,x.infl6,"male"))];
   if(x.disoc!=null)tiles.push(ind("Disoccupazione",fx(x.disoc,1)+"%",x.sahm!=null?`Sahm ${fx(x.sahm,2)} su 0,50`:"",""));
   if(x.curva!=null)tiles.push(ind("Curva 10-2 anni",(x.curva>0?"+":"")+fx(x.curva,2),x.curva<0?"invertita":"normale",""));
@@ -127,7 +128,7 @@ try{(function(){
   // v7.64 intestazione senza rumore: fase e bandiera; descrizione, mese dei dati e allarme nel fumetto (i).
   //  L'avviso in pagina compare SOLO se c'e' un allarme recessione (informazione che serve vedere subito).
   return `<div class="qe-dh">${bandiera(x.id)}<b class="${f[1]}">${x.regime}</b>${x.allarme?`<span class="qe-al on">Allarme recessione</span>`:""}
-    <span class="qe-dhi">${info(`<b>${esc(x.nome)}</b>: l'economia ${f[0]}. Dati di ${meseIt(x.mese)}. ${x.allarme?"<b>Allarme recessione</b> attivo":"Nessun allarme recessione"} (regola di Sahm sulla disoccupazione).`)}</span></div>
+    <span class="qe-dhi">${info(`<b>${esc(x.nome)}</b>: l'economia ${f[0]}. Dati di ${meseIt(x.mese)}. ${x.allarme?"<b>Allarme recessione</b> attivo":"Nessun allarme recessione"} (regola di Sahm sulla disoccupazione). Anticipatore OCSE: 100 = tendenza di lungo periodo (sopra 100 l'economia corre pi&ugrave; della sua media).`)}</span></div>
    <div class="qe-main">${mappa}<div class="qe-ind">${tiles.join("")}</div></div>${x.id=="usa"?modalitaHTML()+debitoHTML():""}${settHTML}${idx}${cot}`;}
  function disegna(){const x=E.economie.find(e=>e.id==sel);
   el.innerHTML=`<div class="qe-sec"><div class="qe-h"><h2>Quadro economico</h2>${infoSez}</div>

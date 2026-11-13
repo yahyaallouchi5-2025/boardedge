@@ -2563,3 +2563,15 @@ html.ptmod-on{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.qe-c.on{animation:none}}
 .qe-dhi{margin-left:auto}
 .qe-dhi .info div{left:auto;right:0;width:min(340px,calc(100vw - 48px))}
+/* v7.64 Quadro economico: indicatori alti quanto la mappa (bordo sopra e sotto allineati alle celle), valore piu' grande, niente spazio sprecato */
+@media (min-width:901px){
+ .qe-main{grid-template-columns:minmax(260px,340px) minmax(0,1fr);align-items:stretch}
+ .qe-c{min-height:60px}
+ .qe-main{container-type:inline-size}
+ .qe-main>.qe-ind{margin:14px 0 18px;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr}
+ .qe-main>.qe-ind .qe-i{align-content:space-between;padding:12px 16px}
+ .qe-main>.qe-ind .qe-i b{font-size:24px}
+ .qe-main>.qe-ind .qe-i small{font-size:12px}
+ .qe-main>.qe-ind .qe-i span{font-size:12px}}
+@container (min-width:1250px){.qe-main>.qe-ind{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media (max-width:900px){.qe-main>.qe-ind .qe-i{align-content:start}}   /* telefono: valori delle schede sulla stessa linea */
