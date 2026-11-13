@@ -2553,3 +2553,13 @@ html.ptmod-on{overflow:hidden}
  text-shadow:0 0 8px var(--cd);animation:cdFr 1.6s ease-in-out infinite}
 @keyframes cdFr{50%{transform:translate(-50%,3px)}}
 @media (prefers-reduced-motion:reduce){.cd-f.on,.cd-fr{animation:none}}
+/* v7.64 Quadro economico: fase di oggi nella mappa con bordo al neon che gira e freccina (come ciclo del debito) */
+.qe-mappa{padding-top:14px}
+.qe-c{position:relative}
+.qe-c.on{--cd:var(--qc);border:2px solid transparent;
+ background:linear-gradient(color-mix(in srgb,var(--qc) 14%,var(--card)),color-mix(in srgb,var(--qc) 14%,var(--card))) padding-box,
+  conic-gradient(from var(--cdang),color-mix(in srgb,var(--qc) 25%,transparent) 0deg,color-mix(in srgb,var(--qc) 25%,transparent) 220deg,var(--qc) 300deg,#fff 330deg,var(--qc) 345deg,color-mix(in srgb,var(--qc) 25%,transparent) 360deg) border-box;
+ animation:cdGira 3.2s linear infinite}
+@media (prefers-reduced-motion:reduce){.qe-c.on{animation:none}}
+.qe-dhi{margin-left:auto}
+.qe-dhi .info div{left:auto;right:0;width:min(340px,calc(100vw - 48px))}

@@ -110,7 +110,7 @@ try{(function(){
  function dettaglio(x){const f=FASI[x.regime],b=borsa&&borsa.economie&&borsa.economie[x.id],nomiS=(borsa&&borsa.settori)||{};
   const ind=(nome,val,sotto,freccia)=>`<div class="qe-i"><small>${nome}</small><b>${val}${freccia||""}</b><span>${sotto}</span></div>`;
   const mappa=`<div class="qe-mappa" role="img" aria-label="Fase: ${x.regime}"><span class="qe-ax qe-ay">Crescita &#9650;</span>
-    ${ORD.map(r=>`<div class="qe-c ${FASI[r][1]}${r==x.regime?" on":""}"><b>${r}</b>${r==x.regime?`<span>oggi</span>`:""}</div>`).join("")}
+    ${ORD.map(r=>`<div class="qe-c ${FASI[r][1]}${r==x.regime?" on":""}"><b>${r}</b>${r==x.regime?'<i class="cd-fr" aria-hidden="true">&#9660;</i>':""}</div>`).join("")}
     <span class="qe-ax qe-ax2">Inflazione &#9654;</span></div>`;
   const tiles=[ind("Anticipatore OCSE",fx(x.cli,1),`3 mesi fa ${fx(x.cli3,1)} &middot; 100 = media`,fr(x.cli,x.cli3,"bene")),
    ind("Inflazione",fx(x.infl,1)+"%",`<em class="qe-ti">${x.tipo_infl}</em> &middot; 6 mesi fa ${fx(x.infl6,1)}%`,fr(x.infl,x.infl6,"male"))];
@@ -124,8 +124,10 @@ try{(function(){
   const col=(COLLEGATI[x.id]||[]).filter(k=>D.assets&&D.assets[k]).map(k=>Object.assign({},D.assets[k],{name:NOMI[k]||D.assets[k].name}));
   const cot=col.length?`<div class="qe-sez"><div class="qe-st"><h4>Valuta e mercati collegati</h4>${info("Punteggio finale della Dashboard (COT e mercato) da &minus;100 a +100: verde comprato, rosso venduto, grigio neutro. La ciambella &egrave; piena a +100 e vuota a &minus;100. Per l'Australia contano rame e oro, per il Canada il petrolio: sono le materie prime che muovono la loro economia e la valuta.")}</div>
    <div class="qe-dons">${col.map(a=>{const l=a.label||"NEUTRO",c=/BUY/.test(l)?"up":/SELL/.test(l)?"down":"neu";return `<div class="qe-d" title="${esc(a.name)}: ${eti(l)}">${ciambella((a.score+100)/2,(a.score>0?"+":"")+Math.round(a.score),c)}<b>${esc(a.name)}</b><small>${eti(l)}</small></div>`;}).join("")}</div></div>`:"";
-  return `<div class="qe-dh">${bandiera(x.id)}<b class="${f[1]}">${x.regime}</b><span>${esc(x.nome)}: l'economia ${f[0]} &middot; dati di ${meseIt(x.mese)}</span>
-    <span class="qe-al ${x.allarme?"on":""}">${x.allarme?"Allarme recessione":"Nessun allarme recessione"}</span></div>
+  // v7.64 intestazione senza rumore: fase e bandiera; descrizione, mese dei dati e allarme nel fumetto (i).
+  //  L'avviso in pagina compare SOLO se c'e' un allarme recessione (informazione che serve vedere subito).
+  return `<div class="qe-dh">${bandiera(x.id)}<b class="${f[1]}">${x.regime}</b>${x.allarme?`<span class="qe-al on">Allarme recessione</span>`:""}
+    <span class="qe-dhi">${info(`<b>${esc(x.nome)}</b>: l'economia ${f[0]}. Dati di ${meseIt(x.mese)}. ${x.allarme?"<b>Allarme recessione</b> attivo":"Nessun allarme recessione"} (regola di Sahm sulla disoccupazione).`)}</span></div>
    <div class="qe-main">${mappa}<div class="qe-ind">${tiles.join("")}</div></div>${x.id=="usa"?modalitaHTML()+debitoHTML():""}${settHTML}${idx}${cot}`;}
  function disegna(){const x=E.economie.find(e=>e.id==sel);
   el.innerHTML=`<div class="qe-sec"><div class="qe-h"><h2>Quadro economico</h2>${infoSez}</div>
