@@ -221,3 +221,295 @@ def sma_vuoti(v, n):
     return out
 
 
+# --------------------------------------------------------------------------- simulazione
+class Mercato:
+    def __init__(self, k, cot, px, ritardo=0):
+        self.k = k
+        self.cod, _, self.segno, self.classe, self.costo = M[k]
+        self.cot = cot
+        self.px = px
+        self.date = [x[0] for x in px]
+        self.ha_open = px[0][1] is not None
+        self.ma200 = sma([x[2] for x in px], 200)
+        self.ritardo = ritardo
+
+    def giorno_dopo(self, d):
+        """Indice della prima seduta con data > d (ingresso dopo la pubblicazione) + eventuale ritardo di stress."""
+        import bisect
+        i = bisect.bisect_right(self.date, d)
+        i += self.ritardo
+        return i if i < len(self.date) else None
+
+    def prezzo(self, i):
+        return self.px[i][1] if self.ha_open else self.px[i][2]
+
+    def trend(self, d):
+        """+1 sopra la media a 200 giorni, -1 sotto, usando l'ultima chiusura NOTA prima della pubblicazione."""
+        import bisect
+        i = bisect.bisect_right(self.date, d) - 1
+        if i < 0 or self.ma200[i] is None:
+            return 0
+        return 1 if self.px[i][2] > self.ma200[i] else -1
+
+    def operazione(self, i0, verso, settimane):
+        """Rendimento % netto di un'operazione aperta alla seduta i0 e chiusa alla prima seduta >= 7*settimane giorni."""
+        import bisect
+        d1 = self.date[i0] + timedelta(days=7 * settimane)
+        i1 = bisect.bisect_left(self.date, d1)
+        if i1 >= len(self.date) or (self.date[i1] - d1).days > 7:
+            return None
+        r = (self.prezzo(i1) / self.prezzo(i0) - 1) * 100
+        return verso * self.segno * r - self.costo
+
+
+def segnali(m, n=156, alto=90, basso=5, surge=40, mov=6):
+    """Lista di eventi (data pubblicazione, strategia, verso +1/-1) per S1-S4 con le regole del libro."""
+    rapp = [x[0] for x in m.cot]
+    comm = [x[1] for x in m.cot]
+    out = []
+    ci = [cot_index(comm, t, n) if t >= n - 1 else None for t in range(len(comm))]
+    zona_prima, mi_prima = 0, 0
+    for t in range(len(comm)):
+        if ci[t] is None:
+            continue
+        zona = 1 if ci[t] >= alto else -1 if ci[t] <= basso else 0
+        mi = None
+        if t >= mov and ci[t - mov] is not None:
+            mi = ci[t] - ci[t - mov]
+        mzona = 0 if mi is None else (1 if mi >= surge else -1 if mi <= -surge else 0)
+        pub = pubblicazione(rapp[t])
+        if pub is not None:
+            tr = m.trend(pub)
+            if zona and zona != zona_prima:
+                out.append((pub, "S1", zona))
+                if tr == zona:
+                    out.append((pub, "S3", zona))
+            if mzona and mzona != mi_prima:
+                out.append((pub, "S2", mzona))
+                if tr == mzona:
+                    out.append((pub, "S4", mzona))
+        zona_prima, mi_prima = zona, mzona
+    return out
+
+
+def operazioni(m, ev, settimane=ORIZZ):
+    """[(strategia, mercato, data ingresso, verso, {settimane: rendimento})]"""
+    out = []
+    for pub, s, v in ev:
+        i0 = m.giorno_dopo(pub)
+        if i0 is None:
+            continue
+        r = {h: m.operazione(i0, v, h) for h in settimane}
+        out.append((s, m.k, m.date[i0], v, r, i0))
+    return out
+
+
+# ---- S5: medie mobili sul COT Index dei grandi speculatori, giornaliero "a scalini" come nel libro (cap. 9)
+def fondi_giornaliero(m, n=156):
+    """Per ogni seduta: COT Index dei grandi speculatori NOTO quel giorno (l'ultimo pubblicato prima della seduta)."""
+    rapp = [x[0] for x in m.cot]
+    spec = [x[2] for x in m.cot]
+    idx = [(pubblicazione(rapp[t]), cot_index(spec, t, n)) for t in range(n - 1, len(spec))]
+    idx = [x for x in idx if x[0] is not None]
+    out, j, cur = [], 0, None
+    for d in m.date:
+        while j < len(idx) and idx[j][0] < d:          # pubblicato il giorno prima (o prima): usabile oggi
+            cur = idx[j][1]
+            j += 1
+        out.append(cur)
+    return out
+
+
+def s5_curva(m, ci, f, s, dal, al, costo_x=1.0):
+    """Sempre a mercato: lungo se media veloce > lenta. Rendimenti giornalieri % (apertura->apertura o chiusura->chiusura)
+    tra le date dal-al, con costo a ogni cambio di verso. Il cambio si esegue alla seduta DOPO quella del segnale."""
+    mf, ms = sma_vuoti(ci, f), sma_vuoti(ci, s)
+    rend, pos = [], 0
+    scambi = 0
+    for i in range(1, len(m.date)):
+        p0, p1 = m.prezzo(i - 1), m.prezzo(i)
+        if dal <= m.date[i] <= al and pos:
+            rend.append(pos * m.segno * (p1 / p0 - 1) * 100)
+        elif dal <= m.date[i] <= al:
+            rend.append(0.0)
+        a, b = mf[i - 1], ms[i - 1]                    # segnale visto alla seduta i-1, eseguito alla i
+        nuovo = pos
+        if a is not None and b is not None:
+            nuovo = 1 if a > b else -1 if a < b else pos
+        if nuovo != pos:
+            if dal <= m.date[i] <= al and rend:
+                rend[-1] -= m.costo * costo_x            # un costo (andata+ritorno) a ogni cambio: prudente
+            scambi += 1
+            pos = nuovo
+    return rend, scambi
+
+
+# --------------------------------------------------------------------------- statistiche
+def stat(rs):
+    rs = [r for r in rs if r is not None]
+    n = len(rs)
+    if n < 5:
+        return {"n": n}
+    m = sum(rs) / n
+    sd = math.sqrt(sum((x - m) ** 2 for x in rs) / (n - 1)) if n > 1 else 0
+    return {"n": n, "media": m, "vinte": 100 * sum(r > 0 for r in rs) / n, "t": m / sd * math.sqrt(n) if sd else 0}
+
+
+def caso(ops, h, prove=1000, seme=7):
+    """p = quota di estrazioni con verso casuale che fanno una media >= di quella vera (stessi ingressi e durate)."""
+    rnd = random.Random(seme)
+    base = [(o[4][h] + 0) for o in ops if o[4].get(h) is not None]
+    if len(base) < 5:
+        return None
+    vero = sum(base) / len(base)
+    # rendimento lordo nel verso del mercato (senza costo), poi verso casuale e costo
+    lordi = []
+    for o in ops:
+        r = o[4].get(h)
+        if r is None:
+            continue
+        c = M[o[1]][4]
+        lordi.append(((r + c) * o[3], c))             # (rendimento del mercato nel verso +1, costo)
+    meglio = 0
+    for _ in range(prove):
+        tot = sum((g if rnd.random() < 0.5 else -g) - c for g, c in lordi)
+        if tot / len(lordi) >= vero:
+            meglio += 1
+    return meglio / prove
+
+
+def riga(nome, ops, h=PRINC):
+    s = stat([o[4].get(h) for o in ops])
+    if s["n"] < 5:
+        return f"  {nome:<34} n={s['n']:>4}  (troppo poche)"
+    p = caso(ops, h)
+    return (f"  {nome:<34} n={s['n']:>4}  media {s['media']:+6.2f}%  vinte {s['vinte']:4.0f}%  t {s['t']:+5.2f}"
+            f"  p(caso) {p:.3f}")
+
+
+# --------------------------------------------------------------------------- programma
+def carica(cart, ritardo=0, salti=False):
+    cot = leggi_cot(os.path.join(cart, "COT.csv"))
+    mer = {}
+    for k, (cod, fonte, *_r) in M.items():
+        if cod not in cot:
+            continue
+        try:
+            px = leggi_prezzi(cart, fonte)
+        except FileNotFoundError:
+            continue
+        if len(px) < 400:
+            continue
+        if salti and "=F" in fonte:                   # solo i future continui Yahoo non aggiustati
+            px = taglia_salti(px)
+        mer[k] = Mercato(k, cot[cod], px, ritardo)
+    return mer
+
+
+def tutte(mer, **kw):
+    ops = []
+    for m in mer.values():
+        ops += operazioni(m, segnali(m, **kw))
+    return ops
+
+
+def per_periodo(ops, s, studio=True):
+    return [o for o in ops if o[0] == s and ((o[2] <= FINE_STUDIO) == studio)]
+
+
+def main():
+    cart = sys.argv[1]
+    mer = carica(cart)
+    print(f"Mercati con COT e prezzi: {len(mer)} -> {', '.join(sorted(mer))}")
+    print("Senza apertura (ingresso alla chiusura del giorno dopo):",
+          ", ".join(k for k, m in sorted(mer.items()) if not m.ha_open))
+    ops = tutte(mer)
+    nomi = {"S1": "S1 estremi commercial 90/5", "S2": "S2 surge commercial +-40",
+            "S3": "S3 estremi + trend", "S4": "S4 surge + trend"}
+
+    print("\n=== RISULTATI PRINCIPALI (tenuta 4 settimane, costi inclusi) ===")
+    for s in nomi:
+        print(nomi[s])
+        print(riga("studio (fino al 2014)", per_periodo(ops, s, True)))
+        print(riga("VERIFICA (dal 2015)", per_periodo(ops, s, False)))
+
+    print("\n=== TENUTE DIVERSE (verifica dal 2015) ===")
+    for s in nomi:
+        for h in ORIZZ:
+            print(riga(f"{s} tenuta {h} sett.", per_periodo(ops, s, False), h))
+
+    print("\n=== PER CLASSE (tutto il periodo, tenuta 4 settimane) ===")
+    for s in ("S3", "S4"):
+        for c in sorted({v[3] for v in M.values()}):
+            print(riga(f"{s} {c}", [o for o in ops if o[0] == s and M[o[1]][3] == c]))
+
+    print("\n=== STRESS TEST (verifica dal 2015, 4 settimane) ===")
+    var = {"base": (mer, {}), "finestra 26 sett.": (mer, {"n": 26}), "finestra 52 sett.": (mer, {"n": 52}),
+           "soglie 80/20": (mer, {"alto": 80, "basso": 20})}
+    for nome, (mm, kw) in var.items():
+        o2 = tutte(mm, **kw)
+        for s in nomi:
+            print(riga(f"{nome:<18} {s}", per_periodo(o2, s, False)))
+    m_rit = carica(cart, ritardo=1)
+    o2 = tutte(m_rit)
+    for s in nomi:
+        print(riga(f"{'ingresso +1 giorno':<18} {s}", per_periodo(o2, s, False)))
+    m_sal = carica(cart, salti=True)
+    o2 = tutte(m_sal)
+    for s in nomi:
+        print(riga(f"{'salti roll tagliati':<18} {s}", per_periodo(o2, s, False)))
+    # costi doppi: si toglie un altro costo a ogni operazione
+    for s in nomi:
+        o3 = [(o[0], o[1], o[2], o[3], {h: (r - M[o[1]][4] if r is not None else None) for h, r in o[4].items()}, o[5])
+              for o in per_periodo(ops, s, False)]
+        print(riga(f"{'costi doppi':<18} {s}", o3))
+    for s in nomi:
+        tutti = [o for o in ops if o[0] == s]
+        st = {k: stat([o[4].get(PRINC) for o in tutti if o[1] == k]) for k in mer}
+        migliore = max((k for k in st if st[k].get("n", 0) >= 5), key=lambda k: st[k]["media"] * st[k]["n"], default=None)
+        print(riga(f"senza {migliore:<12} {s}", [o for o in tutti if o[1] != migliore and o[2] > FINE_STUDIO]))
+
+    print("\n=== PERIODI DI 5 ANNI (tutto, 4 settimane) ===")
+    for s in nomi:
+        for a in (2001, 2006, 2011, 2016, 2021):
+            print(riga(f"{s} {a}-{a + 4}", [o for o in ops if o[0] == s and a <= o[2].year <= a + 4]))
+
+    print("\n=== S5 MEDIE MOBILI SUL COT INDEX DEI FONDI (cap. 9) ===")
+    griglia = [(f, s) for f in (5, 7, 10, 14, 21) for s in (10, 14, 16, 22, 30, 45) if s > f]
+    tot_v, tot_vb, tot_fisso, righe = [], [], [], []
+    for k, m in sorted(mer.items()):
+        ci = fondi_giornaliero(m)
+        if sum(x is not None for x in ci) < 500:
+            continue
+        studio_da = m.date[0]
+        migl, best = None, -1e9
+        for f, s in griglia:
+            r, _ = s5_curva(m, ci, f, s, studio_da, FINE_STUDIO)
+            g = sum(r)
+            if g > best:
+                best, migl = g, (f, s)
+        r_v, sc = s5_curva(m, ci, migl[0], migl[1], FINE_STUDIO + timedelta(days=1), date(2100, 1, 1))
+        r_f, _ = s5_curva(m, ci, 10, 14, FINE_STUDIO + timedelta(days=1), date(2100, 1, 1))
+        # riferimento: sempre lungo nello stesso periodo (il "drift" del mercato)
+        bh = [m.segno * (m.prezzo(i) / m.prezzo(i - 1) - 1) * 100 for i in range(1, len(m.date))
+              if m.date[i] > FINE_STUDIO]
+        if not r_v:
+            continue
+        anni = len(r_v) / 252
+        righe.append((k, migl, sum(r_v) / anni, sum(r_f) / anni, sum(bh) / anni, sc / anni))
+        tot_v.append(sum(r_v) / anni)
+        tot_fisso.append(sum(r_f) / anni)
+        tot_vb.append(sum(bh) / anni)
+    print("  mercato    coppia scelta  verifica %/anno  coppia fissa 10/14  sempre lungo  scambi/anno")
+    for k, mg, a, b, c, sc in righe:
+        print(f"  {k:<10} {mg[0]:>3}/{mg[1]:<3}        {a:+7.2f}          {b:+7.2f}          {c:+7.2f}      {sc:5.1f}")
+    if tot_v:
+        n = len(tot_v)
+        sd = math.sqrt(sum((x - sum(tot_v) / n) ** 2 for x in tot_v) / (n - 1))
+        print(f"  MEDIA {n} mercati: scelta sullo studio {sum(tot_v) / n:+.2f}%/anno (t tra mercati "
+              f"{sum(tot_v) / n / sd * math.sqrt(n):+.2f}), fissa 10/14 {sum(tot_fisso) / n:+.2f}%, "
+              f"sempre lungo {sum(tot_vb) / n:+.2f}%; mercati positivi {sum(x > 0 for x in tot_v)}/{n}")
+
+
+if __name__ == "__main__":
+    main()
