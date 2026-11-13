@@ -92,13 +92,15 @@ try{(function(){const el=$("stag");if(!el)return;
  // v7.64 niente titoli "Ora di Roma" e "Oggi a Roma ...": la data e' gia' nelle caselle, le spiegazioni sono nell'unica (i) di Stagionalita'
  function disegna(){nascondi();const I=R.idx,X=R.dati[R.sel],a=roma();
   if(!I||!I.simboli||!I.simboli.length){box.innerHTML=`<div class="card sr-vuota"><h3>Ora di Roma</h3><p class="small">Lo storico orario &egrave; in download (17 anni di dati per il forex): le tabelle compaiono qui da sole appena pronte.</p></div>`;return;}
-  const opz=Object.keys(FASI).map(f=>{const s=I.simboli.filter(x=>x.f==f);return s.length?`<optgroup label="${FASI[f]}">${s.map(x=>`<option value="${esc(x.s)}"${x.s==R.sel?" selected":""}>${esc(x.n)}</option>`).join("")}</optgroup>`:"";}).join("");
+  // v7.64 strumento "fermo": ultima candela piu' vecchia di 10 giorni (la fonte non fornisce piu' candele orarie)
+ const fermo=x=>!!(x&&x.al&&(Date.now()-Date.parse(x.al))/864e5>10);
+ const opz=Object.keys(FASI).map(f=>{const s=I.simboli.filter(x=>x.f==f);return s.length?`<optgroup label="${FASI[f]}">${s.map(x=>`<option value="${esc(x.s)}"${x.s==R.sel?" selected":""}>${esc(x.n)}${fermo(x)?" (dati fermi al "+x.al.slice(0,4)+")":""}</option>`).join("")}</optgroup>`:"";}).join("");
   const meta=I.simboli.find(x=>x.s==R.sel)||{};
   let corpo='<p class="small sr-car">Caricamento&hellip;</p>';
   if(X){const cO=X.ora[String(a.wd)]||{},ora=cO[String(a.ora)];
    const t1=(X.gsett||{})[String(a.wd)],t2=(X.gmese||{})[String(a.g)],t3=(X.data||{})[a.data];
    const tre=[t1,t2,t3].filter(Boolean),media=tre.length?[tre.reduce((s,c)=>s+c[0],0),tre.reduce((s,c)=>s+c[1],0)/tre.length,tre.reduce((s,c)=>s+c[2],0)/tre.length]:null;
-   const oggi=`<div class="card sr-oggi"><div class="sr-grid">${tessera("Fascia "+String(a.ora).padStart(2,"0")+"-"+String((a.ora+1)%24).padStart(2,"0"),ora,"mercato chiuso")}${tessera("Tutti i "+GGL[a.wd],t1)}${tessera("Ogni giorno "+a.g,t2)}${tessera("Ogni "+a.g+" "+MML[a.m-1],t3)}
+   const oggi=`<div class="card sr-oggi"><div class="sr-grid">${tessera("Fascia "+String(a.ora).padStart(2,"0")+"-"+String((a.ora+1)%24).padStart(2,"0"),ora,fermo(meta)?"dati fermi":"nessun dato in questa fascia")}${tessera("Tutti i "+GGL[a.wd],t1)}${tessera("Ogni giorno "+a.g,t2)}${tessera("Ogni "+a.g+" "+MML[a.m-1],t3)}
      <div class="sr-t media"><span>Media giornata</span><b style="color:${media?"var(--ink2)":"var(--mute)"}">${media?fx(media[1],0)+"%":"n/d"}<i>${media?"in rialzo":""}</i></b><small>${media?"media "+pc(media[2])+" &middot; "+tre.length+" letture":"pochi dati"}</small></div></div></div>`;
    let tab="",sub="";
    if(R.vista=="ora"){const g=R.gsel??String(a.wd),T=g=="tutti"?X.ora.tutti:X.ora[g]||{};
@@ -114,7 +116,7 @@ try{(function(){const el=$("stag");if(!el)return;
     else{const mm=String(a.m).padStart(2,"0");tab=T([...Array(31).keys()].map(i=>{const k=mm+"-"+String(i+1).padStart(2,"0");return [(i+1)+" "+MML[a.m-1],k,X.data[k]];}),a.data,7,7);}}
    else if(R.vista=="sett")tab=R.forma=="hm"?griglia([...Array(53).keys()].map(i=>["Sett. "+(i+1),String(i+1),X.sett[String(i+1)]]),String(a.sett),14,7):tabella([...Array(53).keys()].map(i=>["Settimana "+(i+1),String(i+1),X.sett[String(i+1)]]),String(a.sett));
    else{const r=MM.map((m,i)=>[MML[i][0].toUpperCase()+MML[i].slice(1),String(i+1),X.mese[String(i+1)]]);tab=R.forma=="hm"?griglia(r,String(a.m),12,4):tabella(r,String(a.m));}
-   corpo=oggi+`<div class="card sr-det"><div class="sr-barra"><div class="vfswitch sr-sw">${[["ora","Orario"],["giorno","Giornaliero"],["sett","Settimanale"],["mese","Mensile"]].map(([k,t])=>`<button data-v="${k}" class="${k==R.vista?"on":""}">${t}</button>`).join("")}</div>
+   corpo=oggi+`<div class="card sr-det">${fermo(meta)?`<p class="sr-fermo">&#9888; Dati fermi al ${gg(meta.al)}: la fonte (EODHD) non fornisce pi&ugrave; candele orarie per questo strumento. Le statistiche sono vecchie e incomplete.</p>`:""}<div class="sr-barra"><div class="vfswitch sr-sw">${[["ora","Orario"],["giorno","Giornaliero"],["sett","Settimanale"],["mese","Mensile"]].map(([k,t])=>`<button data-v="${k}" class="${k==R.vista?"on":""}">${t}</button>`).join("")}</div>
     <div class="vfswitch sr-sw sr-forma">${[["hm","Heatmap"],["tab","Tabella"]].map(([k,t])=>`<button data-f="${k}" class="${k==R.forma?"on":""}">${t}</button>`).join("")}</div></div>
     ${sub}${tab}<p class="small sr-nota">Ora di Roma, ora legale inclusa &middot; dati dal ${gg(meta.dal)} al ${gg(meta.al)}${meta.breve?" &middot; <b>storia breve</b>":""}${R.forma=="hm"?"":" &middot; in grigio le righe neutre; evidenziata quella di adesso"}.</p></div>`;}
   box.innerHTML=`<div class="vfsez">
