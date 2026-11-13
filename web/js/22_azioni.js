@@ -134,7 +134,7 @@ try{(function(){const el=$("azioni");if(!el)return;
  //     stagionalita' del mese, distanza dalla media a 200 giorni e mini grafico dell'ultimo anno.
  function ordinati(righe){return [...righe].sort((a,b)=>{const k=ST.ord;if(k=="n")return ST.dir*String(a.n).localeCompare(String(b.n));
   const x=a[k],y=b[k];if(x==null)return 1;if(y==null)return -1;return ST.dir*(x-y);});}
- function pdfAz(){const E=window.ebPdf,d0=ST.dati;if(!E||!d0)return;const C=E.C,mese=MESI[new Date().getMonth()],Mz=mese[0].toUpperCase()+mese.slice(1);
+ function pdfAz(){const E=window.ebPdf,d0=ST.dati;if(!E||!d0)return;const C=E.C,mese=MESI[oggiRoma().m],Mz=mese[0].toUpperCase()+mese.slice(1);
   const base=filtrati(false),righe=ordinati(filtrati(true)),T="Azionario per settore";
   const NOMI_ORD={rk:"posizione",n:"nome",pt:"forza",sd:"Smart Discount",p:"prezzo",v1g:"1 giorno",v1m:"1 mese",v3m:"3 mesi",vytd:"da gennaio",v1a:"1 anno",st_pos:"stagionalità",t200:"media 200 giorni"};
   const filtri=[ST.list!="tutti"?"Listino: "+nomeList(ST.list):"Tutti i listini",ST.set!="tutti"?"Settore: "+nomeSet(ST.set):"Tutti i settori",
@@ -188,7 +188,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   y=d.serve(y,40,T);y+=d.paragrafo(M,y+16,`Forza 0-100 ricalcolata ogni sera: rendimento degli ultimi 12 e 3 mesi, posizione rispetto alla media a 200 giorni e stagionalità di ${mese}. Forte da 65, Debole sotto 35, Neutro in mezzo. Smart Discount 0-100: quanto il titolo è scontato rispetto alla sua storia. Colonna ${Mz}: anni positivi e rendimento medio del mese.`,LW,{s:7.6,c:C.mute});
   d.salva(E.nomeFile("Azionario"+(ST.list!="tutti"?" "+nomeList(ST.list):"")+(ST.set!="tutti"?" "+nomeSet(ST.set):"")),T+" - BoardEdge",(n,tot)=>E.piede(d,n,tot,"Azionario BoardEdge"));}
 
- function disegna(){const d=ST.dati,base=filtrati(false),righe=filtrati(true),mese=MESI[new Date().getMonth()];
+ function disegna(){const d=ST.dati,base=filtrati(false),righe=filtrati(true),mese=MESI[oggiRoma().m];
   const COL=[["rk","#",1],["n","Titolo",0],["pt","Forza",0],["sd","Smart Discount",1],["p","Prezzo",1],["v1g","1G",1],["v1m","1M",1],["v3m","3M",1,"azh"],["vytd","Da gennaio",1,"azh azh4"],["v1a","1 anno",1],["dy","Div.",1,"azh"],["st_pos",mese[0].toUpperCase()+mese.slice(1),1,"azh"],["t200","Trend",1,"azh azh3"],["sp","Ultimo anno",0,"azh2"]];
   const ord=ordinati(righe);
   const np=Math.max(1,Math.ceil(ord.length/PAG));if(ST.pag>np)ST.pag=np;
@@ -293,7 +293,7 @@ try{(function(){const el=$("azioni");if(!el)return;
   const intra=ST.per=="oggi"||ST.per=="5g";
   const serie=()=>{if(ST.per=="max")return x.m.map(p=>[p[0]+"-01",p[1]]);const lim=new Date(x.d[x.d.length-1][0]);lim.setFullYear(lim.getFullYear()-(ST.per=="1a"?1:2));
    const l=lim.toISOString().slice(0,10);return x.d.filter(p=>p[0]>=l);};
-  const MESI=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"],mc=new Date().getMonth();
+  const MESI=["Gen","Feb","Mar","Apr","Mag","Giu","Lug","Ago","Set","Ott","Nov","Dic"],mc=oggiRoma().m;
   const stag=x.stag?(()=>{const v=x.stag.mesi,mx=Math.max(1,...v.filter(Boolean).map(m=>Math.abs(m.media)));
    return `<h4 class="aztit">Stagionalit&agrave; mensile <details class="info"><summary title="Come leggere la stagionalit&agrave;" aria-label="Informazioni">i</summary><div>Dal ${x.stag.dal}. <b>Numero in alto</b>: rendimento medio del mese. <b>Sotto</b>: quota di anni in cui il mese &egrave; stato positivo. In evidenza il mese in corso. &Egrave; una statistica del passato, non una previsione.</div></details></h4>
     <div class="azstag">${v.map((m,i)=>`<div class="${i==mc?"cur":""}" title="${m?`${MESI[i]}: media ${m.media>0?"+":""}${fx(m.media,2)}% · mediana ${m.mediana>0?"+":""}${fx(m.mediana,2)}% · positivo ${m.pos}% (${m.n} anni)`:"n/d"}">

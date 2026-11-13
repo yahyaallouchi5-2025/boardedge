@@ -40,4 +40,14 @@ Mappa dei moduli (in ordine di "viaggio" dei dati):
   vetrina.py     landing page del sito (radice) con i numeri veri; il terminale sta in /terminale/
   riepilogo.py   riepilogo settimanale dei segnali per categoria di asset (Telegram), dai dati della pagina online
 """
-__version__ = "7.62"
+__version__ = "7.63"
+
+# v7.63 ORA DI ROMA PER TUTTO IL SITO (Ya, 13/11/2026): i server di GitHub lavorano in UTC, quindi "oggi" (date.today(),
+# datetime.now()) cambiava giorno all'01:00/02:00 di Roma e non a mezzanotte. Qui il processo Python passa al fuso
+# Europe/Rome: date, mese corrente, "aggiornato alle" e log seguono l'ora italiana, ora legale compresa (regole del
+# sistema, nessun cambio a mano). Le funzioni che vogliono l'UTC lo chiedono gia' in modo esplicito (timezone.utc).
+import os as _os
+import time as _time
+if hasattr(_time, "tzset"):
+    _os.environ["TZ"] = "Europe/Rome"
+    _time.tzset()

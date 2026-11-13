@@ -21,6 +21,12 @@
 const EB_REPO=(()=>{try{return location.hostname.endsWith("github.io")&&location.pathname.split("/")[1]||"cot-radar";}catch(e){return "cot-radar";}})();
 const EB_RAW="https://raw.githubusercontent.com/yahyaallouchi5-2025/"+EB_REPO+"/";   // file dei rami live e pattern
 const EB_SITO="https://yahyaallouchi5-2025.github.io/"+EB_REPO+"/";                 // pagina di presentazione
+// v7.63 ORA DI ROMA per tutto il sito: data, mese, giorno della settimana e ora di Roma, qualunque sia il fuso del
+// dispositivo (un utente all'estero vede comunque il "mese corrente" italiano). L'ora legale e' gestita da Intl.
+// Restituisce {a: anno, m: mese 0-11, g: giorno, wd: giorno della settimana 0=lunedi', h: ora 0-23}.
+function oggiRoma(d){const p={};new Intl.DateTimeFormat("en-GB",{timeZone:"Europe/Rome",year:"numeric",month:"2-digit",day:"2-digit",
+  weekday:"short",hour:"2-digit",hourCycle:"h23"}).formatToParts(d||new Date()).forEach(x=>p[x.type]=x.value);
+ return {a:+p.year,m:+p.month-1,g:+p.day,wd:["Mon","Tue","Wed","Thu","Fri","Sat","Sun"].indexOf(p.weekday),h:+p.hour};}
 
 const M=D.meta;            // impostazioni (pesi, soglie, ora di aggiornamento)
 

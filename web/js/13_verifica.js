@@ -71,7 +71,7 @@ function ebVerifica(dove){try{(function(){const solaVol=dove=="vol",el=$(solaVol
    <div class="vfbcol"><i style="height:${Math.round((x.v||0)/mx*100)}%"></i>${x.v2!=null?`<i class="b2" style="height:${Math.round(x.v2/mx*100)}%"></i>`:""}</div>
    ${cls=="fitte"?"":`<em>${fp(x.v,dec)}</em>`}<span>${esc(x.et)}</span></div>`).join("")}</div>`;}
  function datiVol(){const P=(D.vol||{})[V.asset];if(!P)return `<div class="card vfvuoto">Volatilit&agrave; non disponibile per questo strumento.</div>`;
-  const R=P.regime,S=P.settimane,o=P.oggi,mOra=new Date().getMonth(),aOra=String(new Date().getFullYear());
+  const R=P.regime,S=P.settimane,o=P.oggi,mOra=oggiRoma().m,aOra=String(oggiRoma().a);
   const MESI=["gen","feb","mar","apr","mag","giu","lug","ago","set","ott","nov","dic"];
   const reg=R?`<div class="card vfregime" style="--vc:${VCOL[R.nome]}"><div><h3>Regime di adesso</h3><div class="big" style="color:var(--vc)">${R.nome.toUpperCase()}</div>
    <div class="note">ultime 4 settimane: <b>${fp(R.vol,1)}</b> di volatilit&agrave; annua, pi&ugrave; alta del <b>${R.pct}%</b> dei periodi degli ultimi 5 anni${R.prev!=null?` &middot; stima prossimo mese <span class="vfprev"><b>${fp(R.prev,1)}</b> <details class="info"><summary title="Come si stima" aria-label="Come si stima">i</summary><div>Stima EWMA: i giorni recenti pesano di pi&ugrave; (ieri 6%, poi a scalare). Nelle nostre prove prevede la volatilit&agrave; del mese dopo meglio della media semplice. &Egrave; una stima, non una certezza.</div></details></span>`:""}</div></div>

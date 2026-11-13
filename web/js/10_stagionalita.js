@@ -49,7 +49,7 @@ try{(function(){const S=D.stag||{},el=$("stag"),M12=["Gen","Feb","Mar","Apr","Ma
   if(!c)return "Prezzo spot giornaliero EIA (FRED): l'orario esatto di rilevazione non &egrave; pubblicato.";
   const r=oraRoma(c[0],c[1]),dopo=r<"12:00"&&c[1]>="12:00";       // es. Coinbase 17:00 PT = 02:00 di Roma del giorno dopo
   return `Giorno = da chiusura a chiusura (${c[2]}, ${c[1]} ora locale = <b>${r} ora di Roma</b>): &laquo;mercoled&igrave;&raquo; = ${dopo?"da mercoled&igrave; "+r+" a gioved&igrave; "+r:"da marted&igrave; "+r+" a mercoled&igrave; "+r}.`;}
- function disegna(){const X=S[sel],f=X.finestra,mm=X.mesi||[],gg=X.giorni,ora=new Date().getMonth();
+ function disegna(){const X=S[sel],f=X.finestra,mm=X.mesi||[],gg=X.giorni,ora=oggiRoma().m;
   const verd=!f?"n/d":f.robusto?(f.score>0?"RIALZO":"RIBASSO"):"NEUTRA";
   const fcard=`<div class="card"><h3>Prossime 4 settimane</h3><div class="kpi"><div class="big" style="color:${!f||!f.robusto?"var(--ink)":f.score>0?"var(--b)":"var(--s)"}">${verd}</div>
    <div class="note">${f?`salito <b>${f.su}</b> anni su <b>${f.n}</b> (dal ${f.da}) &middot; mediana ${pc(f.med)} &middot; senza trend ${pc(f.med_d)}`:"storico insufficiente"}</div>
