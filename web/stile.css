@@ -2486,3 +2486,22 @@ html.ptmod-on{overflow:hidden}
 .pcell-prof .ptest-reset{margin-left:auto}
 /* v7.64 fine test: Reset accanto a Chiudi / Usa questo profilo */
 .ptest-dx{display:inline-flex;align-items:center;gap:14px;margin-left:auto}
+/* v7.64 CURSORE "ORA" del mese in corso sulle barre (legenda della heat map, termometro del drawdown, mese negli anni
+   passati): pallino che pulsa, con il valore sopra. Si sposta con il profilo, con il mese e con i prezzi di oggi. */
+.phmleg i{position:relative}
+.pnow{position:absolute;top:50%;width:16px;height:16px;border-radius:50%;background:var(--ink);border:3px solid var(--acc);
+ transform:translate(-50%,-50%);box-sizing:border-box;z-index:2;animation:pnowPulse 1.8s ease-out infinite;transition:left .6s ease}
+.pnow em{position:absolute;bottom:calc(100% + 5px);left:50%;transform:translateX(-50%);white-space:nowrap;font-style:normal;
+ font-size:11.5px;font-weight:800;color:var(--acc);letter-spacing:.2px}
+.pnow-t{top:50%}
+@keyframes pnowPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--acc) 65%,transparent)}70%{box-shadow:0 0 0 10px transparent}100%{box-shadow:0 0 0 0 transparent}}
+.pmc-pt{animation:pnowPulse 1.8s ease-out infinite;transition:left .6s ease}
+@media (prefers-reduced-motion:reduce){.pnow,.pmc-pt{animation:none}}
+/* v7.64 Rischio del mese: meno compresso (piu' spazio tra le parti, caselle e righe piu' ariose) */
+.pcontro{gap:24px}
+.pcontro .phm{gap:7px}
+.pcontro .phmleg{margin-top:14px}
+.pcontro .ptermo{margin-top:26px;margin-bottom:20px}
+.pcontro .pmini{gap:12px}.pcontro .pmini>div{padding:14px 14px}
+.pcontro .pstag{gap:8px}.pcontro .pstag-r{padding:6px 4px}
+.pcontro .pstag-t{margin-bottom:6px}

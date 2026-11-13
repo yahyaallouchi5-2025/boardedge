@@ -212,25 +212,32 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     const v=modo=="r"?x.r:x.dd;
     h+=`<div class="phmc${x.a==peg.a?" peg":""}" tabindex="0" data-a="${y}" style="background:${col(v)}"><span>${y}</span><b>${pc(v)}</b></div>`;}}
   return h;}
- function hmLeg(modo){return modo=="r"
-  ?`<span>perdita</span><i style="background:linear-gradient(90deg,rgba(242,113,107,.9),rgba(242,113,107,.12) 48%,rgba(79,214,163,.12) 52%,rgba(79,214,163,.9))"></i><span>guadagno</span>`
-  :`<span>drawdown piccolo</span><i style="background:linear-gradient(90deg,rgba(242,113,107,.12),rgba(242,113,107,.9))"></i><span>drawdown grande</span>`;}
- function contro(p){const m=p.mese,s=p.stat.totale||{},o=p.stat.oos||{},ddTot=Math.min(s.maxdd??0,o.maxdd??0);
+ // v7.64 sulla legenda c'e' il CURSORE del mese in corso (pulsa): dove cade adesso il mese sulla stessa scala dei colori
+ //  delle caselle (risultato: -5%..+5%, centro = 0; scenario peggiore: drawdown 0..-6%). Si aggiorna con il profilo,
+ //  con il mese e con i prezzi di oggi (liveOggi). "Ora" = valore del mese in corso.
+ const hmPos=(modo,v)=>modo=="r"?50+Math.max(-1,Math.min(1,v/5))*47:3+Math.min(1,Math.abs(v)/6)*94;
+ function hmCur(modo,c){if(!c||c.attesa||c.r==null)return "";const v=modo=="r"?c.r:c.dd;if(v==null)return "";
+  return `<span class="pnow" style="left:${hmPos(modo,v).toFixed(1)}%" data-modo="${modo}" title="${modo=="r"?"Risultato del mese in corso":"Drawdown del mese in corso"}"><em>ora ${pc(v)}</em></span>`;}
+ function hmLeg(modo,c){return modo=="r"
+  ?`<span>perdita</span><i style="background:linear-gradient(90deg,rgba(242,113,107,.9),rgba(242,113,107,.12) 48%,rgba(79,214,163,.12) 52%,rgba(79,214,163,.9))">${hmCur(modo,c)}</i><span>guadagno</span>`
+  :`<span>drawdown piccolo</span><i style="background:linear-gradient(90deg,rgba(242,113,107,.12),rgba(242,113,107,.9))">${hmCur(modo,c)}</i><span>drawdown grande</span>`;}
+ function contro(p){const m=p.mese,c=p.corrente,s=p.stat.totale||{},o=p.stat.oos||{},ddTot=Math.min(s.maxdd??0,o.maxdd??0);
   if(!m)return `<div class="card pcontro"><h3>Rischio del mese</h3><div class="small">Storico non ancora sufficiente.</div></div>`;
   const peg=m.anni.reduce((a,x)=>x.dd<a.dd?x:a,m.anni[0]),lim=-p.dd_rif,oltre=m.dd_max<lim,wr=Math.round(100*m.positivi/m.n);
   const altri=Math.min(...m.anni.filter(x=>x!==peg).map(x=>x.dd));
   // termometro: 0% a sinistra, fondo scala poco oltre il peggiore tra drawdown e limite
   const fondo=Math.min(m.dd_max,lim)*1.18,pos=v=>(v/fondo*100).toFixed(1);
   const k=(t,v,sub,cls="")=>`<div><span>${t}</span><b class="${cls}">${v}</b><em>${sub}</em></div>`;
-  return `<div class="card pcontro"><div class="pctesta"><h3>Rischio di ${m.mese}</h3><span class="pbprof">${esc(p.nome)}</span><details class="info pci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div>Questo portafoglio tenuto in ogni ${m.mese} dal ${m.anni[0].a} (${m.n} anni). Peggior caso: ${m.mese} ${peg.a}, con 10.000 &euro; il conto sarebbe sceso fino a ${eur(10000*(1+m.dd_max/100))} durante il mese. Negli altri anni il drawdown non ha superato il ${pc(altri)}.</div></details></div>
-   <div class="ptermo-t"><span>Drawdown peggiore di ${m.mese}</span><em class="${oltre?"pko":"pok"}">${oltre?`Oltre il limite di ${fx(Math.abs(m.dd_max-lim),1)} punti`:"Dentro il limite del profilo"}</em></div>
+  return `<div class="card pcontro"><div class="pctesta"><h3>Rischio di ${m.mese}</h3><details class="info pci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div>Questo portafoglio tenuto in ogni ${m.mese} dal ${m.anni[0].a} (${m.n} anni). Peggior caso: ${m.mese} ${peg.a}, con 10.000 &euro; il conto sarebbe sceso fino a ${eur(10000*(1+m.dd_max/100))} durante il mese. Negli altri anni il drawdown non ha superato il ${pc(altri)}.</div></details></div>
+   <div class="ptermo-t"><span>Drawdown peggiore di ${m.mese}</span>${oltre?`<em class="pko">Oltre il limite di ${fx(Math.abs(m.dd_max-lim),1)} punti</em>`:""}</div>
    <div class="ptermo"><div class="ptermo-r" style="width:${pos(m.dd_max)}%"></div><span class="ptermo-l" style="left:${pos(lim)}%"></span>
     <span class="ptermo-e su" style="left:${pos(lim)}%">limite ${pc(lim,0)}</span><span class="ptermo-e giu" style="left:0;transform:none">0%</span>
-    <span class="ptermo-e giu" style="left:${pos(m.dd_max)}%">${pc(m.dd_max)}</span></div>
+    <span class="ptermo-e giu" style="left:${pos(m.dd_max)}%">${pc(m.dd_max)}</span>
+    ${c&&!c.attesa&&c.dd!=null?`<span class="pnow pnow-t" style="left:${Math.max(1,Math.min(99,pos(Math.min(0,c.dd))))}%" title="Drawdown del mese in corso"><em>ora ${pc(c.dd)}</em></span>`:""}</div>
    <div class="phmtesta"><span>${m.mese[0].toUpperCase()+m.mese.slice(1)} anno per anno</span>
     <div class="phmsw" role="tablist"><button type="button" data-m="r" class="${hmModo=="r"?"on":""}" role="tab" aria-selected="${hmModo=="r"}">Risultato del mese</button><button type="button" data-m="dd" class="${hmModo=="dd"?"on":""}" role="tab" aria-selected="${hmModo=="dd"}">Scenario peggiore</button></div></div>
    <div class="phmbox"><div class="phm">${hmCelle(m,hmModo)}</div><div class="phmtip" hidden></div></div>
-   <div class="phmleg">${hmLeg(hmModo)}</div>
+   <div class="phmleg">${hmLeg(hmModo,c)}</div>
    <div class="pmini">${k("Peggior "+m.mese,pc(m.peggiore[1]),String(m.peggiore[0]),"down")}${k(m.mese[0].toUpperCase()+m.mese.slice(1)+" medio",pc(m.media),`su ${m.n} anni`,m.media>=0?"up":"down")}
     ${k("Anni positivi",`${m.positivi} su ${m.n}`,`${wr}% degli anni`)}${k("Max drawdown",pc(ddTot),"di sempre","down")}</div>
    ${m.mercati.length?`<div class="pstag"><div class="pstag-t">${m.mese[0].toUpperCase()+m.mese.slice(1)} per mercato</div>${m.mercati.map(x=>`<div class="pstag-r"><span>${esc(nomeK(x.k))}</span><i><s class="${x.media>=0?"su":"giu"}" style="width:${Math.min(100,Math.abs(x.media)*8)}%"></s></i><b class="${x.media>=0?"up":"down"}">${pc(x.media)}</b><em><span>${x.pos}% positivi</span><span>${x.n} anni</span></em></div>`).join("")}</div>`:""}</div>`;}
@@ -249,7 +256,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const chiusi=(P.chiusure||[]).filter(x=>x.profili&&x.profili[p.id]).slice(-6).reverse();
   let termo="";
   if(m&&m.anni&&m.anni.length){const rs=m.anni.map(x=>x.r),lo=Math.min(...rs,c.r),hi=Math.max(...rs,c.r),sp=(hi-lo)||1,pos=v=>Math.max(3,Math.min(97,(v-lo)/sp*100)).toFixed(1);
-   termo=`<div class="pmc-f"><span class="pmc-pt" style="left:${pos(c.r)}%"></span><span class="pmc-e" style="left:3%;transform:none">${pc(lo)}</span><span class="pmc-e" style="left:${pos(m.media)}%">media ${pc(m.media)}</span><span class="pmc-e" style="left:97%;transform:translateX(-100%)">${pc(hi)}</span></div>
+   termo=`<div class="pmc-f" data-lo="${lo}" data-sp="${sp}"><span class="pmc-pt" style="left:${pos(c.r)}%" title="Il mese in corso"></span><span class="pmc-e" style="left:3%;transform:none">${pc(lo)}</span><span class="pmc-e" style="left:${pos(m.media)}%">media ${pc(m.media)}</span><span class="pmc-e" style="left:97%;transform:translateX(-100%)">${pc(hi)}</span></div>
 `;}
   const wr=m&&m.n?Math.round(100*m.positivi/m.n):null;
   const k=(t,v,cls="")=>`<div><small>${t}</small><b class="${cls}">${v}</b></div>`;
@@ -973,7 +980,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const ora=new Date(t*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),mese=((1+c.r/100)*(1+r/100)-1)*100;
   box.hidden=false;box.innerHTML=`<span class="plive on"><i></i>Oggi alle ${ora}</span><b class="${r>=0?"up":"down"}">${pc(r,2)}</b>`;
   // v7.64 il numero grande del mese include oggi (prima: due numeri del mese diversi, "-2,0%" e "mese stimato -3,2%")
-  const g=el.querySelector(".pmc-g b");if(g){g.textContent=pc(Math.abs(mese)<0.05?0:mese);g.className=mese>0.05?"up":mese<-0.05?"down":"flat";}}
+  const g=el.querySelector(".pmc-g b");if(g){g.textContent=pc(Math.abs(mese)<0.05?0:mese);g.className=mese>0.05?"up":mese<-0.05?"down":"flat";}
+  // i cursori del mese in corso seguono il numero di oggi
+  const f=el.querySelector(".pmc-f[data-lo]");if(f){const pt=f.querySelector(".pmc-pt");if(pt)pt.style.left=Math.max(3,Math.min(97,(mese-(+f.dataset.lo))/(+f.dataset.sp)*100)).toFixed(1)+"%";}
+  const hc=el.querySelector('.phmleg .pnow[data-modo="r"]');if(hc){hc.style.left=hmPos("r",mese).toFixed(1)+"%";hc.querySelector("em").textContent="ora "+pc(mese);}}
  window.addEventListener("eb-live",()=>{const p=P.profili.find(x=>x.id==sel);if(!p)return;aggiornaEuro(p);liveOggi(p);
   // v7.30 se l'utente sta leggendo un fumetto (i) del conto non si ridisegna (prima si chiudeva da solo all'arrivo dei prezzi)
   const b=el.querySelector("#pconto");if(b&&!contoEdit&&!b.querySelector("details[open]")){b.innerHTML=contoHTML(p);contoEventi(p);}});
@@ -987,7 +997,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   // interruttore Risultato del mese / Scenario peggiore: ridisegna solo la griglia
   card.querySelectorAll(".phmsw button").forEach(b=>b.onclick=()=>{hmModo=b.dataset.m;
    card.querySelectorAll(".phmsw button").forEach(x=>{x.classList.toggle("on",x===b);x.setAttribute("aria-selected",x===b);});
-   box.querySelector(".phm").innerHTML=hmCelle(m,hmModo);card.querySelector(".phmleg").innerHTML=hmLeg(hmModo);tip.hidden=true;});
+   box.querySelector(".phm").innerHTML=hmCelle(m,hmModo);card.querySelector(".phmleg").innerHTML=hmLeg(hmModo,p.corrente);tip.hidden=true;});
   // fumetto: mouse, tastiera e tocco
   const mostra=e=>{const c=e.target.closest(".phmc[data-a]");if(!c){tip.hidden=true;return;}
    const x=m.anni.find(q=>q.a==c.dataset.a),r=box.getBoundingClientRect(),cb=c.getBoundingClientRect();
