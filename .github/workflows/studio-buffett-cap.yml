@@ -1,0 +1,52 @@
+# studio-buffett-cap.yml - STUDIO BUFFETT, capitalizzazione vera (criteri B2 e B4). Solo studio: il sito non cambia.
+# 1) prende i rami "studio-delistate" (prezzi e universo), "studio-buffett" (bilanci SEC) e "storico";
+# 2) scarica da EODHD le chiusure mensili corrette solo per i frazionamenti (studi/eodhd_capitalizzazione.py)
+#    e le salva come cap_prezzi.json.gz accanto ai bilanci;
+# 3) rilancia studi/studio_buffett.py e salva il risultato (risultati_buffett.txt) nel ramo "studio-buffett".
+# Chiave EODHD solo dai Secrets: mai nei log. Parte da solo quando si crea o modifica questo file, oppure a mano
+# (Actions -> Studio Buffett - capitalizzazione -> Run workflow).
+name: Studio Buffett - capitalizzazione
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/studio-buffett-cap.yml']
+permissions:
+  contents: write
+concurrency:
+  group: studio-buffett
+  cancel-in-progress: false
+jobs:
+  studio:
+    runs-on: ubuntu-latest
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - name: Dati dei rami di studio
+        run: |
+          for r in studio-delistate studio-buffett storico; do
+            mkdir -p "dati_$r"
+            git fetch -q --depth 1 origin "$r" && git archive FETCH_HEAD | tar -x -C "dati_$r"
+          done
+          ls dati_studio-buffett | head -30
+      - name: Prezzi per la capitalizzazione (EODHD)
+        env:
+          EODHD_API_KEY: ${{ secrets.EODHD_API_KEY }}
+        run: python -u studi/eodhd_capitalizzazione.py dati_studio-delistate dati_studio-buffett dati_studio-buffett
+      - name: Studio Buffett
+        run: |
+          set -o pipefail
+          python -u studi/studio_buffett.py dati_studio-delistate dati_studio-buffett dati_storico | tee dati_studio-buffett/risultati_buffett.txt
+      - name: Salva nel ramo studio-buffett
+        if: always()
+        run: |
+          cd dati_studio-buffett
+          git init -q -b studio-buffett
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -qm "Studio Buffett: capitalizzazione $(date -u +%F)"
+          git push -q -f "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" studio-buffett
