@@ -2580,3 +2580,4 @@ html.ptmod-on{overflow:hidden}
 .grid>.card{min-width:0}
 .card.clic{grid-template-columns:minmax(0,1fr)}.card.clic>*{min-width:0}   /* la card e' una griglia: anche i figli non devono allargarla */
 .card.clic .pairhead>:last-child{flex:none}
+.sr-oggi .sr-grid{margin-top:0}   /* v7.64 card "oggi" senza titolo */

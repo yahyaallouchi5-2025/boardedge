@@ -41,6 +41,7 @@ try{(function(){const el=$("stag");if(!el)return;
     <td class="num"><span class="sr-bar"><i style="width:${su}%;background:${su>=50?"var(--b)":"var(--s)"}"></i></span>${fx(su,1)}%</td>
     <td class="num ${med>0?"up":med<0?"down":""}">${pc(med)}</td><td class="num sr-x up">${pc(mu)}</td><td class="num sr-x down">${pc(md)}</td>
     <td class="num">${rap==null?"n/d":fx(rap,2)}</td><td>${ok?`<span class="tag ${su>=50?"ok":"ko"}" title="z ${fx(z,1)}">${su>=50?"&uarr;":"&darr;"}</span>`:""}</td></tr>`;}).join("")}</table></div>`;}
+ // v7.64 niente titoli "Ora di Roma" e "Oggi a Roma ...": la data e' gia' nelle caselle, le spiegazioni sono nell'unica (i) di Stagionalita'
  function disegna(){const I=R.idx,X=R.dati[R.sel],a=roma();
   if(!I||!I.simboli||!I.simboli.length){box.innerHTML=`<div class="card sr-vuota"><h3>Ora di Roma</h3><p class="small">Lo storico orario &egrave; in download (17 anni di dati per il forex): le tabelle compaiono qui da sole appena pronte.</p></div>`;return;}
   const opz=Object.keys(FASI).map(f=>{const s=I.simboli.filter(x=>x.f==f);return s.length?`<optgroup label="${FASI[f]}">${s.map(x=>`<option value="${esc(x.s)}"${x.s==R.sel?" selected":""}>${esc(x.n)}</option>`).join("")}</optgroup>`:"";}).join("");
@@ -49,9 +50,7 @@ try{(function(){const el=$("stag");if(!el)return;
   if(X){const cO=X.ora[String(a.wd)]||{},ora=cO[String(a.ora)];
    const t1=(X.gsett||{})[String(a.wd)],t2=(X.gmese||{})[String(a.g)],t3=(X.data||{})[a.data];
    const tre=[t1,t2,t3].filter(Boolean),media=tre.length?[tre.reduce((s,c)=>s+c[0],0),tre.reduce((s,c)=>s+c[1],0)/tre.length,tre.reduce((s,c)=>s+c[2],0)/tre.length]:null;
-   const oggi=`<div class="card sr-oggi"><h3>Oggi a Roma <span class="small">${GGL[a.wd]} ${a.g} ${MML[a.m-1]}, ore ${String(a.ora).padStart(2,"0")}</span>
-     ${info("Come si &egrave; mosso lo strumento <b>nella giornata di Roma</b> (00:00-24:00) in tutto lo storico: tutti i "+GGL[a.wd]+", tutti i giorni "+a.g+" del mese e ogni "+a.g+" "+MML[a.m-1]+". <b>% rialzo</b> = quante volte ha chiuso la giornata sopra l'apertura. <b>Media</b> = le tre letture insieme (la stessa data ha pochi casi: conta meno). <b>Affidabile</b> = abbastanza casi, diverso dal normale oltre il caso e uguale nella prima e nella seconda met&agrave; dello storico.")}</h3>
-    <div class="sr-grid">${tessera("Fascia "+String(a.ora).padStart(2,"0")+"-"+String((a.ora+1)%24).padStart(2,"0"),ora,"mercato chiuso")}${tessera("Tutti i "+GGL[a.wd],t1)}${tessera("Ogni giorno "+a.g,t2)}${tessera("Ogni "+a.g+" "+MML[a.m-1],t3)}
+   const oggi=`<div class="card sr-oggi"><div class="sr-grid">${tessera("Fascia "+String(a.ora).padStart(2,"0")+"-"+String((a.ora+1)%24).padStart(2,"0"),ora,"mercato chiuso")}${tessera("Tutti i "+GGL[a.wd],t1)}${tessera("Ogni giorno "+a.g,t2)}${tessera("Ogni "+a.g+" "+MML[a.m-1],t3)}
      <div class="sr-t media"><span>Media giornata</span><b style="color:${media?"var(--ink2)":"var(--mute)"}">${media?fx(media[1],0)+"%":"n/d"}<i>${media?"in rialzo":""}</i></b><small>${media?"media "+pc(media[2])+" &middot; "+tre.length+" letture":"pochi dati"}</small></div></div></div>`;
    let tab="",sub="";
    if(R.vista=="ora"){const g=R.gsel??String(a.wd),T=g=="tutti"?X.ora.tutti:X.ora[g]||{};
@@ -67,7 +66,7 @@ try{(function(){const el=$("stag");if(!el)return;
    else tab=tabella(MM.map((m,i)=>[MML[i][0].toUpperCase()+MML[i].slice(1),String(i+1),X.mese[String(i+1)]]),String(a.m));
    corpo=oggi+`<div class="card sr-det"><div class="vfswitch sr-sw">${[["ora","Orario"],["giorno","Giornaliero"],["sett","Settimanale"],["mese","Mensile"]].map(([k,t])=>`<button data-v="${k}" class="${k==R.vista?"on":""}">${t}</button>`).join("")}</div>
     ${sub}${tab}<p class="small sr-nota">Ora di Roma, ora legale inclusa &middot; dati dal ${gg(meta.dal)} al ${gg(meta.al)}${meta.breve?" &middot; <b>storia breve</b>":""} &middot; in grigio le righe non affidabili; evidenziata quella di adesso.</p></div>`;}
-  box.innerHTML=`<div class="vfsez"><div class="vfsez-t"><span class="vfsez-n">&#9719;</span><div><h2>Ora di Roma ${info("Ogni candela oraria di EODHD (UTC) &egrave; convertita in ora di Roma con le regole ufficiali dell'ora legale: la fascia 09-10 &egrave; sempre le 9 di Roma, d'estate e d'inverno. <b>Rapporto</b> = somma dei rialzi divisa per la somma dei ribassi (come il fattore di profitto di MT5): sopra 1 i rialzi pesano di pi&ugrave;. Statistiche passate: non sono una previsione.")}</h2></div></div>
+  box.innerHTML=`<div class="vfsez">
    <div class="card vfcomandi"><div class="vfriga"><span class="vfetich">Strumento</span><select id="srsel" class="vfsel">${opz}</select></div></div>${corpo}</div>`;
   $("srsel").onchange=e=>{R.sel=e.target.value;R.gsel=null;salva();carica();};
   box.querySelectorAll("[data-v]").forEach(b=>b.onclick=()=>{R.vista=b.dataset.v;salva();disegna();});
