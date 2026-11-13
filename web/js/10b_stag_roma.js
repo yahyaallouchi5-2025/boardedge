@@ -5,7 +5,7 @@
    Ogni cella = [N, % rialzo, media %, media rialzi, media ribassi, rapporto, z, affidabile] (come il backtester MT5).
    ORA DI ROMA: giorno, ora, data e settimana di "adesso" si leggono con Intl e timeZone "Europe/Rome": l'ora legale
    cambia da sola (stesse regole del calcolo in Python, controllate ogni notte; se non tornano arriva la mail).
-   Le celle non affidabili restano visibili ma grigie (scelta di Ya, 13/11/2026). */
+   Le celle non affidabili ("neutro") restano visibili ma grigie (scelta di Ya, 13/11/2026). */
 try{(function(){const el=$("stag");if(!el)return;
  const BASE=EB_RAW+"orari/pubblico/",GG=["Lun","Mar","Mer","Gio","Ven","Sab","Dom"],
   GGL=["lunedì","martedì","mercoledì","giovedì","venerdì","sabato","domenica"],
@@ -32,7 +32,7 @@ try{(function(){const el=$("stag");if(!el)return;
  function tessera(tit,c,nota){if(!c)return `<div class="sr-t vuota"><span>${tit}</span><b>n/d</b><small>${nota||"pochi dati"}</small></div>`;
   const [n,su,med,,, ,,ok]=c,col=su>=50?"var(--b)":"var(--s)";
   return `<div class="sr-t${ok?" ok":""}"><span>${tit}</span><b style="color:${ok?col:"var(--ink2)"}">${fx(su,0)}%<i>in rialzo</i></b>
-   <small>media ${pc(med)} &middot; ${n.toLocaleString("it-IT")} casi</small>${ok?`<em class="tag ok">affidabile</em>`:`<em class="tag">non affidabile</em>`}</div>`;}
+   <small>media ${pc(med)} &middot; ${n.toLocaleString("it-IT")} casi</small>${ok?`<em class="tag ok">affidabile</em>`:`<em class="tag">neutro</em>`}</div>`;}
  // tabella stile backtester MT5
  function tabella(righe,attuale){return `<div class="tablewrap sr-tw"><table class="vftab sr-tab"><tr><th></th><th class="num">Casi</th><th class="num">% rialzo</th>
    <th class="num">Media</th><th class="num sr-x">Media rialzi</th><th class="num sr-x">Media ribassi</th><th class="num">Rapporto</th><th></th></tr>
@@ -43,15 +43,18 @@ try{(function(){const el=$("stag");if(!el)return;
     <td class="num">${rap==null?"n/d":fx(rap,2)}</td><td>${ok?`<span class="tag ${su>=50?"ok":"ko"}" title="z ${fx(z,1)}">${su>=50?"&uarr;":"&darr;"}</span>`:""}</td></tr>`;}).join("")}</table></div>`;}
 
  // ---- v7.64 HEATMAP: ogni casella = % di volte in rialzo (verde sopra 50, rosso sotto, grigio intorno a 50) ----
- //  sbiadita = non affidabile, bordo bianco = affidabile, bagliore = adesso. Mouse o tocco: fumetto con i 6 dati della tabella.
+ //  v7.64: numero con "%", sbiadita = neutro, bordo oro = affidabile, bagliore = adesso. Mouse o tocco: fumetto con i 6 dati della tabella.
  //  La scala si adatta ai dati (scarto massimo da 50, almeno 4 punti) e la legenda mostra i due estremi.
- const scala=celle=>{let m=4;celle.forEach(c=>{if(c)m=Math.max(m,Math.abs(c[1]-50));});return Math.min(25,Math.ceil(m));};
+ //  Le caselle con pochi casi (meno di 1/3 della mediana, es. il sabato 00-01 del forex) non allargano la scala:
+ //  altrimenti un 3% su pochi casi spegnerebbe i colori di tutte le altre.
+ const scala=celle=>{const v=celle.filter(Boolean),ns=v.map(c=>c[0]).sort((x,y)=>x-y),med=ns.length?ns[ns.length>>1]:0;let m=4;
+  v.forEach(c=>{if(c[0]>=med/3)m=Math.max(m,Math.abs(c[1]-50));});return Math.min(25,Math.ceil(m));};
  // ok=false: solo lo sfondo si sbiadisce (alfa 0,4), il numero resta bianco acceso e leggibile
  const colore=(su,sc,ok=true)=>{const t=Math.max(-1,Math.min(1,(su-50)/sc)),a=[58,66,86],q=t>0?[52,211,153]:[248,113,113],k=Math.abs(t);
   return `rgba(${a.map((v,i)=>Math.round(v+(q[i]-v)*k))},${ok?1:.4})`;};
- const casella=(c,tit,ora,sc,et)=>c?`<div class="sr-c ${c[7]?"ok":"no"}${ora?" ora":""}" data-tit="${esc(tit)}" data-c="${c.join("|")}" style="background:${colore(c[1],sc,c[7])}">${et?`<small>${et}</small>`:""}${fx(c[1],0)}</div>`:`<div class="sr-c vuota">${et?`<small>${et}</small>`:""}&ndash;</div>`;
- const legenda=sc=>`<div class="sr-leg"><span>% in rialzo</span><span>${50-sc}%</span><span class="sr-lbar"></span><span>${50+sc}%</span>
-  <span><i class="l-no"></i>sbiadita = non affidabile</span><span><i class="l-ok"></i>bordo bianco = affidabile</span><span><i class="l-ora"></i>adesso</span></div>`;
+ const casella=(c,tit,ora,sc,et)=>c?`<div class="sr-c ${c[7]?"ok":"no"}${ora?" ora":""}" data-tit="${esc(tit)}" data-c="${c.join("|")}" style="background:${colore(c[1],sc,c[7])}">${et?`<small>${et}</small>`:""}${fx(c[1],0)}%</div>`:`<div class="sr-c vuota">${et?`<small>${et}</small>`:""}&ndash;</div>`;
+ const legenda=sc=>`<div class="sr-leg"><span>Numero = % di volte in rialzo</span><span>${50-sc}%</span><span class="sr-lbar"></span><span>${50+sc}%</span>
+  <span><i class="l-no"></i>sbiadita = neutro</span><span><i class="l-ok"></i>bordo oro = affidabile</span><span><i class="l-ora"></i>adesso</span></div>`;
  // orario: righe "Tutti" + 7 giorni, colonne 24 ore; sul telefono si gira (ore in verticale) per tenere le caselle grandi
  function matrice(X,a){const R7=[["Tutti","tutti","tutti i giorni"],...GG.map((g,i)=>[g,String(i),GGL[i]])],H=[...Array(24).keys()];
   const sc=scala(R7.flatMap(([,k])=>H.map(h=>(X.ora[k]||{})[String(h)]))),fa=h=>String(h).padStart(2,"0")+"-"+String((h+1)%24).padStart(2,"0");
@@ -74,7 +77,7 @@ try{(function(){const el=$("stag");if(!el)return;
    <div><em>Casi</em><b>${n.toLocaleString("it-IT")}</b></div><div><em>% rialzo</em><b class="${su>=50?"up":"down"}">${fx(su,1)}%</b></div>
    <div><em>Media</em><b class="${med>0?"up":med<0?"down":""}">${pc(med)}</b></div><div><em>Media rialzi</em><b class="up">${pc(mu)}</b></div>
    <div><em>Media ribassi</em><b class="down">${pc(md)}</b></div><div><em>Rapporto</em><b>${rap==null?"n/d":fx(rap,2)}</b></div>
-   <span class="tag${ok?" ok":""}">${ok?"affidabile":"non affidabile"}</span>`;
+   <span class="tag${ok?" ok":""}">${ok?"affidabile":"neutro"}</span>`;
   tip.style.display="block";const w=tip.offsetWidth,ht=tip.offsetHeight;
   tip.style.left=Math.max(8,Math.min(innerWidth-w-8,r.left+r.width/2-w/2))+"px";
   tip.style.top=(r.bottom+8+ht>innerHeight-8?r.top-ht-8:r.bottom+8)+"px";}
@@ -113,7 +116,7 @@ try{(function(){const el=$("stag");if(!el)return;
    else{const r=MM.map((m,i)=>[MML[i][0].toUpperCase()+MML[i].slice(1),String(i+1),X.mese[String(i+1)]]);tab=R.forma=="hm"?griglia(r,String(a.m),12,4):tabella(r,String(a.m));}
    corpo=oggi+`<div class="card sr-det"><div class="sr-barra"><div class="vfswitch sr-sw">${[["ora","Orario"],["giorno","Giornaliero"],["sett","Settimanale"],["mese","Mensile"]].map(([k,t])=>`<button data-v="${k}" class="${k==R.vista?"on":""}">${t}</button>`).join("")}</div>
     <div class="vfswitch sr-sw sr-forma">${[["hm","Heatmap"],["tab","Tabella"]].map(([k,t])=>`<button data-f="${k}" class="${k==R.forma?"on":""}">${t}</button>`).join("")}</div></div>
-    ${sub}${tab}<p class="small sr-nota">Ora di Roma, ora legale inclusa &middot; dati dal ${gg(meta.dal)} al ${gg(meta.al)}${meta.breve?" &middot; <b>storia breve</b>":""}${R.forma=="hm"?"":" &middot; in grigio le righe non affidabili; evidenziata quella di adesso"}.</p></div>`;}
+    ${sub}${tab}<p class="small sr-nota">Ora di Roma, ora legale inclusa &middot; dati dal ${gg(meta.dal)} al ${gg(meta.al)}${meta.breve?" &middot; <b>storia breve</b>":""}${R.forma=="hm"?"":" &middot; in grigio le righe neutre; evidenziata quella di adesso"}.</p></div>`;}
   box.innerHTML=`<div class="vfsez">
    <div class="card vfcomandi"><div class="vfriga"><span class="vfetich">Strumento</span><select id="srsel" class="vfsel">${opz}</select></div></div>${corpo}</div>`;
   $("srsel").onchange=e=>{R.sel=e.target.value;R.gsel=null;salva();carica();};
