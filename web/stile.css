@@ -2505,3 +2505,21 @@ html.ptmod-on{overflow:hidden}
 .pcontro .pmini{gap:12px}.pcontro .pmini>div{padding:14px 14px}
 .pcontro .pstag{gap:8px}.pcontro .pstag-r{padding:6px 4px}
 .pcontro .pstag-t{margin-bottom:6px}
+/* v7.64 barra in alto dei Portafogli: elementi piu' grandi e allineati sulle stesse righe nelle 3 card
+   - conto alla rovescia: i 4 riquadri occupano valore + piede (piu' alti, cifre piu' grandi)
+   - "Giorno di borsa": testo e barra piu' grandi; bottone del questionario a tutta larghezza e piu' alto */
+.ptop .pcell{--rf:46px}
+.ptop .pcell .pcv.pcount{grid-row:2 / 4;align-self:stretch;grid-template-rows:minmax(0,1fr)}
+.ptop .pcell .pcount{align-items:stretch}.ptop .pcq{border-radius:14px;height:auto;align-self:stretch}
+.ptop .pcq b{font-size:28px}
+.ptop .pcq small{font-size:11px;margin-top:4px}
+.ptop .pcpiede-t{font-size:15px;font-weight:600}.ptop .pcpiede-t b{font-size:17px}
+.ptop .pcpiede-bar{height:10px}
+.ptop .pcell-prof .ptest-apri{width:100%;height:46px;justify-content:center;font-size:15px}
+@media (max-width:600px){.ptop .pcq b{font-size:22px}.ptop .pcell{--rf:44px}.ptop .pcell-prof .ptest-apri{height:44px}}
+/* v7.64 barra "Giorno di borsa": un cursore che pulsa sulla punta (dove siamo oggi nel mese) */
+.ptop .pcpiede-bar{overflow:visible;position:relative}
+.ptop .pcpiede-bar i{position:relative}
+.ptop .pcpiede-bar i::after{content:"";position:absolute;right:-7px;top:50%;width:14px;height:14px;border-radius:50%;
+ transform:translateY(-50%);background:var(--ink);border:3px solid var(--acc);box-sizing:border-box;animation:pnowPulse 1.8s ease-out infinite}
+@media (prefers-reduced-motion:reduce){.ptop .pcpiede-bar i::after{animation:none}}
