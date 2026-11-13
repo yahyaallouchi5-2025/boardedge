@@ -2612,3 +2612,14 @@ html.ptmod-on{overflow:hidden}
 @media (max-width:640px){.sr-c{min-height:28px;font-size:11px}.sr-hh{font-size:10px}.sr-hg{font-size:11px}
  .sr-barra{gap:0}.sr-barra .sr-sw{width:100%}.sr-forma{margin-bottom:12px}.sr-hl{grid-template-columns:repeat(var(--colt,4),minmax(0,1fr));gap:3px}
  .sr-hl .sr-c{min-height:40px;font-size:12px}.sr-c small{font-size:9px}}
+/* v7.64 PROSSIMA ROTAZIONE senza riquadri: 4 colonne uguali; i numeri stanno sulla riga dei valori (come la data e
+   "Scegli un portafoglio"), le unita' sulla riga dei piedi (come la barra dei giorni e il bottone). I due punti ":"
+   stanno a cavallo tra le colonne. */
+.ptop .pcell .pcv.pcount.pcnum{grid-row:auto;align-self:center;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));
+ align-items:center;gap:0;padding:0;border:0;background:none;box-shadow:none}
+.ptop .pcn{position:relative;text-align:center;font:800 26px/1.1 system-ui;color:#fff;font-variant-numeric:tabular-nums}
+.ptop .pcn:not(:last-child)::after{content:":";position:absolute;right:-3px;top:50%;transform:translateY(-55%);font-weight:700;color:color-mix(in srgb,#ffd166 70%,var(--mute))}
+.ptop .pcunit{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0}
+.ptop .pcunit span{text-align:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
+.ptop .pcell .pcount.pcnum.ora{display:flex;justify-content:flex-start}
+@media (max-width:600px){.ptop .pcn{font-size:22px}}

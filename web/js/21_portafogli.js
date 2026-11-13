@@ -876,7 +876,9 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
  // v7.37 BARRA IN ALTO: ogni cella ha 3 righe ad altezza fissa (etichetta 16px | valore 52px | piede 36px, vedi .pcell in stile.css)
  //   cosi' etichette, valori e piedi delle 3 celle stanno sulla stessa linea. Ogni cella riempie la sua larghezza:
  //   rotazione = data + barra dei giorni di borsa, ribilanciamento = 4 riquadri del conto alla rovescia, profilo = nome + pulsanti.
- function testa(){const c=(P.profili[0]||{}).corrente||{},q=(t,v)=>`<span class="pcq"><b>${t}</b><small>${v}</small></span>`;
+ // v7.64 conto alla rovescia SENZA riquadri: numeri sulla riga dei valori (data e "Scegli un portafoglio"),
+ //  unita' sulla riga dei piedi (barra dei giorni di borsa e bottone del test) -> tutto allineato in orizzontale.
+ function testa(){const c=(P.profili[0]||{}).corrente||{};
   const rot=P.attesa
    ?`<span class="pdl">Nuova rotazione</span><div class="pcv"><b class="pcb acc">${gg(P.rotazione)}</b><small>decisa sulla chiusura del ${gg(P.decisa_al)}</small></div>
      <div class="pcpiede"><span class="pcpiede-t">Si applica all'apertura del ${gg(P.prossima)}</span></div>`
@@ -888,8 +890,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const liq=!prof&&test.passo>3&&test.tol<0;
   return `<div class="pcell">${rot}</div>
    <div class="pcell"><span class="pdl">${P.attesa?"Si esegue tra":"Prossima rotazione"}</span>
-    <div class="pcv pcount" data-t="${P.prossima||""}" title="${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${q("--","giorni")}${q("--","ore")}${q("--","min")}${q("--","sec")}</div>
-</div>
+    <div class="pcv pcount pcnum" data-t="${P.prossima||""}" title="${gg(P.prossima)} all'apertura delle borse europee (09:00 ora italiana)">${'<b class="pcn">--</b>'.repeat(4)}</div>
+    <div class="pcpiede pcunit" aria-hidden="true"><span>giorni</span><span>ore</span><span>min</span><span>sec</span></div></div>
    <div class="pcell pcell-prof"><span class="pdl">Questionario</span>
     <div class="pcv">${prof?`<b class="pcb acc">${esc(prof)}</b><small>scelto con il test, su ${eur(test.cap||capitale)}</small>`:liq?`<b class="pcb">Liquidit&agrave;</b>`:`<b class="pcb">Scegli un portafoglio</b>`}</div>
     <div class="pcpiede"><button type="button" class="ptest-apri${prof||liq?"":" nuovo"}">${prof||liq?"Rifai il test":"Trova il tuo profilo"}<span aria-hidden="true">&rarr;</span></button></div></div>`;}
@@ -969,11 +971,12 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const hr=+parti.find(x=>x.type=="hour").value;return new Date(g-((hr-h+24)%24)*3600e3);}
  function conto(){clearInterval(timer);const box=el.querySelector(".pcount");if(!box||!box.dataset.t)return;
   let fine;try{fine=oraRoma(box.dataset.t,9);}catch(e){return;}
-  const q=[...box.querySelectorAll(".pcq b")],z=n=>String(n).padStart(2,"0");
+  const q=[...box.querySelectorAll(".pcn")],z=n=>String(n).padStart(2,"0");
   const tick=()=>{if(!document.body.contains(box)){clearInterval(timer);return;}
    const ms=fine-Date.now();
    // v6.81: arrivata l'ora (09:00 di Roma del giorno di rotazione): al posto dei riquadri la pastiglia IN CORSO
    if(ms<=0){box.innerHTML='<span class="pcora"><i class="pcdot"></i>IN CORSO</span>';box.classList.add("ora");
+    {const u=box.parentElement&&box.parentElement.querySelector(".pcunit");if(u)u.remove();}   // via le unita' sotto
     {const lab=box.parentElement&&box.parentElement.querySelector(".pdl");if(lab)lab.textContent="Rotazione";}
     box.title="Rotazione in corso: si esegue oggi all'apertura delle borse europee (09:00 ora italiana)";clearInterval(timer);return;}
    const t=Math.floor(ms/1000),v=[Math.floor(t/86400),Math.floor(t%86400/3600),Math.floor(t%3600/60),t%60];
