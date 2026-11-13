@@ -2547,8 +2547,8 @@ html.ptmod-on{overflow:hidden}
 .cd-f.on{border:2px solid transparent;
  background:linear-gradient(color-mix(in srgb,var(--cd) 13%,var(--card)),color-mix(in srgb,var(--cd) 13%,var(--card))) padding-box,
   conic-gradient(from var(--cdang),color-mix(in srgb,var(--cd) 25%,transparent) 0deg,color-mix(in srgb,var(--cd) 25%,transparent) 220deg,var(--cd) 300deg,#fff 330deg,var(--cd) 345deg,color-mix(in srgb,var(--cd) 25%,transparent) 360deg) border-box;
- animation:cdGira 3.2s linear infinite;box-shadow:0 0 20px color-mix(in srgb,var(--cd) 30%,transparent)}
-@keyframes cdGira{to{--cdang:360deg}}
+ animation:cdGira 9s linear infinite;box-shadow:0 0 20px color-mix(in srgb,var(--cd) 30%,transparent)}
+@keyframes cdGira{to{--cdang:360deg}}   /* v7.64 giro lento (9 s invece di 3,2): effetto rilassante */
 .cd-fr{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-style:normal;font-size:12px;line-height:1;color:var(--cd);
  text-shadow:0 0 8px var(--cd);animation:cdFr 1.6s ease-in-out infinite}
 @keyframes cdFr{50%{transform:translate(-50%,3px)}}
@@ -2559,7 +2559,7 @@ html.ptmod-on{overflow:hidden}
 .qe-c.on{--cd:var(--qc);border:2px solid transparent;
  background:linear-gradient(color-mix(in srgb,var(--qc) 14%,var(--card)),color-mix(in srgb,var(--qc) 14%,var(--card))) padding-box,
   conic-gradient(from var(--cdang),color-mix(in srgb,var(--qc) 25%,transparent) 0deg,color-mix(in srgb,var(--qc) 25%,transparent) 220deg,var(--qc) 300deg,#fff 330deg,var(--qc) 345deg,color-mix(in srgb,var(--qc) 25%,transparent) 360deg) border-box;
- animation:cdGira 3.2s linear infinite}
+ animation:cdGira 9s linear infinite}
 @media (prefers-reduced-motion:reduce){.qe-c.on{animation:none}}
 .qe-dhi{margin-left:auto}
 .qe-dhi .info div{left:auto;right:0;width:min(340px,calc(100vw - 48px))}
