@@ -272,10 +272,10 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <span class="pmc-b${c.live?"":" sim"}">${c.live?"In corso":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
    <div class="pmc-g"><b class="${cl}" data-chiusura="${c.r}">${pc(r)}</b>${fermi(c.al)?`<span><em class="pmc-al fermo" title="Prezzi non aggiornati: il risultato non include le ultime sedute">prezzi al ${gg(c.al)} (in aggiornamento)</em></span>`:""}</div>
    <div class="pmc-oggi" hidden></div>
-   <div class="pmc-k pk3">
-    ${tk("Giorno di borsa","",`${c.gg} <span class="pk-di">di ${c.tot}</span>`,"",`<span class="pmc-bar"><i style="width:${Math.min(100,c.gg/c.tot*100).toFixed(0)}%"></i></span>`)}
-    ${tk("Drawdown del mese","",pc(c.dd),"down","dal massimo del mese")}
-    ${tk("Positivo",NM,wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",pos)}</div>
+   <div class="pmc-k pk3 pk2">
+    ${/* v7.64 "Giorno di borsa" tolto: c'e' gia' nella card "Rotazione in corso" in alto (doppione) */""}
+    ${tk("Drawdown","",pc(c.dd),"down","dal massimo")}
+    ${tk("Positivo","",wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",pos)}</div>
    ${termo?`<div class="pmc-fw"><span class="pmc-ft">${MES(m&&m.mese||c.mese)} negli anni passati</span>${termo}</div>`:""}
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}
 </div>`;}

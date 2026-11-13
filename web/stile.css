@@ -2536,3 +2536,6 @@ html.ptmod-on{overflow:hidden}
 @container (max-width:300px){.kzforti{font-size:34px}}
 /* con la barra laterale, sotto ~1480 px le 4 card diventerebbero troppo strette (testi a capo, "NEUTRO" fuori): 2 x 2 */
 @media (min-width:601px) and (max-width:1480px){.kzg{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* v7.64 card del mese: 2 riquadri (Drawdown del mese, Positivo) */
+.pmc-k.pk2{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media (max-width:520px){.pmc-k.pk2>div:first-child{grid-column:auto}}
