@@ -47,7 +47,7 @@ def utcnow():
 
 
 def festivi_usa(y):
-    """v7.64 festivita' federali USA dell'anno y (giorno osservato: sabato -> venerdi', domenica -> lunedi')."""
+    """v7.64 festivita' federali USA dell'anno y: {giorno osservato: nome} (sabato -> venerdi', domenica -> lunedi')."""
     def oss(d):
         return d - timedelta(days=1) if d.weekday() == 5 else d + timedelta(days=1) if d.weekday() == 6 else d
     def nth(mo, wd, n):                                           # n-esimo giorno `wd` del mese (n=-1: l'ultimo)
@@ -56,8 +56,24 @@ def festivi_usa(y):
             return d + timedelta(days=(wd - d.weekday()) % 7 + 7 * (n - 1))
         d = date(y + (mo == 12), mo % 12 + 1, 1) - timedelta(days=1)
         return d - timedelta(days=(d.weekday() - wd) % 7)
-    return {oss(date(y, 1, 1)), nth(1, 0, 3), nth(2, 0, 3), nth(5, 0, -1), oss(date(y, 6, 19)), oss(date(y, 7, 4)),
-            nth(9, 0, 1), nth(10, 0, 2), oss(date(y, 11, 11)), nth(11, 3, 4), oss(date(y, 12, 25))}
+    return {oss(date(y, 1, 1)): "Capodanno", nth(1, 0, 3): "Martin Luther King Day", nth(2, 0, 3): "Presidents' Day",
+            nth(5, 0, -1): "Memorial Day", oss(date(y, 6, 19)): "Juneteenth", oss(date(y, 7, 4)): "Giorno dell'Indipendenza",
+            nth(9, 0, 1): "Labor Day", nth(10, 0, 2): "Columbus Day", oss(date(y, 11, 11)): "Veterans Day",
+            nth(11, 3, 4): "Giorno del Ringraziamento", oss(date(y, 12, 25)): "Natale"}
+
+
+def _feste3(anno):
+    """Festivita' di tre anni attorno ad `anno` (le settimane a cavallo di Capodanno)."""
+    return {**festivi_usa(anno - 1), **festivi_usa(anno), **festivi_usa(anno + 1)}
+
+
+def festa_cot(venerdi):
+    """Nome della festivita' che sposta il COT della settimana del `venerdi'` (None se esce regolarmente)."""
+    fest = _feste3(venerdi.year)
+    for k in range(4):                                            # venerdi', giovedi', mercoledi', martedi'
+        if venerdi - timedelta(days=k) in fest:
+            return fest[venerdi - timedelta(days=k)]
+    return None
 
 
 def uscita_cot(venerdi):
@@ -65,8 +81,8 @@ def uscita_cot(venerdi):
     venerdi' c'e' una festivita' federale, la CFTC pubblica il LUNEDI' dopo (martedi' se anche il lunedi' e' festivo).
     Le festivita' di lunedi' (Memorial Day, Labor Day...) non spostano nulla. Verificato sul calendario 2026 della CFTC
     (1 gen -> lun 5/1, 19 giu -> lun 22/6, 3 lug -> lun 6/7, 11 nov -> lun 16/11, Thanksgiving -> lun 30/11, Natale -> lun 28/12)."""
-    fest = festivi_usa(venerdi.year) | festivi_usa(venerdi.year + 1) | festivi_usa(venerdi.year - 1)
-    if not any(venerdi - timedelta(days=k) in fest for k in range(4)):   # venerdi', giovedi', mercoledi', martedi'
+    fest = _feste3(venerdi.year)
+    if not festa_cot(venerdi):
         return venerdi
     d = venerdi + timedelta(days=3)
     while d in fest or d.weekday() >= 5:
@@ -98,7 +114,7 @@ def weekly_schedule(last_date, weekday, hh, mm, offset, tolleranza_ore=0, sposta
     fine = et_to_utc(sposta(nxt), hh, mm)
     ms = int((fine - datetime(1970, 1, 1)).total_seconds() * 1000)   # per il JavaScript
     return {"expected": exp, "late": (last_date or "") < exp, "last_pub": utc_to_it(et_to_utc(sposta(d), hh, mm)),
-            "next": utc_to_it(fine), "next_ms": ms}
+            "next": utc_to_it(fine), "next_ms": ms, "next_nominale": nxt}
 
 
 def fd(s):
@@ -124,7 +140,10 @@ def sources_status(cache, status, errors, assets, mort, fred):
 
     last_cot = max(a["date"] for a in assets.values() if a.get("date"))
     c = weekly_schedule(last_cot, 4, 15, 30, 3, tolleranza_ore=3, sposta=uscita_cot)   # venerdi' 15:30 NY (o lunedi' dopo una festivita')
+    # v7.64 AVVISO IN PAGINA: se la prossima uscita e' spostata da una festivita' USA, la Dashboard lo dice in chiaro
+    festa = festa_cot(c["next_nominale"])
     out.append({"name": "COT (CFTC)", "last": fd(last_cot), "next": fdt(c["next"]), "next_ms": c["next_ms"],
+                "rinvio": festa or "",
                 "st": "late" if c["late"] else ("ok" if status["cot"] == "online" else "cache"),
                 "msg": (f"Il report con i dati al {fd(c['expected'])} doveva uscire {fdt(c['last_pub'])} ma la CFTC "
                         f"non l'ha ancora pubblicato (festivita' USA, shutdown o ritardo)." if c["late"] else "")})

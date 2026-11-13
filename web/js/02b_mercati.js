@@ -42,6 +42,13 @@ try{(function(){
  // successivo a 2 minuti prima della chiusura (EODHD a borsa chiusa riporta l'ultimo scambio delle 16:00/17:30).
  function allaChiusura(g,ts){if(!ts)return false;const d=new Date(ts*1000);
   return membri(g).some(b=>{const i=info(b),l=loc(i.fuso,d),[h,m]=i.chiude.split(":").map(Number),lim=h*60+m-2,[a,c]=l.hm.split(":").map(Number);return a*60+c>=lim;});}
- window.ebMercati={html,stato,oraIt,aperta:apertaB,allaChiusura};
+ // v7.64 chiusure per festivita' da oggi ai prossimi `giorni`: [{ymd, mercati:[...], nome}] in ordine di data.
+ //  Un gruppo conta come chiuso solo se TUTTE le sue borse sono chiuse quel giorno feriale (Europa: Xetra, Milano, Parigi...).
+ function feste(giorni){const out={},oggi=new Date();
+  for(let k=0;k<=giorni;k++){const d=new Date(oggi.getTime()+k*864e5);
+   GRUPPI.forEach(([g,bb])=>{let nome=null;const tutte=bb.every(b=>{const i=info(b),l=loc(i.fuso,d);if(!i.giorni.includes(l.wd)||!i.festivi[l.ymd])return false;nome=nome||i.festivi[l.ymd];return true;});
+    if(tutte){const l=loc("Europe/Rome",d);(out[l.ymd]=out[l.ymd]||{ymd:l.ymd,mercati:[],nome}).mercati.push(g);}});}
+  return Object.values(out).sort((a,b)=>a.ymd<b.ymd?-1:1);}
+ window.ebMercati={html,stato,oraIt,aperta:apertaB,allaChiusura,feste};
  fetch("../azioni/calendario.json",{cache:"no-cache"}).then(r=>r.ok?r.json():null).then(c=>{if(c&&c.borse){CAL=c;window.dispatchEvent(new Event("eb-mercati"));}}).catch(()=>{});
 })();}catch(e){console.warn("mercati",e);}

@@ -2625,3 +2625,9 @@ html.ptmod-on{overflow:hidden}
 @media (max-width:600px){.ptop .pcn{font-size:22px}}
 .sr-grid.sr-g4{grid-template-columns:repeat(4,minmax(0,1fr))}   /* v7.64 senza la casella della fascia oraria */
 @media (max-width:900px){.sr-grid.sr-g4{grid-template-columns:repeat(2,minmax(0,1fr))}.sr-grid.sr-g4 .sr-t.media{grid-column:auto}}
+/* v7.64 avviso festivita' (COT rinviato, borse chiuse): fascia fissa sopra gli eventi, una riga per avviso */
+.avv{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:11px 16px;border-radius:14px;font-size:14px;line-height:1.45;
+ color:var(--ink);background:color-mix(in srgb,var(--warn) 10%,var(--card));border:1px solid color-mix(in srgb,var(--warn) 40%,var(--line))}
+.avv-i{flex:none;width:20px;height:20px;fill:none;stroke:var(--warn);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.avv p{margin:0}.avv p+p{margin-top:4px}.avv b{color:var(--warn)}
+@media (max-width:600px){.avv{align-items:flex-start;padding:10px 12px;font-size:13px;gap:10px}}
