@@ -2539,3 +2539,17 @@ html.ptmod-on{overflow:hidden}
 /* v7.64 card del mese: 2 riquadri (Drawdown del mese, Positivo) */
 .pmc-k.pk2{grid-template-columns:repeat(2,minmax(0,1fr))}
 @media (max-width:520px){.pmc-k.pk2>div:first-child{grid-column:auto}}
+/* v7.64 FASE DI OGGI (ciclo del debito, modalita' di mercato): niente scritta "oggi"; bordo al neon che gira intorno
+   alla card e freccina sopra, nel colore della fase. Si sposta da sola: la fase "on" viene dai dati del server. */
+@property --cdang{syntax:'<angle>';inherits:false;initial-value:0deg}
+.cd-fasi{padding-top:20px}
+.cd-f{grid-template-rows:auto;position:relative}
+.cd-f.on{border:2px solid transparent;
+ background:linear-gradient(color-mix(in srgb,var(--cd) 13%,var(--card)),color-mix(in srgb,var(--cd) 13%,var(--card))) padding-box,
+  conic-gradient(from var(--cdang),color-mix(in srgb,var(--cd) 25%,transparent) 0deg,color-mix(in srgb,var(--cd) 25%,transparent) 220deg,var(--cd) 300deg,#fff 330deg,var(--cd) 345deg,color-mix(in srgb,var(--cd) 25%,transparent) 360deg) border-box;
+ animation:cdGira 3.2s linear infinite;box-shadow:0 0 20px color-mix(in srgb,var(--cd) 30%,transparent)}
+@keyframes cdGira{to{--cdang:360deg}}
+.cd-fr{position:absolute;top:-17px;left:50%;transform:translateX(-50%);font-style:normal;font-size:12px;line-height:1;color:var(--cd);
+ text-shadow:0 0 8px var(--cd);animation:cdFr 1.6s ease-in-out infinite}
+@keyframes cdFr{50%{transform:translate(-50%,3px)}}
+@media (prefers-reduced-motion:reduce){.cd-f.on,.cd-fr{animation:none}}

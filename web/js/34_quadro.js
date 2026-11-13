@@ -53,7 +53,8 @@ try{(function(){
    <b>Solo contesto, non un segnale</b>: i mercati si muovono prima dei dati economici (in recessione l'S&amp;P 500 ha spesso gi&agrave; ripreso a salire). I portafogli seguono il filtro di trend sui prezzi.`,"qe-is");
  // v7.40 CICLO DEL DEBITO (solo USA): E.debito da cot_radar/debito.py = {fase, da, debito, deb3, deb1, rata, rata_media,
  //   reale, fed, infl, spread, stress, storia:[[trimestre, indice fase]], storico:{fase:[media annua %, trimestri, % positivi]}}
- //   Riga con le 5 fasi in ordine (quella di oggi accesa), 4 riquadri di dati e la striscia degli ultimi 15 anni.
+ //   Riga con le 5 fasi in ordine (v7.64: quella di oggi ha un bordo al neon che gira e una freccina sopra, senza "oggi";
+ //   si sposta da sola quando cambia la fase calcolata dal server), 4 riquadri di dati e la striscia degli ultimi 15 anni.
  const CD=["Espansione","Bolla","Picco","Crisi","Riduzione del debito"],CDC=["cd-e","cd-b","cd-p","cd-c","cd-r"];
  const CDF=["il debito cresce in linea con il reddito","il debito cresce pi&ugrave; del reddito","la Fed stringe: curva piatta o invertita",
             "il credito &egrave; sotto stress","il debito scende rispetto al reddito"];
@@ -78,7 +79,7 @@ try{(function(){
     ${tabD?`<b>Com'&egrave; andata dal ${d.storico_dal}</b>: rendimento medio annuo dell'S&amp;P 500 nel trimestre dopo, quota di trimestri positivi e numero di casi.${tabD}`:""}
     <b>Solo contesto, non un segnale</b>: le differenze tra le fasi sono piccole rispetto ai casi contati e il rendimento medio &egrave; positivo in tutte. I portafogli seguono il filtro di trend sui prezzi.`)}
     <span class="cd-da">${d.fase} dal ${trimIt(d.da)}</span></div>
-   <div class="cd-fasi" role="img" aria-label="Fase del ciclo del debito: ${d.fase}">${CD.map((f,i)=>`<div class="cd-f ${CDC[i]}${i==k?" on":""}"><b>${f}</b><span>${i==k?"oggi":"&nbsp;"}</span></div>`).join("")}</div>
+   <div class="cd-fasi" role="img" aria-label="Fase del ciclo del debito: ${d.fase}">${CD.map((f,i)=>`<div class="cd-f ${CDC[i]}${i==k?" on":""}"><b>${f}</b>${i==k?'<i class="cd-fr" aria-hidden="true">&#9660;</i>':""}</div>`).join("")}</div>
    <p class="cd-frase"><b class="${CDC[k]}">${d.fase}</b>: ${CDF[k]}.</p>
    <div class="qe-ind cd-ind">${tiles}</div>${striscia}</div>`;}
  // v7.60 MODALITA' DI MERCATO (solo USA): E.modalita da cot_radar/modalita.py = {modo, dist, soglia, data, dal,
@@ -96,7 +97,7 @@ try{(function(){
     ${tabM?`<b>Com'&egrave; andata dal ${(m.dal||"").slice(0,4)}</b>: a ogni fine mese, S&amp;P 500 con dividendi nei 3 mesi dopo${m.liquidita?" oltre la liquidit&agrave;":""}, quota di casi positivi e drawdown medio nei 3 mesi.${tabM}`:""}
     <b>Solo contesto, non un segnale</b>: nelle nostre prove ridurre in eccesso non ha aiutato e il pessimismo si &egrave; capovolto (fino al 2010 conveniva stare fuori, dal 2011 sono stati i mesi migliori, con drawdown pi&ugrave; ampi).`)}
     <span class="cd-da">S&amp;P 500 ${pc(m.dist)} dalla media</span></div>
-   <div class="cd-fasi mm-fasi" role="img" aria-label="Modalit&agrave; di mercato: ${MMN[k]}">${MM.map((x,i)=>`<div class="cd-f ${MMC[i]}${i==k?" on":""}"><b>${MMN[i]}</b><span>${i==k?"oggi":"&nbsp;"}</span></div>`).join("")}</div>
+   <div class="cd-fasi mm-fasi" role="img" aria-label="Modalit&agrave; di mercato: ${MMN[k]}">${MM.map((x,i)=>`<div class="cd-f ${MMC[i]}${i==k?" on":""}"><b>${MMN[i]}</b>${i==k?'<i class="cd-fr" aria-hidden="true">&#9660;</i>':""}</div>`).join("")}</div>
    <p class="cd-frase"><b class="${MMC[k]}">${MMN[k]}</b>: ${MMF[k]}.</p></div>`;}
  // v7.22d: il dettaglio (mappa, indicatori, ciambelle) si apre SOLO al click su una card; un secondo click lo chiude
  let sel=null;
