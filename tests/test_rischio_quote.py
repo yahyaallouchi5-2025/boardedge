@@ -97,3 +97,21 @@ class PerditaMeseECambio(unittest.TestCase):
     def test_cambio_mosso_quota_positiva_e_assente_senza_cambio(self):
         self.assertGreater(P.quota_cambio(self.g, {"US10Y": 1.0}, self.fx), 50)     # mercato calmo: domina il cambio
         self.assertIsNone(P.quota_cambio(self.g, {"SP500": 1.0}, None))
+
+
+class CodaEVerifica(unittest.TestCase):
+    """v7.63: media dei mesi peggiori (Expected Shortfall) e verifica storica della soglia 1 mese su 20."""
+
+    def test_media_peggiori_sotto_la_soglia_e_verifica(self):
+        px = P.prezzi_demo("2010-01-01", "2026-11-06")
+        g = P.Griglia(px)
+        pesi = {"SP500": 0.6, "CASH": 0.4}
+        soglia, media = P.coda_mese(g, pesi)
+        self.assertIsNotNone(soglia)
+        self.assertLessEqual(media, soglia)                     # la media dei mesi peggiori e' sempre piu' bassa
+        self.assertEqual(P.perdita_mese(g, pesi), soglia)
+        storia = [(g.date[i], pesi) for i in range(800, len(g.date) - 30, 21)]
+        v = P.verifica_mese(g, storia)
+        self.assertIsNotNone(v)
+        self.assertTrue(0 <= v["sup"] <= v["n"])
+        self.assertTrue(0 <= v["p"] <= 1)

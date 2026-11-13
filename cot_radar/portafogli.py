@@ -1419,21 +1419,61 @@ def _proforma(g, pesi, fx, i0, fino):
     return tot, parte
 
 
-def perdita_mese(g, pesi, fx=None, fino=None):
-    """Perdita in % (numero negativo) che il portafoglio di oggi supera in circa 1 mese su 20: 5o percentile dei
-    rendimenti a 21 giorni di borsa (finestre sovrapposte) negli ultimi 3 anni, in euro. None se i dati mancano."""
+def coda_mese(g, pesi, fx=None, fino=None):
+    """(soglia, media oltre la soglia) in % per il portafoglio con questi pesi, sugli ultimi 3 anni fino a `fino`:
+    soglia = 5o percentile dei rendimenti a 21 giorni (finestre sovrapposte) = perdita superata in ~1 mese su 20;
+    media  = v7.63 EXPECTED SHORTFALL (Pearson, "Risk Budgeting", cap. 19): media dei mesi PEGGIORI della soglia,
+             cioe' "quando va male davvero, in media si perde questo". (None, None) se i dati mancano."""
     fino = len(g.date) - 1 if fino is None else fino
     i0 = max(1, fino - SOGLIA_GIORNI + 1)
     if fino - i0 < 250:
-        return None
+        return None, None
     r, _ = _proforma(g, pesi, fx, i0, fino)
     if not any(r):
-        return 0.0                                       # solo liquidita': nessuna oscillazione
+        return 0.0, 0.0                                  # solo liquidita': nessuna oscillazione
     cum = [0.0]
     for x in r:
         cum.append(cum[-1] + math.log(1 + x))
     mesi = sorted(math.exp(cum[k + MESE_BORSA] - cum[k]) - 1 for k in range(len(r) - MESE_BORSA + 1))
-    return round(min(0.0, mesi[int(0.05 * len(mesi))]) * 100, 1)
+    k = int(0.05 * len(mesi))
+    peggiori = mesi[:k + 1]
+    return round(min(0.0, mesi[k]) * 100, 1), round(min(0.0, sum(peggiori) / len(peggiori)) * 100, 1)
+
+
+def perdita_mese(g, pesi, fx=None, fino=None):
+    """Perdita in % (numero negativo) che il portafoglio di oggi supera in circa 1 mese su 20: 5o percentile dei
+    rendimenti a 21 giorni di borsa (finestre sovrapposte) negli ultimi 3 anni, in euro. None se i dati mancano."""
+    return coda_mese(g, pesi, fx, fino)[0]
+
+
+def verifica_mese(g, storia, fx=None):
+    """v7.63 VERIFICA DELLA SOGLIA "1 mese su 20" (Pearson, cap. 17; test di Kupiec, 1995). Per ogni rotazione passata:
+    soglia calcolata SOLO con i 3 anni prima della rotazione e con i pesi di quella rotazione, poi il risultato vero
+    delle 21 sedute successive con gli stessi pesi. Se la soglia e' onesta viene superata in circa il 5% dei mesi.
+    Restituisce {n mesi, sup = mesi oltre la soglia, pct, p = probabilita' che lo scarto dal 5% sia caso} o None."""
+    n = sup = 0
+    for d, pp in storia:
+        i = g.pos.get(d)
+        if i is None or i + MESE_BORSA - 1 >= len(g.date):
+            continue
+        soglia = perdita_mese(g, pp, fx, fino=i - 1)
+        if soglia is None:
+            continue
+        r, _ = _proforma(g, pp, fx, i, i + MESE_BORSA - 1)
+        vero = 1.0
+        for x in r:
+            vero *= 1 + x
+        n += 1
+        sup += (vero - 1) * 100 < soglia
+    if n < 60:
+        return None
+    # test di Kupiec (rapporto di verosimiglianza, 1 grado di liberta'): p alto = superamenti compatibili con il 5%
+    p0, ph = 0.05, sup / n
+    def ll(p):
+        return (n - sup) * math.log(1 - p) + (sup * math.log(p) if sup else 0.0)
+    lr = -2 * (ll(p0) - (ll(ph) if 0 < ph < 1 else (0.0 if ph == 0 else ll(p0))))
+    pval = math.erfc(math.sqrt(max(lr, 0) / 2))
+    return {"n": n, "sup": sup, "pct": round(100 * sup / n, 1), "p": round(pval, 3)}
 
 
 def quota_cambio(g, pesi, fx, giorni=RISCHIO_GIORNI, fino=None):
@@ -1843,7 +1883,8 @@ def calcola(righe_cot, px, cartella=CARTELLA, scrivi=True, oggi=None, sat=None, 
         # v7.57: perdita del mese (1 su 20) e quota di rischio dal cambio, di oggi e in media sullo storico del profilo
         rq = quote_rischio(g, pesi, fxp)
         if rq:
-            rq["mese95"] = perdita_mese(g, pesi, fxp)
+            rq["mese95"], rq["es95"] = coda_mese(g, pesi, fxp)     # v7.63 + media dei mesi peggiori
+            rq["verifica"] = verifica_mese(g, storia, fxp)          # v7.63 la soglia ha tenuto nel passato?
             rq["cambio"] = quota_cambio(g, pesi, fxp)
             passate = [q for q in (quota_cambio(g, pp, fxp, fino=g.pos[d] - 1) for d, pp in storia if d in g.pos) if q is not None]
             rq["cambio_media"] = round(sum(passate) / len(passate)) if len(passate) >= 24 else None

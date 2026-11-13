@@ -2450,3 +2450,7 @@ html.ptmod-on{overflow:hidden}
 @media (max-width:900px){.sr-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.sr-t.media{grid-column:1/-1}}
 @media (max-width:600px){.sr-x{display:none}.sr-bar{display:none}.sr-t b{font-size:21px}.sr-t{padding:10px 11px}.sr-sw button{padding:8px 6px;font-size:13px}}
 @media (max-width:600px){.sr-sw{display:flex;flex-wrap:nowrap}.sr-sw button{flex:1;min-width:0;padding:8px 2px;font-size:12px;white-space:nowrap}}
+.phrk3 span i{font-style:normal;font-weight:650}.phrk3 span i.down{color:var(--down)}
+/* v7.63 il grassetto del fumetto (i) non deve prendere la misura grande dei numeri della riga */
+.phrk3 .info div b{font-size:inherit;letter-spacing:0;line-height:inherit;color:var(--ink)}
+@media (max-width:520px){.phrk3 span{white-space:normal;line-height:1.35}}
