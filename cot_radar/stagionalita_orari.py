@@ -166,14 +166,19 @@ def calcola_simbolo(ore):
 # RENDIMENTO = chiusura / chiusura del giorno prima: l'apertura di Yahoo nei primi anni e' spesso uguale alla
 # chiusura (non affidabile). Settimana e mese = ultima chiusura / ultima chiusura del periodo prima; quelli in corso
 # si tolgono. Il cambio di scadenza del future aggiunge un piccolo salto in alcuni giorni (oro: circa lo 0,3%).
-YAHOO_GIORNO = {"XAUUSD.FOREX": "GC=F", "XAGUSD.FOREX": "SI=F"}
+YAHOO_GIORNO = {"XAUUSD.FOREX": "GC=F", "XAGUSD.FOREX": "SI=F", "NZDUSD.FOREX": "NZDUSD=X",
+                "GSPC.INDX": "^GSPC", "NDX.INDX": "^NDX", "DJI.INDX": "^DJI", "GDAXI.INDX": "^GDAXI",
+                "FCHI.INDX": "^FCHI", "STOXX50E.INDX": "^STOXX50E", "FTSE.INDX": "^FTSE", "N225.INDX": "^N225",
+                "HSI.INDX": "^HSI", "FTSEMIB.INDX": "FTSEMIB.MI", "VIX.INDX": "^VIX"}
+MIN_ANNI = 10                                            # v7.64: sotto i 10 anni di storico una tabella non si mostra
 YAHOO_URL = "https://{h}.finance.yahoo.com/v8/finance/chart/{t}?{q}"
 
 
 def yahoo_chiusure(ticker, cartella, tentativi=3):
     """{data ISO: chiusura} dei future giornalieri di Yahoo dal 2000. Copia in <cartella>/_yahoo_<ticker>.json:
     se Yahoo non risponde si usa l'ultima copia salvata (lo storico non cambia)."""
-    copia = os.path.join(cartella, "_yahoo_" + ticker.replace("=", "_") + ".json")
+    copia = os.path.join(cartella, "_yahoo_" + ticker.replace("=", "_").replace("^", "") + ".json")
+    time.sleep(1)                                       # una richiesta al secondo: Yahoo limita chi chiede troppo
     q = urllib.parse.urlencode({"period1": 0, "period2": int(time.time()), "interval": "1d"})
     for n in range(tentativi):
         try:
@@ -252,21 +257,32 @@ def calcola(cartella, uscita):
     indice = []
     for sym, fase, _ in orari.universo():
         ore = orari.leggi(orari.nome_file(cartella, sym))
-        if len(ore) < 24 * 200:                         # meno di ~200 giorni di candele: niente statistica
+        # v7.64 REGOLA DEI 10 ANNI (scelta di Ya): una tabella si mostra solo con almeno 10 anni di storico.
+        #  - candele orarie EODHD >= 10 anni -> tutte le viste (Orario compreso);
+        #  - meno di 10 anni ma Yahoo ha >= 10 anni di chiusure giornaliere -> solo Giornaliero, Settimanale, Mensile;
+        #  - altrimenti lo strumento non compare.
+        anni_ore = (max(ore) - min(ore)) / (365.25 * 86400) if ore else 0
+        ch = yahoo_chiusure(YAHOO_GIORNO[sym], cartella) if sym in YAHOO_GIORNO else {}
+        anni_g = ((datetime.strptime(max(ch), "%Y-%m-%d") - datetime.strptime(min(ch), "%Y-%m-%d")).days / 365.25
+                  if ch else 0)
+        con_ore = anni_ore >= MIN_ANNI and len(ore) >= 24 * 200
+        if not con_ore and anni_g < MIN_ANNI:
             continue
-        tab = calcola_simbolo(ore)
-        dal = datetime.fromtimestamp(min(ore), ROMA).date().isoformat()
-        al = datetime.fromtimestamp(max(ore), ROMA).date().isoformat()
-        breve = int(dal[:4]) >= 2020
-        out = {"s": sym, "n": nome(sym), "f": fase, "dal": dal, "al": al, "breve": breve, **tab}
-        if sym in YAHOO_GIORNO:                         # v7.64 Giornaliero, Settimanale e Mensile dai future di Yahoo
-            ch = yahoo_chiusure(YAHOO_GIORNO[sym], cartella)
-            if ch:
-                out.update(calcola_giorni(ch))
-                out["dal_g"], out["al_g"] = min(ch), max(ch)
+        out = {"s": sym, "n": nome(sym), "f": fase}
+        if con_ore:
+            out.update(calcola_simbolo(ore))
+            out["dal"] = datetime.fromtimestamp(min(ore), ROMA).date().isoformat()
+            out["al"] = datetime.fromtimestamp(max(ore), ROMA).date().isoformat()
+        else:
+            out["solo_giorni"] = True                   # la pagina nasconde l'Orario e la casella della fascia oraria
+        if anni_g >= MIN_ANNI:                          # Giornaliero, Settimanale e Mensile da Yahoo (storia piu' lunga)
+            out.update(calcola_giorni(ch))
+            out["dal_g"], out["al_g"] = min(ch), max(ch)
+            if not con_ore:
+                out["dal"], out["al"] = out["dal_g"], out["al_g"]
         with open(os.path.join(uscita, sym.replace("/", "_") + ".json"), "w") as fh:
             json.dump(out, fh, separators=(",", ":"))
-        indice.append({"s": sym, "n": nome(sym), "f": fase, "dal": dal, "al": al, "breve": breve})
+        indice.append({k: out[k] for k in ("s", "n", "f", "dal", "al")} | ({"solo_giorni": True} if not con_ore else {}))
     with open(os.path.join(uscita, "indice.json"), "w") as fh:
         json.dump({"agg": datetime.now(ROMA).strftime("%Y-%m-%d %H:%M"), "fuso": "Europe/Rome",
                    "simboli": indice}, fh, separators=(",", ":"))

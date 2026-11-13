@@ -46,27 +46,59 @@ def utcnow():
     return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
-def weekly_schedule(last_date, weekday, hh, mm, offset, tolleranza_ore=0):
+def festivi_usa(y):
+    """v7.64 festivita' federali USA dell'anno y (giorno osservato: sabato -> venerdi', domenica -> lunedi')."""
+    def oss(d):
+        return d - timedelta(days=1) if d.weekday() == 5 else d + timedelta(days=1) if d.weekday() == 6 else d
+    def nth(mo, wd, n):                                           # n-esimo giorno `wd` del mese (n=-1: l'ultimo)
+        if n > 0:
+            d = date(y, mo, 1)
+            return d + timedelta(days=(wd - d.weekday()) % 7 + 7 * (n - 1))
+        d = date(y + (mo == 12), mo % 12 + 1, 1) - timedelta(days=1)
+        return d - timedelta(days=(d.weekday() - wd) % 7)
+    return {oss(date(y, 1, 1)), nth(1, 0, 3), nth(2, 0, 3), nth(5, 0, -1), oss(date(y, 6, 19)), oss(date(y, 7, 4)),
+            nth(9, 0, 1), nth(10, 0, 2), oss(date(y, 11, 11)), nth(11, 3, 4), oss(date(y, 12, 25))}
+
+
+def uscita_cot(venerdi):
+    """v7.64 giorno REALE di uscita del COT della settimana del `venerdi'`: se tra martedi' (giorno dei dati) e
+    venerdi' c'e' una festivita' federale, la CFTC pubblica il LUNEDI' dopo (martedi' se anche il lunedi' e' festivo).
+    Le festivita' di lunedi' (Memorial Day, Labor Day...) non spostano nulla. Verificato sul calendario 2026 della CFTC
+    (1 gen -> lun 5/1, 19 giu -> lun 22/6, 3 lug -> lun 6/7, 11 nov -> lun 16/11, Thanksgiving -> lun 30/11, Natale -> lun 28/12)."""
+    fest = festivi_usa(venerdi.year) | festivi_usa(venerdi.year + 1) | festivi_usa(venerdi.year - 1)
+    if not any(venerdi - timedelta(days=k) in fest for k in range(4)):   # venerdi', giovedi', mercoledi', martedi'
+        return venerdi
+    d = venerdi + timedelta(days=3)
+    while d in fest or d.weekday() >= 5:
+        d += timedelta(days=1)
+    return d
+
+
+def weekly_schedule(last_date, weekday, hh, mm, offset, tolleranza_ore=0, sposta=None):
     """Per un dato settimanale pubblicato il giorno `weekday` (0=lunedi') alle hh:mm di New York,
     riferito a `offset` giorni prima della pubblicazione (COT: venerdi', dati del martedi' -> offset 3).
 
     tolleranza_ore (v6.49): per qualche ora dopo l'orario ufficiale il dato mancante NON e' ancora un ritardo
     (es. la Fed pubblica il giovedi' alle 16:30 di New York ma FRED lo carica anche ore dopo): in quella finestra
     si considera ancora l'uscita precedente e "prossimo" indica l'uscita di oggi, senza avvisi rossi.
+    sposta (v7.64): giorno nominale -> giorno reale di uscita (COT: festivita' USA, vedi uscita_cot).
+    La data dei dati resta quella nominale meno `offset` (il martedi' per il COT).
 
     Restituisce: data attesa dell'ultimo dato, se siamo in ritardo, ultima e prossima uscita (ora italiana)."""
+    sposta = sposta or (lambda g: g)
     now = utcnow()
-    d = now.date()
-    while d.weekday() != weekday or et_to_utc(d, hh, mm) > now:   # torna indietro fino all'ultima uscita passata
+    d = now.date() + timedelta(days=14)
+    while d.weekday() != weekday or et_to_utc(sposta(d), hh, mm) > now:   # ultima uscita REALE gia' passata
         d -= timedelta(days=1)
     exp = (d - timedelta(days=offset)).isoformat()
-    if (last_date or "") < exp and now < et_to_utc(d, hh, mm) + timedelta(hours=tolleranza_ore):
+    if (last_date or "") < exp and now < et_to_utc(sposta(d), hh, mm) + timedelta(hours=tolleranza_ore):
         d -= timedelta(days=7)                                      # dentro la tolleranza: vale ancora l'uscita precedente
         exp = (d - timedelta(days=offset)).isoformat()
     nxt = d + timedelta(days=7)
-    ms = int((et_to_utc(nxt, hh, mm) - datetime(1970, 1, 1)).total_seconds() * 1000)   # per il JavaScript
-    return {"expected": exp, "late": (last_date or "") < exp, "last_pub": utc_to_it(et_to_utc(d, hh, mm)),
-            "next": utc_to_it(et_to_utc(nxt, hh, mm)), "next_ms": ms}
+    fine = et_to_utc(sposta(nxt), hh, mm)
+    ms = int((fine - datetime(1970, 1, 1)).total_seconds() * 1000)   # per il JavaScript
+    return {"expected": exp, "late": (last_date or "") < exp, "last_pub": utc_to_it(et_to_utc(sposta(d), hh, mm)),
+            "next": utc_to_it(fine), "next_ms": ms}
 
 
 def fd(s):
@@ -91,7 +123,7 @@ def sources_status(cache, status, errors, assets, mort, fred):
     today = date.today()
 
     last_cot = max(a["date"] for a in assets.values() if a.get("date"))
-    c = weekly_schedule(last_cot, 4, 15, 30, 3, tolleranza_ore=3)     # venerdi' 15:30 NY, dati del martedi'
+    c = weekly_schedule(last_cot, 4, 15, 30, 3, tolleranza_ore=3, sposta=uscita_cot)   # venerdi' 15:30 NY (o lunedi' dopo una festivita')
     out.append({"name": "COT (CFTC)", "last": fd(last_cot), "next": fdt(c["next"]), "next_ms": c["next_ms"],
                 "st": "late" if c["late"] else ("ok" if status["cot"] == "online" else "cache"),
                 "msg": (f"Il report con i dati al {fd(c['expected'])} doveva uscire {fdt(c['last_pub'])} ma la CFTC "

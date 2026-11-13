@@ -127,3 +127,22 @@ class TolleranzaFed(unittest.TestCase):
         r = self._con_ora(datetime(2026, 10, 30, 16, 0))        # oltre 18 ore dopo
         self.assertTrue(r["late"])
         self.assertEqual(r["expected"], "2026-10-28")
+
+
+class TestUscitaCot(unittest.TestCase):
+    """v7.64 il COT esce il lunedi' dopo se c'e' una festivita' federale USA tra martedi' e venerdi'."""
+
+    def test_spostamenti_2026(self):
+        from datetime import date, datetime
+        from unittest import mock
+        from cot_radar import calendario as C
+        attesi = {"2026-01-02": "2026-01-05", "2026-06-19": "2026-06-22", "2026-07-03": "2026-07-06",
+                  "2026-11-13": "2026-11-16", "2026-11-27": "2026-11-30", "2026-12-25": "2026-12-28",
+                  "2026-05-29": "2026-05-29", "2026-09-11": "2026-09-11", "2026-11-06": "2026-11-06"}
+        for ven, esce in attesi.items():
+            self.assertEqual(C.uscita_cot(date.fromisoformat(ven)).isoformat(), esce, ven)
+        # venerdi' 13/11/2026 sera (Veterans Day in settimana): nessun ritardo, prossima uscita lunedi' 16 alle 21:30
+        with mock.patch.object(C, "utcnow", return_value=datetime(2026, 11, 13, 22, 25)):
+            c = C.weekly_schedule("2026-11-03", 4, 15, 30, 3, 3, C.uscita_cot)
+        self.assertFalse(c["late"])
+        self.assertEqual(c["next"], datetime(2026, 11, 16, 21, 30))

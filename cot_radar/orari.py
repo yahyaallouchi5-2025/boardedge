@@ -12,7 +12,7 @@ COSA FA
   Un'ora di Roma e' sempre un'ora intera UTC (+1 o +2): nessuna candela va spezzata.
 
 FASI (in ordine di priorita', scelte con Ya il 13/11/2026)
-  1 forex: 28 coppie delle 8 valute principali + oro, argento, platino, palladio spot (simboli .FOREX)
+  1 forex: 28 coppie delle 8 valute principali + oro e argento spot (simboli .FOREX)
   2 crypto: Bitcoin, Ether e le principali (simboli .CC)
   3 USA: ETF su indici, settori, obbligazioni e materie prime (.US), pre-mercato e after-hours inclusi
   4 indici ed estero: solo candele orarie da ottobre 2020 (storia breve, segnalata in pagina)
@@ -38,7 +38,7 @@ from .log import log
 
 VALUTE = ["EUR", "GBP", "AUD", "NZD", "USD", "CAD", "CHF", "JPY"]
 FOREX = [a + b for i, a in enumerate(VALUTE) for b in VALUTE[i + 1:]]       # 28 coppie, nell'ordine del mercato
-METALLI = ["XAUUSD", "XAGUSD", "XPTUSD", "XPDUSD"]
+METALLI = ["XAUUSD", "XAGUSD"]          # v7.64 via platino e palladio: EODHD non ha candele orarie (0 scaricate)
 CRYPTO = ["BTC-USD", "ETH-USD", "XRP-USD", "LTC-USD", "BCH-USD", "ADA-USD", "SOL-USD", "DOGE-USD", "BNB-USD"]
 ETF_USA = ["SPY", "QQQ", "DIA", "IWM", "EFA", "EEM", "FXI", "EWJ", "EWG",            # indici
            "XLK", "XLF", "XLE", "XLV", "XLI", "XLY", "XLP", "XLU", "XLB", "XLRE", "XLC",   # settori
