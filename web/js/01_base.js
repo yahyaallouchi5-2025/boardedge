@@ -123,7 +123,8 @@ document.addEventListener("click",e=>{const b=e.target.closest&&e.target.closest
    Ogni 10 minuti leggiamo stato.json "fresco": se e' piu' recente dei dati di questa pagina, compare
    un avviso con il pulsante per ricaricare. Solo sul sito (http/https), non sul file aperto dal PC. */
 function controllaVersione(){if(!/^https?:/.test(location.protocol)||!D.stato||!D.stato.creato)return;
- fetch("stato.json?v="+Date.now(),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(s=>{
+ // v7.64 dal terminale (/terminale/) stato.json sta una cartella sopra: prima la richiesta dava 404
+ fetch((/\/terminale\//.test(location.pathname)?"../":"")+"stato.json?v="+Date.now(),{cache:"no-store"}).then(r=>r.ok?r.json():null).then(s=>{
   if(!s||!s.creato||s.creato<=D.stato.creato||s.esito=="scartato"||document.getElementById("nuovaversione"))return;
   const d=document.createElement("div");d.id="nuovaversione";d.className="alert";
   d.style.cssText="position:fixed;left:50%;bottom:16px;transform:translateX(-50%);z-index:60;display:flex;gap:12px;align-items:center;box-shadow:0 6px 24px rgba(0,0,0,.18)";

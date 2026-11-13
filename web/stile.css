@@ -2623,3 +2623,5 @@ html.ptmod-on{overflow:hidden}
 .ptop .pcunit span{text-align:center;font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--mute)}
 .ptop .pcell .pcount.pcnum.ora{display:flex;justify-content:flex-start}
 @media (max-width:600px){.ptop .pcn{font-size:22px}}
+.sr-grid.sr-g4{grid-template-columns:repeat(4,minmax(0,1fr))}   /* v7.64 senza la casella della fascia oraria */
+@media (max-width:900px){.sr-grid.sr-g4{grid-template-columns:repeat(2,minmax(0,1fr))}.sr-grid.sr-g4 .sr-t.media{grid-column:auto}}
