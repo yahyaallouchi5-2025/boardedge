@@ -2484,3 +2484,5 @@ html.ptmod-on{overflow:hidden}
 @media (max-width:600px){.pvista button{flex:1 1 auto;padding:9px 4px;font-size:12.5px}}
 /* v7.64 Reset del test a destra nella card "Il tuo profilo" */
 .pcell-prof .ptest-reset{margin-left:auto}
+/* v7.64 fine test: Reset accanto a Chiudi / Usa questo profilo */
+.ptest-dx{display:inline-flex;align-items:center;gap:14px;margin-left:auto}

@@ -798,7 +798,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
      <button type="button" data-tol="-1" class="${test.tol==-1?"on":""}"><b>Nessuna perdita</b><small>non accetto che il conto scenda</small></button></div>${piede}</div>`;}
   // RISULTATO
   const r=esitoTest();
-  if(r.liq)return `<div class="ptest esito">${testa("Per te: liquidit&agrave;, non un portafoglio")}<p class="ptest-p">Tutti i portafogli hanno avuto periodi in perdita. Se non accetti che il conto scenda, tieni i soldi sul conto o in un ETF monetario come <b>XEON</b> (rende circa il tasso BCE, oscillazioni minime).</p>${piede}</div>`;
+  if(r.liq)return `<div class="ptest esito">${testa("Per te: liquidit&agrave;, non un portafoglio")}<p class="ptest-p">Tutti i portafogli hanno avuto periodi in perdita. Se non accetti che il conto scenda, tieni i soldi sul conto o in un ETF monetario come <b>XEON</b> (rende circa il tasso BCE, oscillazioni minime).</p><div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><span class="ptest-dx"><button type="button" class="ptest-salta" data-t="reset" title="Cancella risposte ed esito (solo in questo browser)">Reset</button><button type="button" class="ptest-salta" data-t="chiudi">Chiudi</button></span></div></div>`;
   const p=r.p,st=statT(p,cap),sm=simT(p,test.anni),orz=ORZ.find(o=>o[0]==test.anni);
   const motivo=r.breve?`Con un orizzonte sotto i 2 anni ogni profilo ha chiuso in perdita in circa 1 anno su 8: per i soldi che ti servono a breve &egrave; pi&ugrave; adatta la liquidit&agrave; (XEON).`
    :r.limite=="orizzonte"?`Deciso dall'<b>orizzonte</b>: con ${orz[1].toLowerCase()} i profili pi&ugrave; rischiosi hanno chiuso in perdita troppo spesso.`
@@ -810,7 +810,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
     <div><small>Rendimento medio annuo</small><b class="up">${pc(st.cagr)}</b><span>dal ${String(st.dal||"").slice(0,4)}, costi inclusi</span></div></div>
    <p class="ptest-p">${motivo}${compatto(cap)?` Con ${eur(cap)} si usa la <b>versione compatta</b>.`:""}</p>${avvisoCap(p,cap)}
    <p class="ptest-edu">Esempio didattico del modello, uguale per tutti: non &egrave; una consulenza personalizzata. Puoi perdere il capitale anche senza leva.</p>
-   <div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><button type="button" class="ptest-usa" data-t="usa">Usa questo profilo</button></div></div>`;}
+   <div class="ptest-b"><button type="button" class="ptest-ind" data-t="rifai">Rifai il test</button><span class="ptest-dx"><button type="button" class="ptest-salta" data-t="reset" title="Cancella risposte ed esito (solo in questo browser)">Reset</button><button type="button" class="ptest-usa" data-t="usa">Usa questo profilo</button></span></div></div>`;}
  // avviso se con quel capitale, a quote intere e ai prezzi di oggi, il conto si allontana troppo dal modello
  function avvisoCap(p,cap){const sc=piano(p,cap).scost;if(sc<=SCOST_OK)return "";
   const min=minimoCap(p),alt=P.profili.slice(0,P.profili.indexOf(p)).reverse().find(x=>piano(x,cap).scost<=SCOST_OK);
@@ -827,7 +827,15 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   modale.addEventListener("mousedown",e=>{if(e.target===modale)chiudiTest();});
   testEventi();const f=modale.querySelector(".ptest-o button,.ptest-usa");if(f)f.focus({preventScroll:true});}
  function chiudiTest(){if(!modale)return;const m=modale;modale=null;m.classList.remove("on");
-  document.documentElement.classList.remove("ptmod-on");setTimeout(()=>m.remove(),220);}
+  document.documentElement.classList.remove("ptmod-on");setTimeout(()=>m.remove(),220);aggiornaProfilo();}
+ // v7.64 RESET e aggiornamento immediato della card "Il tuo profilo" (senza ricaricare la pagina)
+ function resetTest(){test={passo:0};try{localStorage.removeItem("ebTest");}catch(e){}}
+ function legaProfilo(){
+  {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito||test.passo>3);}   // concluso: si riparte da capo
+  {const b=el.querySelector(".ptest-reset");if(b)b.onclick=()=>{resetTest();aggiornaProfilo();};}}
+ function aggiornaProfilo(){const v=el.querySelector(".pcell-prof");if(!v)return;
+  const t=document.createElement("div");t.innerHTML=testa();const n=t.querySelector(".pcell-prof");
+  if(n){v.innerHTML=n.innerHTML;legaProfilo();}}
  document.addEventListener("keydown",e=>{if(e.key=="Escape"&&modale)chiudiTest();});
  function testEventi(){const box=modale&&modale.querySelector("#ptestbox");if(!box)return;
   const vai=n=>{test.passo=n;salvaTest();box.innerHTML=testHTML();testEventi();box.scrollTop=0;
@@ -841,6 +849,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    if(t=="cap"){const v=+String(box.querySelector(".ptest-lib input").value).replace(/\D/g,"");if(v>=100){test.cap=v;vai(2);}else box.querySelector(".ptest-lib input").focus();}
    else if(t=="ind")vai(Math.max(1,test.passo-1));
    else if(t=="chiudi")chiudiTest();
+   else if(t=="reset"){resetTest();chiudiTest();}
    else if(t=="rifai"){test={passo:1,cap:test.cap||capitale};vai(1);}
    else if(t=="usa"){const r=esitoTest();if(!r.p)return;test.esito=r.p.id;test.passo=5;salvaTest();
     sel=r.p.id;capitale=test.cap;try{localStorage.setItem("ebProfilo",sel);localStorage.setItem("ebCapitale",capitale);}catch(e){}
@@ -891,8 +900,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <details class="psez" open><summary><h3 class="vft">Rischio e costi a confronto</h3><details class="info prinfo" onclick="event.stopPropagation()"><summary title="Come si leggono" aria-label="Come si leggono">i</summary><div><b>S&amp;P 500</b>: la scelta pi&ugrave; semplice, un solo ETF comprato e tenuto, misurata allo stesso modo (in euro): un profilo ha senso solo se fa meglio su rendimento <i>e</i> rischio. <b>Max drawdown</b>: la perdita pi&ugrave; grande dal massimo al minimo. <b>Mesi per recuperare</b>: dal massimo prima del drawdown al ritorno sopra quel livello. <b>Peggiori 12 mesi</b>: il risultato pi&ugrave; basso su un anno qualsiasi, non solo da gennaio a dicembre. <b>Drawdown in 1 anno su 10</b>: partendo da un mese qualsiasi, la perdita massima nei 12 mesi successivi &egrave; stata almeno questa in un caso su dieci: un anno &laquo;brutto&raquo; ma non il peggiore. <b>Media dei mesi peggiori</b> (CVaR): la perdita media nel 5% dei mesi peggiori, quanto fa male un mese davvero cattivo. <b>Sortino</b>: rendimento oltre la liquidit&agrave; diviso le sole oscillazioni negative (sopra 1 &egrave; buono): a differenza della volatilit&agrave; non penalizza i rialzi. <b>Calmar</b>: rendimento annuo diviso il drawdown massimo. <b>Capitale scambiato</b>: quanto del portafoglio si compra e vende in un anno con le rotazioni. <b>Costo annuo</b>: lo scambiato per il costo del modello (0,10%); con il tuo broker pu&ograve; essere diverso. Numeri storici simulati: non garantiscono risultati futuri.</div></details><span class="small">i 3 profili affiancati</span></summary>${rischioCfr()}</details>
    <details class="psez"><summary><h3 class="vft">Confronto dei 3 profili</h3><span class="small">mese per mese</span></summary>${confronto()}</details>`:""}
    ${vista=="rotazioni"?`<div class="pbasso"><h3 class="vft">Ultime rotazioni <span class="pbprof">${esc(p.nome)}</span><details class="info"><summary title="Come leggerle" aria-label="Come leggerle">i</summary><div><b>Entrati</b>: mercati comprati nella rotazione. <b>Usciti</b>: venduti. <b>Restano</b>: tenuti dal mese prima (con i pesi aggiornati). La riga in alto &egrave; la rotazione in vigore, con il risultato provvisorio del mese; sotto ogni mese chiuso c'&egrave; il risultato con il dettaglio per mercato. Cambiando profilo cambiano mercati, pesi e liquidit&agrave;.<br><br><b>Live</b>: mese seguito dal vivo (da novembre 2026). <b>Simulato</b>: mese precedente, calcolato dal modello con le stesse regole e i prezzi reali di quel mese, senza essere stato seguito in tempo reale.</div></details></h3>${rotazioni(p)}</div>`:""}`;
-  {const b=el.querySelector(".ptest-apri");if(b)b.onclick=()=>apriTest(!!test.esito);}
-  {const b=el.querySelector(".ptest-reset");if(b)b.onclick=()=>{test={passo:0};try{localStorage.removeItem("ebTest");}catch(e){}disegna();};}   // v7.37 azzera il profilo   // v7.36 test nel popup
+  legaProfilo();   // v7.37 azzera il profilo   // v7.36 test nel popup
   el.querySelectorAll(".pvista button").forEach(b=>b.onclick=()=>{vista=b.dataset.v;try{localStorage.setItem("ebPortVista",vista);}catch(e){}ridisegna(".pvista");});
   el.querySelectorAll(".pseg button").forEach(b=>b.onclick=()=>{sel=b.dataset.p;try{localStorage.setItem("ebProfilo",sel);}catch(e){}ridisegna(".pseg");});
   // clic su un titolo delle azioni scelte: apre la sua scheda nell'Azionario (azioni.js)
