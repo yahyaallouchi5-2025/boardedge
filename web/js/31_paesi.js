@@ -11,7 +11,7 @@ try{(function(){
             ["Accelerano",r=>r.tend>0],["Rallentano",r=>r.tend<0]];
  let sel="In crescita";                                     // si apre su chi cresce (la domanda piu' frequente)
  // SCHEDA di un paese: nome e area, PIL dell'anno grande, sotto previsione dell'anno prossimo e inflazione
- const scheda=r=>{const fr=r.tend>0?["&#9650;","up","accelera"]:r.tend<0?["&#9660;","down","rallenta"]:["=","flat","stabile"];
+ const scheda=r=>{const fr=r.tend>0?["&#9650;","up","accelera"]:r.tend<0?["&#9660;","down","rallenta"]:["&#9654;","flat","stabile"];
   return `<div class="card pecard" data-iso="${r.iso}"><div class="petesta"><b>${esc(r.nome)}</b><span class="small">${esc(r.area)}</span></div>
   <div class="pepil ${r.pil>0?"up":"down"}">${pct(r.pil)}</div><div class="small">PIL ${A}${r.prec!=null?` &middot; ${A-1}: ${pct(r.prec)}`:""}</div>
   <div class="perighe"><span>${A+1} <b class="${fr[1]}">${pct(r.prox)} ${fr[0]}</b></span><span>Inflazione ${A} <b>${pct(r.inf)}</b></span></div></div>`;};

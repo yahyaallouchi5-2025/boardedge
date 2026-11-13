@@ -2454,3 +2454,10 @@ html.ptmod-on{overflow:hidden}
 /* v7.63 il grassetto del fumetto (i) non deve prendere la misura grande dei numeri della riga */
 .phrk3 .info div b{font-size:inherit;letter-spacing:0;line-height:inherit;color:var(--ink)}
 @media (max-width:520px){.phrk3 span{white-space:normal;line-height:1.35}}
+/* v7.64 fumetto (i) dentro il popup "Trova il tuo profilo": prima usciva dal riquadro (tagliato, con barra di
+   scorrimento e sopra il testo). Ora copre tutta la larghezza del riquadro sotto l'intestazione, scorre al suo interno
+   se il testo e' lungo, e il riquadro si allunga quanto basta mentre il fumetto e' aperto (PC e telefono). */
+.ptmod .ptest{position:relative}
+.ptmod .ptest-t .info{position:static}
+.ptmod .ptest-t .info div{left:14px;right:14px;top:58px;width:auto;max-height:calc(100% - 72px);overflow:auto;z-index:8;box-sizing:border-box}
+.ptmod .ptest:has(.ptest-t .info[open]){min-height:min(380px,calc(100vh - 80px))}

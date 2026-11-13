@@ -31,9 +31,14 @@ try{(function(){
   can:`<rect width="30" height="20" fill="#fff"/><rect width="7.5" height="20" fill="#d52b1e"/><rect x="22.5" width="7.5" height="20" fill="#d52b1e"/><path d="M15 4l1.2 2.4 1.6-.6-.4 3 2-1.4.3 1.4 1.6-.3-1 2.2.8.6-3.4 2.4.3 1.2H15.6V16h-1.2v-1.8h-2.4l.3-1.2-3.4-2.4.8-.6-1-2.2 1.6.3.3-1.4 2 1.4-.4-3 1.6.6z" fill="#d52b1e"/>`};
  const bandiera=id=>`<svg class="qe-flag" viewBox="0 0 30 20" aria-hidden="true">${BAND[id]||""}</svg>`;
  // freccia di tendenza. tipo: "bene" = salire e' una buona notizia, "male" = cattiva, "neu" = solo direzione
- const fr=(ora,prima,tipo)=>{if(ora==null||prima==null||Math.abs(ora-prima)<0.05)return `<i class="qe-fr flat" title="Stabile">=</i>`;
-  const su=ora>prima,cl=tipo=="neu"?"neu":((tipo=="bene")==su?"up":"down");
-  return `<i class="qe-fr ${cl}" title="${su?"In salita":"In discesa"}">${su?"&#9650;":"&#9660;"}</i>`;};
+ // v7.64 freccia SEMPRE coerente con la fase: il verso viene dal calcolo del server ("dir" = cresce/sale) quando c'e';
+ //  se la variazione e' minima (sotto 0,05) la freccia resta nel suo verso ma GRIGIA ("lieve"): prima compariva "=",
+ //  che contraddiceva la fase (es. Giappone "Stagflazione" = crescita in calo, ma freccia "stabile").
+ const fr=(ora,prima,tipo,dir)=>{if(ora==null||prima==null)return `<i class="qe-fr flat" title="Dato non disponibile">&#9654;</i>`;
+  const su=dir==null?ora>prima:!!dir,lieve=Math.abs(ora-prima)<0.05;
+  if(dir==null&&lieve)return `<i class="qe-fr flat" title="Stabile">&#9654;</i>`;
+  const cl=lieve||tipo=="neu"?"flat":((tipo=="bene")==su?"up":"down");
+  return `<i class="qe-fr ${cl}" title="${lieve?(su?"In lieve salita":"In lieve discesa"):(su?"In salita":"In discesa")}">${su?"&#9650;":"&#9660;"}</i>`;};
  // CIAMBELLA: v da 0 a 100 (riempimento), colore per soglie (>=60 verde, 40-60 giallo, sotto rosso) o forzato
  const ciambella=(v,testo,cl)=>{const C=2*Math.PI*20,p=Math.max(0,Math.min(100,v||0));
   const c=cl||(p>=60?"up":p>=40?"mid":"down");
@@ -100,7 +105,7 @@ try{(function(){
   return `<button type="button" class="qe-card${x.id==sel?" on":""}" data-id="${x.id}" aria-expanded="${x.id==sel}" aria-controls="qe-det" title="${x.id==sel?"Chiudi il dettaglio":"Apri il dettaglio"}">
    <span class="qe-cn">${bandiera(x.id)}<b>${esc(x.nome)}</b>${x.allarme?`<i class="qe-dot" title="Allarme recessione"></i>`:""}<svg class="qe-chev" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6"/></svg></span>
    <span class="qe-chip ${f[1]}">${x.regime}</span>
-   <span class="qe-cs"><span>Crescita ${fr(x.cli,x.cli3,"bene")}</span><span>Inflazione ${fx(x.infl,1)}% ${fr(x.infl,x.infl6,"male")}</span></span></button>`;};
+   <span class="qe-cs"><span>Crescita ${fr(x.cli,x.cli3,"bene",x.cresce)}</span><span>Inflazione ${fx(x.infl,1)}% ${fr(x.infl,x.infl6,"male",x.sale)}</span></span></button>`;};
  function dettaglio(x){const f=FASI[x.regime],b=borsa&&borsa.economie&&borsa.economie[x.id],nomiS=(borsa&&borsa.settori)||{};
   const ind=(nome,val,sotto,freccia)=>`<div class="qe-i"><small>${nome}</small><b>${val}${freccia||""}</b><span>${sotto}</span></div>`;
   const mappa=`<div class="qe-mappa" role="img" aria-label="Fase: ${x.regime}"><span class="qe-ax qe-ay">Crescita &#9650;</span>
@@ -114,7 +119,7 @@ try{(function(){
   const sett=b&&b.settori?Object.entries(b.settori).filter(([,s])=>s.n).sort((p,q)=>q[1].su/q[1].n-p[1].su/p[1].n):[];
   const settHTML=sett.length?`<div class="qe-sez"><div class="qe-st"><h4>Borsa per settore</h4>${info("Per ogni settore, la quota di titoli dell'Azionario di questa economia in <b>trend rialzista</b> (prezzo e SMA 50 sopra la SMA 200). Verde da 60% in su, giallo tra 40 e 60%, rosso sotto il 40%. Dice <b>dove si muove il denaro</b>: i settori verdi stanno guidando, quelli rossi sono evitati. Con pochi titoli (numero sotto la ciambella) il dato &egrave; meno solido. L'immobiliare &egrave; uno dei settori.")}</div>
    <div class="qe-dons">${sett.map(([id,s])=>{const v=Math.round(s.su/s.n*100);return `<div class="qe-d" title="${esc(nomiS[id]||id)}: ${s.su} titoli su ${s.n} in trend rialzista, punteggio medio ${s.pt}">${ciambella(v,v+"%")}<b>${esc(nomiS[id]||id)}</b><small>${s.n} titol${s.n==1?"o":"i"}</small></div>`;}).join("")}</div></div>`:"";
-  const idx=b&&b.indici&&b.indici.length?`<div class="qe-sez"><div class="qe-st"><h4>Indici</h4>${info("Freccia del trend (prezzo e SMA 50 contro SMA 200) e rendimento degli ultimi 3 mesi e 12 mesi.")}</div><div class="qe-idx">${b.indici.map(i=>`<div class="qe-ix"><b>${esc(i.n)}</b><span>${i.tr==1?'<i class="qe-fr up">&#9650;</i>':i.tr==-1?'<i class="qe-fr down">&#9660;</i>':'<i class="qe-fr flat">=</i>'} 3 mesi <em class="${(i.v3m||0)>=0?"up":"down"}">${pc(i.v3m)}</em> &middot; 12 mesi <em class="${(i.v1a||0)>=0?"up":"down"}">${pc(i.v1a)}</em></span></div>`).join("")}</div></div>`:"";
+  const idx=b&&b.indici&&b.indici.length?`<div class="qe-sez"><div class="qe-st"><h4>Indici</h4>${info("Freccia del trend (prezzo e SMA 50 contro SMA 200) e rendimento degli ultimi 3 mesi e 12 mesi.")}</div><div class="qe-idx">${b.indici.map(i=>`<div class="qe-ix"><b>${esc(i.n)}</b><span>${i.tr==1?'<i class="qe-fr up">&#9650;</i>':i.tr==-1?'<i class="qe-fr down">&#9660;</i>':'<i class="qe-fr flat" title="Laterale">&#9654;</i>'} 3 mesi <em class="${(i.v3m||0)>=0?"up":"down"}">${pc(i.v3m)}</em> &middot; 12 mesi <em class="${(i.v1a||0)>=0?"up":"down"}">${pc(i.v1a)}</em></span></div>`).join("")}</div></div>`:"";
   const col=(COLLEGATI[x.id]||[]).filter(k=>D.assets&&D.assets[k]).map(k=>Object.assign({},D.assets[k],{name:NOMI[k]||D.assets[k].name}));
   const cot=col.length?`<div class="qe-sez"><div class="qe-st"><h4>Valuta e mercati collegati</h4>${info("Punteggio finale della Dashboard (COT e mercato) da &minus;100 a +100: verde comprato, rosso venduto, grigio neutro. La ciambella &egrave; piena a +100 e vuota a &minus;100. Per l'Australia contano rame e oro, per il Canada il petrolio: sono le materie prime che muovono la loro economia e la valuta.")}</div>
    <div class="qe-dons">${col.map(a=>{const l=a.label||"NEUTRO",c=/BUY/.test(l)?"up":/SELL/.test(l)?"down":"neu";return `<div class="qe-d" title="${esc(a.name)}: ${eti(l)}">${ciambella((a.score+100)/2,(a.score>0?"+":"")+Math.round(a.score),c)}<b>${esc(a.name)}</b><small>${eti(l)}</small></div>`;}).join("")}</div></div>`:"";
