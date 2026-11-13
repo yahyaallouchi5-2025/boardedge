@@ -1,0 +1,156 @@
+Mercati con COT e prezzi: 44 -> AUD, BRENT, BTC, CAD, CATTLE, CHF, COCOA, COFFEE, COPPER, CORN, COTTON, DOW, DXY, EAFE, EM, EUR, FEEDER, GASOLINE, GBP, GOLD, HEATOIL, HOGS, JPY, KCWHEAT, MXN, NASDAQ, NATGAS, NZD, OJ, PALLADIUM, PLATINUM, RUSSELL, SILVER, SOY, SOYMEAL, SOYOIL, SP500, SUGAR, US10Y, US2Y, US5Y, USBOND, WHEAT, WTI
+Senza apertura (ingresso alla chiusura del giorno dopo): BTC, CATTLE, COCOA, COFFEE, CORN, COTTON, DOW, DXY, EAFE, EM, FEEDER, GASOLINE, HEATOIL, HOGS, KCWHEAT, MXN, NASDAQ, OJ, PALLADIUM, RUSSELL, SOY, SOYMEAL, SOYOIL, SP500, SUGAR, US10Y, US2Y, US5Y, USBOND, WHEAT
+
+=== RISULTATI PRINCIPALI (tenuta 4 settimane, costi inclusi) ===
+S1 estremi commercial 90/5
+  studio (fino al 2014)              n=1674  media  +0.14%  vinte   49%  t +0.91  p(caso) 0.064
+  VERIFICA (dal 2015)                n= 983  media  +0.28%  vinte   47%  t +1.28  p(caso) 0.046
+S2 surge commercial +-40
+  studio (fino al 2014)              n=1483  media  -0.10%  vinte   50%  t -0.66  p(caso) 0.600
+  VERIFICA (dal 2015)                n= 512  media  -0.02%  vinte   50%  t -0.06  p(caso) 0.436
+S3 estremi + trend
+  studio (fino al 2014)              n= 272  media  -0.59%  vinte   45%  t -1.83  p(caso) 0.941
+  VERIFICA (dal 2015)                n= 233  media  +0.69%  vinte   45%  t +1.38  p(caso) 0.073
+S4 surge + trend
+  studio (fino al 2014)              n= 336  media  -0.06%  vinte   48%  t -0.17  p(caso) 0.418
+  VERIFICA (dal 2015)                n= 182  media  +0.43%  vinte   55%  t +0.56  p(caso) 0.267
+
+=== TENUTE DIVERSE (verifica dal 2015) ===
+  S1 tenuta 1 sett.                  n= 985  media  -0.09%  vinte   48%  t -0.75  p(caso) 0.494
+  S1 tenuta 2 sett.                  n= 984  media  +0.00%  vinte   48%  t +0.02  p(caso) 0.314
+  S1 tenuta 4 sett.                  n= 983  media  +0.28%  vinte   47%  t +1.28  p(caso) 0.046
+  S1 tenuta 8 sett.                  n= 970  media  +0.31%  vinte   48%  t +0.93  p(caso) 0.117
+  S2 tenuta 1 sett.                  n= 518  media  +0.03%  vinte   50%  t +0.16  p(caso) 0.262
+  S2 tenuta 2 sett.                  n= 514  media  -0.12%  vinte   46%  t -0.44  p(caso) 0.537
+  S2 tenuta 4 sett.                  n= 512  media  -0.02%  vinte   50%  t -0.06  p(caso) 0.436
+  S2 tenuta 8 sett.                  n= 508  media  +0.40%  vinte   51%  t +0.78  p(caso) 0.187
+  S3 tenuta 1 sett.                  n= 233  media  +0.07%  vinte   49%  t +0.27  p(caso) 0.309
+  S3 tenuta 2 sett.                  n= 233  media  +0.21%  vinte   53%  t +0.63  p(caso) 0.203
+  S3 tenuta 4 sett.                  n= 233  media  +0.69%  vinte   45%  t +1.38  p(caso) 0.073
+  S3 tenuta 8 sett.                  n= 229  media  +1.02%  vinte   49%  t +1.28  p(caso) 0.083
+  S4 tenuta 1 sett.                  n= 185  media  +0.40%  vinte   53%  t +1.46  p(caso) 0.033
+  S4 tenuta 2 sett.                  n= 184  media  -0.07%  vinte   47%  t -0.16  p(caso) 0.477
+  S4 tenuta 4 sett.                  n= 182  media  +0.43%  vinte   55%  t +0.56  p(caso) 0.267
+  S4 tenuta 8 sett.                  n= 180  media  +0.95%  vinte   56%  t +0.87  p(caso) 0.157
+
+=== PER CLASSE (tutto il periodo, tenuta 4 settimane) ===
+  S3 agricoli                        n=  28  media  -0.64%  vinte   54%  t -0.45  p(caso) 0.639
+  S3 bestiame                        n=  38  media  -0.38%  vinte   45%  t -0.39  p(caso) 0.616
+  S3 crypto                          n=  28  media  +3.17%  vinte   61%  t +1.06  p(caso) 0.136
+  S3 energia                         n=  38  media  +0.83%  vinte   50%  t +0.39  p(caso) 0.326
+  S3 indici                          n=  72  media  +0.09%  vinte   51%  t +0.17  p(caso) 0.428
+  S3 metalli                         n=  21  media  -1.94%  vinte   38%  t -0.94  p(caso) 0.802
+  S3 tassi                           n=  58  media  -0.51%  vinte   34%  t -3.43  p(caso) 0.998
+  S3 valute                          n= 222  media  -0.11%  vinte   43%  t -0.65  p(caso) 0.639
+  S4 agricoli                        n=  91  media  +0.73%  vinte   54%  t +0.82  p(caso) 0.193
+  S4 bestiame                        n=  41  media  -1.22%  vinte   41%  t -1.58  p(caso) 0.928
+  S4 crypto                          n=  14  media  +7.59%  vinte   64%  t +1.96  p(caso) 0.032
+  S4 energia                         n=  40  media  +0.29%  vinte   55%  t +0.10  p(caso) 0.464
+  S4 indici                          n=  59  media  -0.91%  vinte   49%  t -1.30  p(caso) 0.887
+  S4 metalli                         n=  39  media  -0.81%  vinte   51%  t -0.61  p(caso) 0.701
+  S4 tassi                           n=  72  media  -0.30%  vinte   38%  t -1.46  p(caso) 0.818
+  S4 valute                          n= 162  media  +0.19%  vinte   56%  t +1.01  p(caso) 0.103
+
+=== STRESS TEST (verifica dal 2015, 4 settimane) ===
+  base               S1              n= 983  media  +0.28%  vinte   47%  t +1.28  p(caso) 0.046
+  base               S2              n= 512  media  -0.02%  vinte   50%  t -0.06  p(caso) 0.436
+  base               S3              n= 233  media  +0.69%  vinte   45%  t +1.38  p(caso) 0.073
+  base               S4              n= 182  media  +0.43%  vinte   55%  t +0.56  p(caso) 0.267
+  finestra 26 sett.  S1              n=2536  media  +0.04%  vinte   50%  t +0.26  p(caso) 0.206
+  finestra 26 sett.  S2              n=2225  media  +0.07%  vinte   50%  t +0.39  p(caso) 0.180
+  finestra 26 sett.  S3              n= 888  media  +0.22%  vinte   52%  t +0.70  p(caso) 0.170
+  finestra 26 sett.  S4              n= 986  media  +0.60%  vinte   54%  t +2.03  p(caso) 0.014
+  finestra 52 sett.  S1              n=1783  media  +0.07%  vinte   49%  t +0.38  p(caso) 0.201
+  finestra 52 sett.  S2              n=1414  media  -0.05%  vinte   49%  t -0.22  p(caso) 0.440
+  finestra 52 sett.  S3              n= 526  media  +0.04%  vinte   48%  t +0.08  p(caso) 0.410
+  finestra 52 sett.  S4              n= 591  media  +0.35%  vinte   52%  t +0.85  p(caso) 0.158
+  soglie 80/20       S1              n=1256  media  -0.40%  vinte   46%  t -1.99  p(caso) 0.944
+  soglie 80/20       S2              n= 512  media  -0.02%  vinte   50%  t -0.06  p(caso) 0.436
+  soglie 80/20       S3              n= 368  media  -0.40%  vinte   45%  t -0.92  p(caso) 0.774
+  soglie 80/20       S4              n= 182  media  +0.43%  vinte   55%  t +0.56  p(caso) 0.267
+  ingresso +1 giorno S1              n= 982  media  +0.34%  vinte   48%  t +1.50  p(caso) 0.028
+  ingresso +1 giorno S2              n= 512  media  -0.20%  vinte   50%  t -0.45  p(caso) 0.571
+  ingresso +1 giorno S3              n= 233  media  +0.83%  vinte   46%  t +1.56  p(caso) 0.049
+  ingresso +1 giorno S4              n= 182  media  +0.15%  vinte   55%  t +0.15  p(caso) 0.447
+  salti roll tagliati S1             n= 983  media  +0.16%  vinte   47%  t +0.73  p(caso) 0.120
+  salti roll tagliati S2             n= 512  media  +0.06%  vinte   50%  t +0.16  p(caso) 0.345
+  salti roll tagliati S3             n= 230  media  +0.80%  vinte   47%  t +1.52  p(caso) 0.046
+  salti roll tagliati S4             n= 176  media  +0.02%  vinte   53%  t +0.02  p(caso) 0.446
+  costi doppi        S1              n= 983  media  +0.20%  vinte   46%  t +0.89  p(caso) 0.084
+  costi doppi        S2              n= 512  media  -0.11%  vinte   49%  t -0.29  p(caso) 0.523
+  costi doppi        S3              n= 233  media  +0.61%  vinte   44%  t +1.22  p(caso) 0.092
+  costi doppi        S4              n= 182  media  +0.34%  vinte   55%  t +0.45  p(caso) 0.304
+  senza COTTON       S1              n= 954  media  +0.26%  vinte   47%  t +1.16  p(caso) 0.059
+  senza BTC          S2              n= 487  media  -0.33%  vinte   49%  t -0.90  p(caso) 0.735
+  senza BTC          S3              n= 205  media  +0.35%  vinte   43%  t +0.89  p(caso) 0.159
+  senza BTC          S4              n= 168  media  -0.17%  vinte   55%  t -0.23  p(caso) 0.567
+
+=== PERIODI DI 5 ANNI (tutto, 4 settimane) ===
+  S1 2001-2005                       n= 515  media  +0.12%  vinte   49%  t +0.45  p(caso) 0.222
+  S1 2006-2010                       n= 440  media  -0.07%  vinte   45%  t -0.22  p(caso) 0.507
+  S1 2011-2015                       n= 429  media  +0.54%  vinte   53%  t +1.80  p(caso) 0.019
+  S1 2016-2020                       n= 408  media  +0.27%  vinte   47%  t +0.90  p(caso) 0.106
+  S1 2021-2025                       n= 411  media  -0.06%  vinte   44%  t -0.16  p(caso) 0.437
+  S2 2001-2005                       n= 521  media  +0.03%  vinte   50%  t +0.11  p(caso) 0.346
+  S2 2006-2010                       n= 333  media  -0.03%  vinte   53%  t -0.10  p(caso) 0.470
+  S2 2011-2015                       n= 277  media  -0.52%  vinte   46%  t -1.37  p(caso) 0.894
+  S2 2016-2020                       n= 228  media  -1.13%  vinte   47%  t -1.85  p(caso) 0.953
+  S2 2021-2025                       n= 195  media  +1.25%  vinte   50%  t +2.02  p(caso) 0.018
+  S3 2001-2005                       n= 106  media  -0.45%  vinte   44%  t -0.97  p(caso) 0.786
+  S3 2006-2010                       n=  95  media  -1.04%  vinte   45%  t -1.55  p(caso) 0.913
+  S3 2011-2015                       n=  90  media  -0.37%  vinte   46%  t -0.86  p(caso) 0.768
+  S3 2016-2020                       n=  66  media  +0.14%  vinte   45%  t +0.34  p(caso) 0.326
+  S3 2021-2025                       n= 122  media  +1.07%  vinte   45%  t +1.39  p(caso) 0.069
+  S4 2001-2005                       n= 130  media  -0.26%  vinte   44%  t -0.47  p(caso) 0.652
+  S4 2006-2010                       n= 117  media  +0.22%  vinte   53%  t +0.38  p(caso) 0.323
+  S4 2011-2015                       n=  96  media  +0.11%  vinte   51%  t +0.24  p(caso) 0.353
+  S4 2016-2020                       n=  73  media  -1.59%  vinte   56%  t -1.05  p(caso) 0.787
+  S4 2021-2025                       n=  74  media  +1.71%  vinte   47%  t +1.67  p(caso) 0.036
+
+=== S5 MEDIE MOBILI SUL COT INDEX DEI FONDI (cap. 9) ===
+  mercato    coppia scelta  verifica %/anno  coppia fissa 10/14  sempre lungo  scambi/anno
+  AUD         10/45           +0.75            -2.28            -0.56       12.5
+  BRENT        5/10           -9.90           -17.67           +13.89       23.8
+  BTC          5/10           +0.31            -3.03           +46.76        8.7
+  CAD         10/14           +0.60            +0.60            -1.77       31.2
+  CATTLE       5/10           +6.92            +6.56            +4.23       41.0
+  CHF         10/14           -0.96            -0.96            +1.06       35.3
+  COCOA       21/45           -6.92           -16.54           +12.32       15.2
+  COFFEE      21/45          -14.08            -6.33            +9.79       15.0
+  COPPER      21/22          -14.17            -7.86            +9.86       28.8
+  CORN        21/22           +6.22            +6.33            +4.19       22.9
+  COTTON       7/45           +4.04            -6.81            +6.06       16.7
+  DOW         21/22           -9.21            -1.33           +12.59       29.1
+  DXY         21/45           -2.36            -0.60            +3.49        9.1
+  EAFE         5/10           -0.54            -1.79            +8.95       28.0
+  EM          21/45           +1.61            -1.59            +8.20        7.9
+  EUR          7/14           -1.08            -1.06            -0.39       30.4
+  FEEDER      21/45           -3.44           -10.87            +5.19       12.6
+  GASOLINE    14/22           +2.31            -4.85           +15.21       17.7
+  GBP         10/14           -4.58            -4.58            -0.82       32.2
+  GOLD        21/45           -0.12            -6.91           +11.73       15.0
+  HEATOIL      7/10           -1.79           -11.92           +15.26       49.5
+  HOGS        10/14           +9.55            +9.55            +5.46       28.5
+  JPY          5/10           -5.99            -6.46            -2.67       45.2
+  KCWHEAT     21/45           -4.38           -15.35            +4.83       12.3
+  MXN         10/30           +1.22            -6.55            -2.74       22.4
+  NASDAQ      21/22           +1.54            -4.53           +19.22       34.1
+  NATGAS       5/10           -9.17            -5.36           +18.40       49.4
+  NZD          5/45           -3.01            +0.06            -2.17       11.0
+  OJ          21/30           -1.12           -17.70            +9.44       17.9
+  PALLADIUM   21/30           +5.26            +1.42           +10.19       20.7
+  PLATINUM    21/22           -0.75            -0.20            +6.37       24.1
+  RUSSELL     10/30           +5.07            +4.19           +11.05       10.3
+  SILVER       5/10           -6.15            +4.42           +15.48       43.2
+  SOY          7/30           +3.47            +4.31            +3.58       20.7
+  SOYMEAL     21/22           +5.06            +5.36            +2.27       27.8
+  SOYOIL       7/10           -7.54           -12.65            +9.20       43.9
+  SP500       14/22           -2.08            +0.11           +12.66       33.4
+  SUGAR        7/16           -7.87           -10.93            +6.15       32.5
+  US10Y        5/22           -1.45            -0.92            -1.36       36.1
+  US2Y        10/45           -0.72            -1.15            -0.61       18.2
+  US5Y         5/16           -1.58            -1.43            -1.08       38.1
+  USBOND      14/22           +6.55            +3.89            -1.92       31.7
+  WHEAT       21/45          -17.41           -17.53            +4.94       14.1
+  WTI          7/22           +8.63            +9.27           +16.12       25.0
+  MEDIA 44 mercati: scelta sullo studio -1.57%/anno (t tra mercati -1.71), fissa 10/14 -3.45%, sempre lungo +7.46%; mercati positivi 17/44
