@@ -28,7 +28,7 @@ class Statistiche(unittest.TestCase):
         html = vetrina.html({"data": {"assets": {}, "pairs": []}})
         self.assertIn("window.ebStat", html)
         self.assertNotIn("{{", html)                       # nessun segnaposto rimasto
-        self.assertIn('data-ev-vista="vantaggio"', html)
+        self.assertIn('data-ev-vista="pilastri"', html)
         self.assertIn('id="metodo"', html)
         self.assertIn('href="legale/#termini"', html)
 

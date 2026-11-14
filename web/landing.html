@@ -3,6 +3,9 @@
   landing.html - LANDING PAGE di BoardEdge (radice del sito). Il terminale sta in /terminale/.
   cot_radar/vetrina.py sostituisce i segnaposto tra doppie graffe con i numeri VERI dell'ultimo aggiornamento
   (segnali attivi, mercati seguiti, coppie, inizio del backtest, anteprima dei segnali): niente numeri inventati.
+  v7.68 ORDINE DELLA PAGINA (per chi parte da zero, sui pilastri del terminale):
+   apertura -> parti da zero in 4 passi -> i 5 pilastri -> il metodo (dati, non opinioni) -> accesso (gratis e
+   abbonamento in arrivo) -> domande -> chiamata finale -> fondo pagina.
   Accesso: per ora un "pass gratuito" salvato nel browser (localStorage "eb_pass"), NON un vero login.
   Il login vero (Supabase) sostituira' la funzione entra() in fondo alla pagina.
 
@@ -15,11 +18,11 @@
    - nastro dei mercati che scorre.
 -->
 <html lang="it"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>BoardEdge · Il posizionamento istituzionale, settimana per settimana</title>
-<meta name="description" content="Analisi quantitativa per lo swing e il medio-lungo periodo: segnali dal posizionamento di hedger istituzionali e grandi speculatori (report CFTC) su {{N_MERCATI}} mercati, con politica monetaria, notizie macro e stagionalità accanto a ogni segnale.">
+<title>BoardEdge · Investire con metodo, anche partendo da zero</title>
+<meta name="description" content="Un terminale che trasforma dati pubblici in portafogli modello, clima dei mercati, analisi delle aziende e stagionalità. Dati provati sullo storico, non opinioni. Adatto a chi parte da zero.">
 <meta name="theme-color" content="#050c1d">
-<meta property="og:title" content="BoardEdge · Il posizionamento istituzionale, settimana per settimana">
-<meta property="og:description" content="Pochi guardano chi muove il prezzo. {{N_SEGNALI}} segnali attivi questa settimana.">
+<meta property="og:title" content="BoardEdge · Investire con metodo, anche partendo da zero">
+<meta property="og:description" content="Tre portafogli modello, il clima dei mercati, le aziende e la stagionalità in un solo terminale. Dati, non opinioni.">
 <link rel="icon" href="{{FAVICON}}">
 <style>
 /* --- colori: navy profondo, turchese e azzurro (come il terminale) --- */
@@ -58,7 +61,7 @@ header .box{display:flex;align-items:center;gap:22px;height:72px}
 @media (max-width:860px){.voci{display:none}header .btn.pic{margin-left:auto}}
 
 /* --- hero --- */
-.hero{display:grid;grid-template-columns:1.08fr .92fr;gap:60px;align-items:center;min-height:calc(100vh - 72px);padding:40px 0 70px}
+.hero{display:grid;grid-template-columns:1.08fr .92fr;gap:60px;align-items:center;min-height:calc(100vh - 72px);padding:40px clamp(18px,4vw,40px) 70px}
 .eyebrow{display:inline-flex;align-items:center;gap:10px;font-size:13px;font-weight:700;letter-spacing:.4px;color:#9ff3e9;text-transform:uppercase}
 .eyebrow::before{content:"";width:28px;height:2px;background:linear-gradient(90deg,#3ee0cf,#5b9bff)}
 h1{font:800 clamp(38px,5.4vw,66px)/1.04 "Inter Display","Inter",system-ui,sans-serif;letter-spacing:-2px;margin:20px 0 22px;min-height:3.2em}
@@ -70,7 +73,8 @@ h1{font:800 clamp(38px,5.4vw,66px)/1.04 "Inter Display","Inter",system-ui,sans-s
 .numeri{display:grid;grid-template-columns:repeat(4,auto);justify-content:start;gap:34px;margin-top:44px}
 .numeri b{display:block;font:800 32px "Inter Display","Inter",system-ui;letter-spacing:-1px;font-variant-numeric:tabular-nums}
 .numeri span{font-size:13px;color:var(--mute)}
-@media (max-width:980px){.hero{grid-template-columns:1fr;min-height:0;padding:36px 0 56px;gap:44px}}
+/* v7.68 il margine laterale resta anche sul telefono (prima il testo toccava il bordo dello schermo) */
+@media (max-width:980px){.hero{grid-template-columns:1fr;min-height:0;padding:36px clamp(18px,4vw,40px) 56px;gap:44px}}
 @media (max-width:620px){.numeri{grid-template-columns:1fr 1fr;gap:20px}h1{min-height:4.3em}}
 
 /* --- terminale di anteprima (dati veri, nomi sfocati) --- */
@@ -198,7 +202,20 @@ section{padding:110px 0}
 .faq details p{margin:0 0 22px;color:var(--ink2)}
 /* pie' di pagina */
 footer{padding:64px 0 40px;color:var(--mute);font-size:14px;border-top:1px solid rgba(27,50,96,.7);margin-top:60px;background:rgba(4,11,26,.6)}
-.piede{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:40px}
+.piede{display:grid;grid-template-columns:1.5fr 1fr 1fr 1fr;gap:40px}
+/* v7.68 ACCESSO: due riquadri affiancati (gratis | abbonamento), stessa altezza, elenco con spunte */
+.piani{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+.piano{padding:32px 34px;border-radius:24px;background:linear-gradient(180deg,rgba(11,29,66,.7),rgba(7,20,49,.5));border:1px solid var(--line);transition:transform .45s cubic-bezier(.2,.7,.2,1),border-color .35s,box-shadow .35s}
+.piano:hover{transform:translateY(-4px);border-color:rgba(46,196,182,.6);box-shadow:0 24px 60px rgba(0,0,0,.45),0 0 40px rgba(46,196,182,.12)}
+.piano.pro{border-color:rgba(91,155,255,.55);background:linear-gradient(180deg,rgba(18,40,88,.8),rgba(7,20,49,.55))}
+.piano .ptag{display:inline-block;font-size:12px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--acc);padding:5px 12px;border-radius:99px;border:1px solid rgba(46,196,182,.4);background:rgba(46,196,182,.08)}
+.piano.pro .ptag{color:#a9c8ff;border-color:rgba(91,155,255,.5);background:rgba(91,155,255,.1)}
+.piano h3{font:750 23px/1.25 "Inter Display","Inter",system-ui;letter-spacing:-.4px;margin:16px 0 18px}
+.piano ul{list-style:none;margin:0;padding:0;display:grid;gap:11px}
+.piano li{position:relative;padding-left:28px;color:var(--ink2);font-size:16px;line-height:1.45}
+.piano li::before{content:"";position:absolute;left:2px;top:6px;width:13px;height:7px;border-left:2.5px solid var(--acc);border-bottom:2.5px solid var(--acc);transform:rotate(-45deg)}
+.piano.pro li::before{border-color:var(--acc2)}
+@media (max-width:800px){.piani{grid-template-columns:1fr}.piano{padding:26px 24px}}
 @media (max-width:800px){.piede{grid-template-columns:1fr 1fr}.piede>div:first-child{grid-column:1/-1}}
 .piede p{margin:14px 0 0;max-width:360px;line-height:1.6}
 .piede h4{margin:0 0 14px;font:800 12px "Inter",system-ui;letter-spacing:1.2px;text-transform:uppercase;color:var(--ink2)}
@@ -215,26 +232,26 @@ footer{padding:64px 0 40px;color:var(--mute);font-size:14px;border-top:1px solid
 
 <header id="testata" data-pos="testata"><div class="box">
  <a class="blogo" href="#" aria-label="BoardEdge"><i></i><b>BOARD<br><span class="g">EDGE</span></b></a>
- <nav class="voci"><a href="#vantaggio">Il vantaggio</a><a href="#metodo">Il metodo</a><a href="#settimana">La settimana</a><a href="#faq">Domande</a><a href="{{TELEGRAM}}" target="_blank" rel="noopener">Telegram</a></nav>
+ <nav class="voci"><a href="#zero">Parti da zero</a><a href="#pilastri">I pilastri</a><a href="#metodo">Il metodo</a><a href="#accesso">Accesso</a><a href="#faq">Domande</a><a href="{{TELEGRAM}}" target="_blank" rel="noopener">Telegram</a></nav>
  <button class="btn pri pic" data-entra><span data-etichetta>Entra gratis</span></button>
 </div></header>
 
 <main>
  <div class="box hero">
   <div>
-   <span class="eyebrow">Swing e medio-lungo periodo</span>
+   <span class="eyebrow">Per chi parte da zero</span>
    <!-- titolo scritto a macchina: il testo completo resta nell'aria-label per lettori di schermo e motori di ricerca -->
-   <h1 id="titolo" aria-label="Guarda dove si posizionano i grandi speculatori. Prima di entrare a mercato."><span id="tt"></span><span class="cursore"></span></h1>
-   <p class="sub">La maggior parte dei trader guarda il prezzo. Pochi guardano <b>chi lo muove</b>. BoardEdge legge ogni settimana il posizionamento di <b>hedger istituzionali e grandi speculatori</b> su {{N_MERCATI}} mercati futures e lo trasforma in segnali per lo <b>swing e l'investimento di medio-lungo periodo</b>.</p>
+   <h1 id="titolo" aria-label="Investire con metodo, anche partendo da zero."><span id="tt"></span><span class="cursore"></span></h1>
+   <p class="sub">BoardEdge è un terminale che trasforma dati pubblici in <b>portafogli modello</b>, clima dei mercati, analisi delle aziende e stagionalità. Niente opinioni: <b>solo numeri provati sullo storico</b>, spiegati in parole semplici.</p>
    <div class="cta" data-pos="hero">
-    <button class="btn pri" data-entra><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span data-etichetta>Ottieni il pass gratuito</span></button>
+    <button class="btn pri" data-entra><svg viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg><span data-etichetta>Entra gratis</span></button>
     <a class="btn sec" href="{{TELEGRAM}}" target="_blank" rel="noopener"><svg viewBox="0 0 24 24"><path d="M21.5 3.5L2.8 10.7c-.9.4-.9 1.6.1 1.9l4.6 1.5 1.8 5.6c.3.8 1.3 1 1.9.4l2.6-2.5 4.7 3.5c.7.5 1.7.1 1.9-.7l3.1-15c.2-1.1-.9-1.9-2-1.4z"/></svg>Canale Telegram</a>
    </div>
    <div class="numeri">
-    <div><b data-conta="{{N_SEGNALI}}">0</b><span>segnali attivi ora</span></div>
-    <div><b data-conta="{{N_MERCATI}}">0</b><span>mercati futures</span></div>
-    <div><b data-conta="{{N_COPPIE}}">0</b><span>coppie Forex</span></div>
-    <div><b data-conta="{{ANNI_BT}}" data-suffisso=" anni">0</b><span>di backtest</span></div>
+    <div><b data-conta="3">0</b><span>portafogli modello</span></div>
+    <div><b data-conta="{{N_MERCATI}}">0</b><span>mercati seguiti</span></div>
+    <div><b data-conta="24">0</b><span>paesi emergenti</span></div>
+    <div><b data-conta="{{ANNI_BT}}" data-suffisso=" anni">0</b><span>di storico</span></div>
    </div>
   </div>
   <div class="scena"><div class="schermo" id="schermo"><div><div class="scan"></div>
