@@ -12,6 +12,8 @@ COSA CONTROLLA (workflow sorveglianza.yml, ogni ora)
   2) Azionario: azioni/indice.json, campo "generato" (ora italiana), non piu' vecchio di ORE_AZIONI;
   3) prezzi live: live.json nel ramo "live", campo "quando" (secondi), fresco durante le ore di borsa;
   4) ultimo giro CONCLUSO dei workflow principali (Sito, Azioni, Prezzi live, Test): nessuno fallito;
+  6) v7.66 archivio storico (archivio.json del sito): nessuna serie FERMA (ultimo dato troppo vecchio per il suo passo);
+  7) v7.66 stagionalita' oraria: ricalcolata ogni notte; workflow Orari e Pattern tra quelli sorvegliati;
   5) v7.27 titoli tolti dalla borsa o con i prezzi fermi (azioni/eventi_titoli.json): da togliere dall'elenco CSV.
   Nel fine settimana (e il lunedi' mattina) le soglie si allungano: le borse sono chiuse e i giri non partono.
 
@@ -39,7 +41,11 @@ ORE_SITO = 30            # il sito si ricostruisce almeno 2 volte al giorno nei 
 ORE_AZIONI = 30          # tre giri al giorno (Asia, Europa, USA)
 ORE_FINE_SETTIMANA = 64  # venerdi' sera -> lunedi' mattina
 MIN_LIVE = 75            # prezzi live: ogni 15 minuti a borsa aperta (GitHub puo' ritardare)
-WORKFLOW = {"sito.yml": "Sito", "azioni.yml": "Azioni", "prezzi-live-continuo.yml": "Prezzi live", "test.yml": "Test"}
+WORKFLOW = {"sito.yml": "Sito", "azioni.yml": "Azioni", "prezzi-live-continuo.yml": "Prezzi live", "test.yml": "Test",
+            "orari.yml": "Orari", "pattern.yml": "Pattern"}     # v7.66
+ORARI = "https://raw.githubusercontent.com/" + REPO + "/orari/pubblico/indice.json"
+ORE_ORARI = 54           # la stagionalita' oraria si ricalcola ogni notte (anche nel fine settimana)
+MARGINE_ARCHIVIO = 11    # giorni: i cambi della Fed escono una volta a settimana (fino a 11 giorni di distanza)
 ETICHETTA = "sorveglianza"
 UA = {"User-Agent": "cot-radar/sorveglianza"}
 
@@ -72,7 +78,21 @@ def _roma(testo, formato):
     return datetime.strptime(testo, formato).replace(tzinfo=ZoneInfo("Europe/Rome"))
 
 
-def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None, eventi=None):
+def archivio_fermo(adesso, archivio):
+    """v7.66 serie dell'archivio FERME: [(file, ultima data)]. Una serie e' ferma se l'ultimo dato e' piu' vecchio di
+    3 volte il suo passo tipico + MARGINE_ARCHIVIO giorni (giornaliera 14 giorni, settimanale 32, mensile ~100)."""
+    out = []
+    for nome, v in sorted((archivio or {}).items()):
+        try:
+            ultimo, passo = datetime.strptime(v[0], "%Y-%m-%d").date(), max(1, int(v[1]))
+        except (TypeError, ValueError, IndexError):
+            continue
+        if (adesso.date() - ultimo).days > 3 * min(passo, 31) + MARGINE_ARCHIVIO:
+            out.append((nome, v[0]))
+    return out
+
+
+def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None, eventi=None, archivio=None, orari=None):
     """Lista di frasi (in italiano) con cio' che non va. Vuota = tutto regolare.
     stato = stato.json del sito; indice = azioni/indice.json; live = live.json; giri = {nome: (conclusione, url)}."""
     out = []
@@ -108,6 +128,19 @@ def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None, ev
     for nome, (concl, url) in sorted((giri or {}).items()):
         if concl in ("failure", "timed_out", "startup_failure"):
             out.append("Ultimo giro \"%s\" fallito: %s" % (nome, url))
+    # 6) v7.66 archivio storico: serie che nessun giro aggiorna piu'
+    fermi = archivio_fermo(adesso, archivio)
+    if fermi:
+        out.append("Archivio: %d serie ferme: %s." % (len(fermi), ", ".join("%s (ultimo dato %s)" % f for f in fermi[:12])
+                                                      + (" e altre" if len(fermi) > 12 else "")))
+    # 7) v7.66 stagionalita' oraria (ramo "orari"): ricalcolo notturno
+    if orari is not None:
+        try:
+            h = _ore(adesso, _roma(orari["agg"], "%Y-%m-%d %H:%M"))
+            if h > ORE_ORARI:
+                out.append("Stagionalita' oraria non ricalcolata da %d ore (ultimo calcolo %s ora italiana)." % (h, orari["agg"]))
+        except (TypeError, KeyError, ValueError):
+            out.append("Indice della stagionalita' oraria non leggibile.")
     # 5) titoli da togliere dall'elenco (azioni_elenco.csv)
     ev = eventi or {}
     dl = sorted(ev.get("delistati") or {})
@@ -202,7 +235,9 @@ def main(argv):
     eventi = _prova(lambda: _json(SITO + "azioni/eventi_titoli.json?t=%d" % adesso.timestamp()))
     giri = giri_workflow(token) if token else {}
     from . import orari_borse
-    prob = problemi(adesso, stato, indice, live, giri, orari_borse.leggi_remoto(), eventi)
+    archivio = _prova(lambda: _json(SITO + "archivio.json?t=%d" % adesso.timestamp()))
+    orari = _prova(lambda: _json(ORARI)) or {}
+    prob = problemi(adesso, stato, indice, live, giri, orari_borse.leggi_remoto(), eventi, archivio, orari)
     print("\n".join(prob) if prob else "Tutto regolare.")
     if "--prova" not in argv and token:
         avvisa(prob, adesso, token, env)

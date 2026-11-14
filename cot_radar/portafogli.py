@@ -217,6 +217,23 @@ def _valida(pts):
     return pts
 
 
+def senza_punte(pts, salto=0.25, vicini=0.08):
+    """v7.66 toglie i PREZZI ROTTI DI UN GIORNO: un valore lontano oltre il 25% sia dal giorno prima sia dal giorno
+    dopo, mentre quei due sono vicini tra loro (entro l'8%). E' un errore della fonte, non un movimento vero
+    (trovati nel rame CPER: 4/12/2014 e 2/2/2015, circa -35% per un solo giorno). Un crollo vero non torna indietro
+    il giorno dopo, quindi resta."""
+    if not pts or len(pts) < 3:
+        return pts
+    out = [pts[0]]
+    for i in range(1, len(pts) - 1):
+        a, b, c = pts[i - 1][1], pts[i][1], pts[i + 1][1]
+        if abs(b / a - 1) > salto and abs(b / c - 1) > salto and abs(c / a - 1) < vicini and (b - a) * (b - c) > 0:
+            continue
+        out.append(pts[i])
+    out.append(pts[-1])
+    return out
+
+
 def scarica_yahoo(ticker, timeout=20, tentativi=TENTATIVI, attesa=2):
     """Prezzi giornalieri RETTIFICATI (dividendi e frazionamenti inclusi): [(data, prezzo)], None se fallisce.
     Riprova fino a `tentativi` volte (pausa 2 s, poi 6 s): Yahoo a volte risponde 429/5xx per pochi secondi.
@@ -404,6 +421,8 @@ def prezzi(scarica=scarica_auto, cartella=CARTELLA, oggi=None, pausa=0.8):
             # Yahoo fermo: niente altri tentativi in questo giro (il workflow non resta appeso per mezz'ora),
             # si usano le copie e si riprova al giro successivo
             nuovi = scarica(t) if di_fila < 3 else None
+            if nuovi and not t.endswith("-USD"):       # v7.66 prezzi rotti di un giorno (non per le cripto)
+                nuovi = senza_punte(nuovi)
             di_fila = 0 if nuovi else di_fila + 1
             if pausa:
                 time.sleep(pausa)

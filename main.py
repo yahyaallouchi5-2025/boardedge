@@ -135,6 +135,14 @@ def main(argv):
             log.critical("Pagina NON aggiornata: tengo quella precedente (%s)", out)
             return 1
         scrivi_stato(stato, [os.path.dirname(STATO)], folder if site else None)   # stato.json nella radice del sito
+        if site and "--demo" not in argv:
+            # v7.66 fotografia dell'archivio (ultima data di ogni serie): la legge la sorveglianza ogni ora
+            try:
+                from cot_radar import storico as _st
+                with open(os.path.join(folder, "archivio.json"), "w", encoding="utf-8") as f:
+                    json.dump(_st.scansione(), f, separators=(",", ":"))
+            except Exception as e:
+                log.warning("archivio.json non creato: %s", e)
         # REGISTRO LIVE dei segnali: si salva solo adesso, ad aggiornamento approvato, e mai con esito critico
         # (dati sospetti = possibili segnali finti). Vedi cot_radar/registro.py
         if stato["esito"] != "critico":

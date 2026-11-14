@@ -27,6 +27,45 @@ from .config import ARCHIVI_COT, ARCHIVIO_EXTRA, PREZZI_YAHOO, PRICES, ROOT
 from .log import log
 
 CARTELLA = os.path.join(ROOT, "storico")
+# v7.66 file che nessun processo usa o aggiorna piu': si cancellano dall'archivio (altrimenti la sorveglianza li
+# segnalerebbe come "fermi" per sempre)
+OBSOLETI = [os.path.join("yahoo", "VNQ.csv")]
+
+
+def scansione(cartella=None):
+    """v7.66 FOTOGRAFIA DELL'ARCHIVIO per la sorveglianza: {file: [ultima data, passo in giorni]} di ogni CSV
+    (radice e yahoo/). passo = distanza tipica tra gli ultimi dati (1 giornaliero, 7 settimanale, ~30 mensile):
+    la sorveglianza lo usa per capire quando una serie e' FERMA. Nell'ottobre 2026 il file dell'S&P 500 e' rimasto
+    fermo tre settimane senza che nessun controllo se ne accorgesse. Cancella anche i file OBSOLETI."""
+    cartella = cartella or CARTELLA
+    for f in OBSOLETI:
+        try:
+            os.remove(os.path.join(cartella, f))
+            log.info("archivio: tolto il file obsoleto %s", f)
+        except OSError:
+            pass
+    out = {}
+    for sotto in ("", "yahoo"):
+        base = os.path.join(cartella, sotto)
+        if not os.path.isdir(base):
+            continue
+        for nome in sorted(os.listdir(base)):
+            if not nome.endswith(".csv"):
+                continue
+            try:
+                with open(os.path.join(base, nome), encoding="utf-8") as fh:
+                    rd = csv.reader(fh)
+                    testa = next(rd, [])
+                    col = testa.index("report_date_as_yyyy_mm_dd") if "report_date_as_yyyy_mm_dd" in testa else 0
+                    date_ = sorted({r[col][:10] for r in rd if len(r) > col and r[col][:4].isdigit()})
+            except (OSError, ValueError):
+                continue
+            if len(date_) < 3:
+                continue
+            ult = [date.fromisoformat(d) for d in date_[-13:]]
+            passi = sorted((b - a).days for a, b in zip(ult, ult[1:]))
+            out[(sotto + "/" if sotto else "") + nome] = [date_[-1], passi[len(passi) // 2]]
+    return out
 META = "_meta.json"                  # quali serie sono gia' state scaricate per intero
 INIZIO = "1960-01-01"               # "tutta la storia": FRED parte da dove ha i dati
 MIN_PUNTI = 500                     # un download completo con meno punti e' sospetto
