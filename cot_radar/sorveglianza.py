@@ -8,7 +8,7 @@ PERCHE'
   automatico ogni ora lo segnala.
 
 COSA CONTROLLA (workflow sorveglianza.yml, ogni ora)
-  1) sito pubblicato: stato.json del sito, campo "creato" (UTC), non piu' vecchio di ORE_SITO;
+  1) sito pubblicato: stato.json del sito, campo "creato" (ora italiana), non piu' vecchio di ORE_SITO;
   2) Azionario: azioni/indice.json, campo "generato" (ora italiana), non piu' vecchio di ORE_AZIONI;
   3) prezzi live: live.json nel ramo "live", campo "quando" (secondi), fresco durante le ore di borsa;
   4) ultimo giro CONCLUSO dei workflow principali (Sito, Azioni, Prezzi live, Test): nessuno fallito;
@@ -65,23 +65,30 @@ def _ore(adesso, quando):
     return (adesso - quando).total_seconds() / 3600
 
 
+def _roma(testo, formato):
+    """v7.66 data e ora scritte in ORA ITALIANA (dalla v7.63 lo e' anche "creato" di stato.json; prima si leggeva
+    come UTC e il sito sembrava 1-2 ore piu' fresco del vero) -> istante esatto, ora legale compresa."""
+    from zoneinfo import ZoneInfo
+    return datetime.strptime(testo, formato).replace(tzinfo=ZoneInfo("Europe/Rome"))
+
+
 def problemi(adesso, stato=None, indice=None, live=None, giri=None, cal=None, eventi=None):
     """Lista di frasi (in italiano) con cio' che non va. Vuota = tutto regolare.
     stato = stato.json del sito; indice = azioni/indice.json; live = live.json; giri = {nome: (conclusione, url)}."""
     out = []
     # 1) sito
     try:
-        creato = datetime.strptime(stato["creato"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=timezone.utc)
+        creato = _roma(stato["creato"], "%Y-%m-%d %H:%M:%S")
         h = _ore(adesso, creato)
         if h > soglia_ore(adesso, ORE_SITO):
-            out.append("Sito non aggiornato da %d ore (ultima pubblicazione %s UTC)." % (h, stato["creato"][:16]))
-        if stato.get("esito") in ("errori", "critico"):
+            out.append("Sito non aggiornato da %d ore (ultima pubblicazione %s ora italiana)." % (h, stato["creato"][:16]))
+        if stato.get("esito") in ("errori", "critico", "parziale"):   # v7.66 in pubblico gli errori sono "parziale"
             out.append("Ultimo aggiornamento del sito con esito \"%s\"." % stato["esito"])
     except (TypeError, KeyError, ValueError):
         out.append("stato.json del sito non leggibile: il sito potrebbe essere giu'.")
     # 2) Azionario (ora italiana: si confronta con un margine di 2 ore, il fuso non conta a queste soglie)
     try:
-        gen = datetime.strptime(indice["generato"], "%Y-%m-%d %H:%M").replace(tzinfo=timezone.utc) - timedelta(hours=1)
+        gen = _roma(indice["generato"], "%Y-%m-%d %H:%M")
         h = _ore(adesso, gen)
         if h > soglia_ore(adesso, ORE_AZIONI) + 2:
             out.append("Azionario non aggiornato da %d ore (ultimo giro %s ora italiana)." % (h, indice["generato"]))

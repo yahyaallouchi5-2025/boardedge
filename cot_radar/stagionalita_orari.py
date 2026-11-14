@@ -105,7 +105,16 @@ def tabella(gruppi, minimo, z_fisso=None):
         return {}
     p0 = sum(r > 0 for r in tutti) / len(tutti)
     k = sum(1 for v in gruppi.values() if v)
-    return {str(c): cella(v, p0, k, minimo, z_fisso) for c, v in gruppi.items() if v}
+    out = {str(c): cella(v, p0, k, minimo, z_fisso) for c, v in gruppi.items() if v}
+    if z_fisso is not None and out:
+        # v7.66 ore "fantasma": una casella con meno di un terzo dei casi della casella tipica viene da un periodo
+        # diverso dal resto (es. ETF USA fuori seduta, presenti solo nei dati fino al 2020): mai "affidabile".
+        n = sorted(v[0] for v in out.values())
+        tipico = n[len(n) // 2]
+        for v in out.values():
+            if v[0] * 3 < tipico:
+                v[-1] = False
+    return out
 
 
 def calcola_simbolo(ore):

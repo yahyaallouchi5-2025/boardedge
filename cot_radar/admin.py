@@ -27,7 +27,12 @@ def pubblico(stato):
     """Versione 'da vetrina' dello stato: esito e fonti si', messaggi di avviso/errore no.
     L'esito interno (avvisi/errori/critico) diventa un generico 'ok' o 'parziale'."""
     s = {k: stato[k] for k in CAMPI_PUBBLICI if k in stato}
-    if s.get("esito") not in ("ok", "scartato", "fallito"):
+    # v7.66 solo AVVISI = aggiornamento riuscito ("ok"). Prima diventava "parziale" come gli errori: la sonda di
+    # sito.yml (che riprova solo se l'esito non e' "ok") rifaceva il sito tre volte ogni sera per un semplice avviso
+    # e la sorveglianza non poteva distinguere un errore vero.
+    if s.get("esito") == "avvisi":
+        s["esito"] = "ok"
+    elif s.get("esito") not in ("ok", "scartato", "fallito"):
         s["esito"] = "parziale"         # il dettaglio (critico, errori...) lo vede solo l'admin
     return s
 

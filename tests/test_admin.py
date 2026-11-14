@@ -12,6 +12,7 @@ class TestAdmin(unittest.TestCase):
         self.assertNotIn("voci", s)
         self.assertNotIn("critici", s)
         self.assertEqual(s["esito"], "parziale")      # il dettaglio "critico" lo vede solo l'admin
+        self.assertEqual(admin.pubblico({"creato": "x", "esito": "avvisi"})["esito"], "ok")   # solo avvisi = riuscito
 
     def test_senza_password_niente_registro(self):
         self.assertIsNone(admin.cifra({"a": 1}, ""))

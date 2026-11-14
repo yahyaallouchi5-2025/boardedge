@@ -88,6 +88,9 @@ AZIONI_SCELTE = ("AZ", "SAT", "Azioni scelte", "Fino a 20 azioni dell'Azionario 
 # Prezzi in piu' che NON entrano nei portafogli: servono alla scheda Correlazioni (correlazioni.py) -> settori USA
 # (ETF SPDR) e dollaro (UUP). Scaricati e salvati insieme agli altri, una volta al giorno.
 EXTRA = ["XLK", "XLC", "XLY", "XLF", "XLI", "XLE", "XLB", "XLV", "XLP", "XLU", "XLRE", "UUP"]
+# v7.66 serie che servono SOLO all'archivio (quadro economico, ciclo del debito, economie leggono yahoo/_GSPC.csv):
+# si scaricano ma non entrano nei prezzi dei portafogli. Prima nessuno aggiornava piu' quel file (fermo al 23/10/2026).
+SOLO_ARCHIVIO = ["^GSPC"]
 BENCH = (("SPY", 0.6), ("IEF", 0.4))          # confronto: classico 60% azioni USA + 40% Treasury, ribilanciato
 TUTTI = {u[0]: u for u in UNIVERSO + [LIQUIDITA, AZIONI_SCELTE]}
 # STRUMENTI DA COMPRARE IN EUROPA: gli ETF USA usati per i calcoli (SPY, QQQ, ...) non si possono comprare da un
@@ -368,7 +371,7 @@ def scarica_auto(ticker):
     """v6.97 EODHD come fonte principale degli ETF USA (SPY, QQQ, GLD...) e del Bitcoin; Yahoo per i future (=F)
     e come riserva se EODHD non risponde. Stesso formato di scarica_yahoo: [(data, prezzo rettificato)] o None."""
     from . import eodhd
-    if eodhd.attivo() and eodhd.simbolo(ticker):
+    if eodhd.attivo() and eodhd.simbolo(ticker) and not ticker.startswith("^"):   # indici: sempre Yahoo (dal 1970)
         pts = _valida(eodhd.scarica_etf(ticker))
         if pts:
             return pts
@@ -394,7 +397,8 @@ def prezzi(scarica=scarica_auto, cartella=CARTELLA, oggi=None, pausa=0.8):
     di_fila = 0                                        # fallimenti consecutivi: a 3 Yahoo e' giu', si smette
     # v6.59: in coda anche i prezzi dei mercati COT che FRED non copre (storico.prezzi_usd li legge da qui)
     gia = set(u[1] for u in UNIVERSO) | {LIQUIDITA[1]} | set(EXTRA)
-    for t in [u[1] for u in UNIVERSO] + [LIQUIDITA[1]] + EXTRA + sorted({v[0] for v in PREZZI_YAHOO.values()} - gia):
+    for t in ([u[1] for u in UNIVERSO] + [LIQUIDITA[1]] + EXTRA + sorted({v[0] for v in PREZZI_YAHOO.values()} - gia)
+              + SOLO_ARCHIVIO):
         vecchi = _leggi(cartella, t)
         if meta.get(t) != oggi and scarica:
             # Yahoo fermo: niente altri tentativi in questo giro (il workflow non resta appeso per mezz'ora),
@@ -410,7 +414,7 @@ def prezzi(scarica=scarica_auto, cartella=CARTELLA, oggi=None, pausa=0.8):
                 ESITO["falliti"].append(t)
                 if vecchi:
                     ESITO["copia"].append(t)
-        if vecchi:
+        if vecchi and t not in SOLO_ARCHIVIO:
             out[t] = vecchi
     if cambiato:
         os.makedirs(os.path.dirname(meta_f), exist_ok=True)
