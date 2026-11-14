@@ -96,6 +96,25 @@ def leggi(f):
     return out
 
 
+def utc_vero(sym, ore):
+    """v7.65 CORREZIONE DEL FUSO DEL FOREX A 1 MINUTO. Le barre a 1 minuto di EODHD per i simboli .FOREX (fino a
+    settembre 2020) hanno l'orologio di NEW YORK scritto come se fosse UTC: la settimana apre la domenica alle 17:00
+    e i dati sul lavoro USA (8:30 di New York) cadono alle 8 tutto l'anno. Le barre orarie (da ottobre 2020), le
+    crypto e gli ETF USA sono invece in UTC vero. Trovato da Ya il 14/11/2026 (EUR/GBP "aperto" la domenica alle 18
+    di Roma) e verificato su 27 coppie: il profilo orario prima del 2020 era spostato di 4 ore rispetto a dopo.
+    Qui le candele vecchie del forex vengono riportate all'UTC vero (+4 ore d'estate, +5 d'inverno, ora legale USA).
+    L'archivio sul ramo "orari" resta com'e' (dato grezzo): la correzione si applica ogni volta che lo si legge."""
+    if not sym.endswith(".FOREX"):
+        return ore
+    from zoneinfo import ZoneInfo
+    ny, out = ZoneInfo("America/New_York"), {}
+    for ts, v in ore.items():
+        if ts < SOGLIA_1H:
+            ts = int(datetime.fromtimestamp(ts, timezone.utc).replace(tzinfo=ny).timestamp())
+        out.setdefault(ts, v)                            # l'ora doppia del cambio d'ora autunnale: resta la prima
+    return out
+
+
 def scrivi(f, ore):
     """Scrive le candele ordinate per ora (file temporaneo + rename: mai un file a meta')."""
     buf = io.StringIO()

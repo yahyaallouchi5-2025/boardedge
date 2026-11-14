@@ -170,6 +170,12 @@ YAHOO_GIORNO = {"XAUUSD.FOREX": "GC=F", "XAGUSD.FOREX": "SI=F", "NZDUSD.FOREX": 
                 "GSPC.INDX": "^GSPC", "NDX.INDX": "^NDX", "DJI.INDX": "^DJI", "GDAXI.INDX": "^GDAXI",
                 "FCHI.INDX": "^FCHI", "STOXX50E.INDX": "^STOXX50E", "FTSE.INDX": "^FTSE", "N225.INDX": "^N225",
                 "HSI.INDX": "^HSI", "FTSEMIB.INDX": "FTSEMIB.MI", "VIX.INDX": "^VIX"}
+# v7.65 FOREX, ORE DELLA CHIUSURA DI NEW YORK (17:00 di New York = 23:00 di Roma, 22:00 nelle settimane di ora legale
+# sfasata, piu' l'ora dopo): gli spread si allargano e il prezzo fa un movimento meccanico che si ripete ogni giorno.
+# Studio del 14/11/2026 su 27 coppie: il 61% delle operazioni "affidabili" e quasi tutto il guadagno lordo cadevano
+# in queste ore; tolte, il lordo scende da +0,013% a +0,004% a operazione (costo ~0,015%). E' un effetto dei dati,
+# non una tendenza prendibile: le caselle restano visibili ma senza il bordo oro.
+ORE_CHIUSURA_NY = ("22", "23", "0")
 MIN_ANNI = 10                                            # v7.64: sotto i 10 anni di storico una tabella non si mostra
 YAHOO_URL = "https://{h}.finance.yahoo.com/v8/finance/chart/{t}?{q}"
 
@@ -256,7 +262,7 @@ def calcola(cartella, uscita):
     os.makedirs(uscita, exist_ok=True)
     indice = []
     for sym, fase, _ in orari.universo():
-        ore = orari.leggi(orari.nome_file(cartella, sym))
+        ore = orari.utc_vero(sym, orari.leggi(orari.nome_file(cartella, sym)))   # v7.65 forex vecchio: da ora di New York a UTC
         # v7.64 REGOLA DEI 10 ANNI (scelta di Ya): una tabella si mostra solo con almeno 10 anni di storico.
         #  - candele orarie EODHD >= 10 anni -> tutte le viste (Orario compreso);
         #  - meno di 10 anni ma Yahoo ha >= 10 anni di chiusure giornaliere -> solo Giornaliero, Settimanale, Mensile;
@@ -271,6 +277,11 @@ def calcola(cartella, uscita):
         out = {"s": sym, "n": nome(sym), "f": fase}
         if con_ore:
             out.update(calcola_simbolo(ore))
+            if sym.endswith(".FOREX"):                  # v7.65 chiusura di New York: mai "affidabile" (vedi ORE_CHIUSURA_NY)
+                for tab in out["ora"].values():
+                    for h in ORE_CHIUSURA_NY:
+                        if tab.get(h):
+                            tab[h][7] = False
             out["dal"] = datetime.fromtimestamp(min(ore), ROMA).date().isoformat()
             out["al"] = datetime.fromtimestamp(max(ore), ROMA).date().isoformat()
         else:

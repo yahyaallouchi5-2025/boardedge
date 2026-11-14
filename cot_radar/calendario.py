@@ -90,6 +90,16 @@ def uscita_cot(venerdi):
     return d
 
 
+def uscita_fed(giovedi):
+    """v7.65 il bilancio della Fed (H.4.1) esce il giovedi'; se e' festa federale (es. Thanksgiving) esce il
+    primo giorno lavorativo dopo."""
+    fest = _feste3(giovedi.year)
+    d = giovedi
+    while d in fest or d.weekday() >= 5:
+        d += timedelta(days=1)
+    return d
+
+
 def weekly_schedule(last_date, weekday, hh, mm, offset, tolleranza_ore=0, sposta=None):
     """Per un dato settimanale pubblicato il giorno `weekday` (0=lunedi') alle hh:mm di New York,
     riferito a `offset` giorni prima della pubblicazione (COT: venerdi', dati del martedi' -> offset 3).
@@ -150,8 +160,9 @@ def sources_status(cache, status, errors, assets, mort, fred):
 
     if "WALCL" in fred:
         lf = fred["WALCL"][-1][0]
-        f = weekly_schedule(lf, 3, 16, 30, 1, tolleranza_ore=18)       # giovedi' 16:30 NY, dati del mercoledi'; FRED entro la mattina dopo
+        f = weekly_schedule(lf, 3, 16, 30, 1, tolleranza_ore=18, sposta=uscita_fed)       # giovedi' 16:30 NY, dati del mercoledi'; FRED entro la mattina dopo
         out.append({"name": "Bilancio Fed", "last": fd(lf), "next": fdt(f["next"]), "next_ms": f["next_ms"],
+                    "rinvio": _feste3(f["next_nominale"].year).get(f["next_nominale"], ""),   # v7.65 festa di giovedi'
                     "st": "late" if f["late"] else ("ok" if status["fred"] == "online" else "cache"),
                     "msg": f"Il bilancio Fed del {fd(f['expected'])} non e' ancora su FRED." if f["late"] else ""})
 
