@@ -116,7 +116,10 @@ def calcola_simbolo(ore):
     for ts in sorted(ore):
         o, h, l, c, n = ore[ts]
         d = datetime.fromtimestamp(ts, ROMA)
-        if n >= MIN_MINUTI:
+        # v7.65 le candele ferme (chiusura = apertura) non contano: non sono ne' rialzo ne' ribasso. Prima la candela
+        # "di chiusura" degli ETF USA (un solo prezzo, alle 22 di Roma) contava come "non in rialzo" e creava caselle
+        # assurde (es. EFA alle 22: 0,9% in rialzo, segnata affidabile): 169 caselle sbagliate su tutto il sito.
+        if n >= MIN_MINUTI and c != o:
             r = (c / o - 1) * 100
             ora_g.setdefault((d.weekday(), d.hour), []).append(r)
             ora_t.setdefault(d.hour, []).append(r)
