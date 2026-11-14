@@ -90,7 +90,9 @@ AZIONI_SCELTE = ("AZ", "SAT", "Azioni scelte", "Fino a 20 azioni dell'Azionario 
 EXTRA = ["XLK", "XLC", "XLY", "XLF", "XLI", "XLE", "XLB", "XLV", "XLP", "XLU", "XLRE", "UUP"]
 # v7.66 serie che servono SOLO all'archivio (quadro economico, ciclo del debito, economie leggono yahoo/_GSPC.csv):
 # si scaricano ma non entrano nei prezzi dei portafogli. Prima nessuno aggiornava piu' quel file (fermo al 23/10/2026).
-SOLO_ARCHIVIO = ["^GSPC"]
+#   v7.67: + gli ETF delle borse dei paesi emergenti (paesi.ETF), per la tabella "Paesi emergenti" della Dashboard.
+from .paesi import ETF as _ETF_PAESI   # noqa: E402
+SOLO_ARCHIVIO = ["^GSPC"] + sorted(set(_ETF_PAESI.values()))
 BENCH = (("SPY", 0.6), ("IEF", 0.4))          # confronto: classico 60% azioni USA + 40% Treasury, ribilanciato
 TUTTI = {u[0]: u for u in UNIVERSO + [LIQUIDITA, AZIONI_SCELTE]}
 # STRUMENTI DA COMPRARE IN EUROPA: gli ETF USA usati per i calcoli (SPY, QQQ, ...) non si possono comprare da un

@@ -53,6 +53,62 @@ PAESI = [
 ]
 
 
+# v7.67 LA BORSA DI OGNI PAESE: ETF quotato a New York (in dollari) che segue l'indice MSCI di quel paese. Serve per
+# affiancare all'economia (PIL) l'andamento della borsa e la sua volatilita'. 20 paesi su 24: Ungheria e Rep. Ceca non
+# hanno un ETF dedicato, quelli di Egitto e Colombia non sono piu' affidabili (restano senza dato, mai inventato).
+# I prezzi arrivano con il giro giornaliero di portafogli.prezzi() (archivio storico/yahoo/, fornitore + riserva).
+ETF = {"CHN": "MCHI", "IND": "INDA", "TWN": "EWT", "KOR": "EWY", "IDN": "EIDO", "THA": "THD", "MYS": "EWM",
+       "PHL": "EPHE", "BRA": "EWZ", "MEX": "EWW", "CHL": "ECH", "PER": "EPU", "SAU": "KSA", "ARE": "UAE",
+       "QAT": "QAT", "KWT": "KWT", "ZAF": "EZA", "TUR": "TUR", "POL": "EPOL", "GRC": "GREK"}
+MESE, ANNO_B, MEDIA = 21, 252, 200      # sedute: un mese, un anno, media mobile della tendenza (come nei portafogli)
+VECCHIO = 10                            # giorni: oltre, i prezzi sono fermi e la borsa non si mostra
+
+
+def borsa(pts, oggi=None):
+    """Numeri di borsa di un paese da [(data, prezzo)]: {"t": data ultimo prezzo, "m1": rendimento % 1 mese,
+    "a1": % 12 mesi, "su": True se il prezzo e' sopra la media a 200 sedute (tendenza al rialzo),
+    "vb": volatilita' annua % delle ultime 20 sedute (BREVE), "vl": delle ultime 252 (LUNGA),
+    "reg": "calma" | "normale" | "agitata" (volatilita.regime: la breve confrontata con i suoi ultimi 5 anni)}.
+    None se la storia e' troppo corta o i prezzi sono fermi. Studio (studi/risultati_volatilita_breve_lunga.txt):
+    in regime "agitata" il drawdown tipico del mese dopo e' circa -7%, in "calma" circa -4,5%."""
+    from . import volatilita as V
+    if not pts or len(pts) < ANNO_B + 2:
+        return None
+    oggi = oggi or datetime.now().date()
+    if (oggi - datetime.strptime(pts[-1][0], "%Y-%m-%d").date()).days > VECCHIO:
+        return None
+    i = len(pts) - 1
+    px = [p[1] for p in pts]
+    v20, v252 = V.vol_mobile(pts), V.vol_mobile(pts, ANNO_B)
+    reg = V.regime(v20, i)
+    return {"t": pts[-1][0], "m1": round((px[i] / px[i - MESE] - 1) * 100, 1), "a1": round((px[i] / px[i - ANNO_B] - 1) * 100, 1),
+            "su": px[i] > sum(px[i - MEDIA + 1:i + 1]) / MEDIA,
+            "vb": None if v20[i] is None else round(v20[i], 1), "vl": None if v252[i] is None else round(v252[i], 1),
+            "reg": reg[0] if reg else None}
+
+
+def aggiungi_borse(dati, leggi, oggi=None):
+    """Aggiunge a ogni riga di dati["paesi"] la chiave "b" (vedi borsa) e "etf" (ticker). leggi(ticker) -> [(data, prezzo)].
+    Un paese senza ETF o senza prezzi resta senza "b": la tabella mostra un trattino."""
+    if not dati:
+        return dati
+    n = 0
+    for r in dati["paesi"]:
+        t = ETF.get(r["iso"])
+        if not t:
+            continue
+        try:
+            b = borsa(leggi(t), oggi)
+        except Exception as e:
+            log.warning("paesi: borsa %s non calcolata (%s)", t, e)
+            b = None
+        if b:
+            r["etf"], r["b"] = t, b
+            n += 1
+    dati["borse"] = n
+    return dati
+
+
 TENTATIVI = 3                # il FMI a volte risponde lento: 3 prove con attesa crescente (2 s, 6 s) prima della copia
 
 

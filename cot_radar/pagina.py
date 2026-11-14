@@ -246,6 +246,8 @@ def build(data_source=load_all, demo=False, sito=False):
     try:
         from . import paesi
         paesi_pag = paesi.carica(scarica=not demo)
+        if not demo:      # v7.67 borsa di ogni paese (ETF): prezzi gia' scaricati oggi da portafogli.prezzi()
+            paesi_pag = paesi.aggiungi_borse(paesi_pag, lambda t: portafogli._leggi(portafogli.CARTELLA, t))
     except Exception:
         log.error("paesi emergenti non calcolati:\n%s", traceback.format_exc())
     # v7.20-21 QUADRO ECONOMICO (economie.py + quadro.py): fase di 6 economie, solo informativa. Isolato.

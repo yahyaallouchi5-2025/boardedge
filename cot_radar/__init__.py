@@ -40,7 +40,7 @@ Mappa dei moduli (in ordine di "viaggio" dei dati):
   vetrina.py     landing page del sito (radice) con i numeri veri; il terminale sta in /terminale/
   riepilogo.py   riepilogo settimanale dei segnali per categoria di asset (Telegram), dai dati della pagina online
 """
-__version__ = "7.66"
+__version__ = "7.67"
 
 # v7.63 ORA DI ROMA PER TUTTO IL SITO (Ya, 13/11/2026): i server di GitHub lavorano in UTC, quindi "oggi" (date.today(),
 # datetime.now()) cambiava giorno all'01:00/02:00 di Roma e non a mezzanotte. Qui il processo Python passa al fuso

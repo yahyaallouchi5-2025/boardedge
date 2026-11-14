@@ -48,3 +48,38 @@ class Paesi(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class Borsa(unittest.TestCase):
+    """v7.67 numeri di borsa di un paese dall'ETF (rendimenti, tendenza, volatilita' breve e lunga, regime)."""
+    def _serie(self, n=1600, passo=0.001):
+        from datetime import date, timedelta
+        d, v, out = date(2020, 1, 1), 100.0, []
+        for i in range(n):
+            v *= 1 + passo + (0.01 if i % 2 else -0.01)
+            out.append(((d + timedelta(days=i)).isoformat(), v))
+        return out, d + timedelta(days=n - 1)
+
+    def test_numeri(self):
+        from cot_radar import paesi
+        pts, oggi = self._serie()
+        b = paesi.borsa(pts, oggi)
+        self.assertTrue(b["su"])                                   # serie che sale: sopra la media a 200 sedute
+        self.assertGreater(b["a1"], b["m1"])
+        self.assertAlmostEqual(b["vb"], b["vl"], delta=1.0)        # stessa oscillazione ogni giorno: breve = lunga
+        self.assertIn(b["reg"], ("calma", "normale", "agitata"))
+
+    def test_prezzi_fermi_o_corti(self):
+        from datetime import timedelta
+        from cot_radar import paesi
+        pts, oggi = self._serie()
+        self.assertIsNone(paesi.borsa(pts, oggi + timedelta(days=30)))   # prezzi fermi: nessun numero
+        self.assertIsNone(paesi.borsa(pts[:100], oggi))
+
+    def test_paese_senza_etf(self):
+        from cot_radar import paesi
+        pts, oggi = self._serie()
+        d = paesi.aggiungi_borse({"paesi": [{"iso": "CHN"}, {"iso": "HUN"}]}, lambda t: pts, oggi)
+        self.assertEqual(d["borse"], 1)
+        self.assertIn("b", d["paesi"][0])
+        self.assertNotIn("b", d["paesi"][1])
