@@ -11,6 +11,21 @@ OK_IND = {"generato": "2026-11-10 12:00", "anomalia": None}
 OK_LIVE = {"quando": MAR.timestamp() - 600}
 
 
+class Archivio(unittest.TestCase):
+    """v7.66 serie ferme: l'S&P 500 d'archivio rimasto al 23/10 va segnalato, i dati normali no."""
+    def test_serie_ferme(self):
+        arch = {"yahoo/_GSPC.csv": ["2026-10-23", 1], "yahoo/SPY.csv": ["2026-11-09", 1],
+                "DEXUSEU.csv": ["2026-10-30", 1], "CPIAUCSL.csv": ["2026-09-01", 30], "COT.csv": ["2026-11-03", 7]}
+        self.assertEqual(S.archivio_fermo(MAR, arch), [("yahoo/_GSPC.csv", "2026-10-23")])
+        p = S.problemi(MAR, OK_STATO, OK_IND, OK_LIVE, archivio=arch)
+        self.assertTrue(any("serie ferme" in x and "_GSPC" in x for x in p))
+
+    def test_orari_fermi(self):
+        self.assertEqual(S.problemi(MAR, OK_STATO, OK_IND, OK_LIVE, orari={"agg": "2026-11-10 03:40"}), [])
+        p = S.problemi(MAR, OK_STATO, OK_IND, OK_LIVE, orari={"agg": "2026-11-07 03:40"})
+        self.assertTrue(any("oraria non ricalcolata" in x for x in p))
+
+
 class Regole(unittest.TestCase):
     def test_tutto_regolare(self):
         self.assertEqual(S.problemi(MAR, OK_STATO, OK_IND, OK_LIVE, {"Sito": ("success", "u")}), [])
