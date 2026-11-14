@@ -1,0 +1,38 @@
+
+=== STUDIO (fino al 2015) - il mese DOPO, per fascia del rapporto vol 21 / vol 252
+  fascia        casi   rend.medio%   t    drawdown medio%   vol dopo / vol lunga
+  R < 0,80     2813       0.66    4.2        -5.51           0.81
+  0,80-1,25    4039       0.85    6.7        -5.92           1.01
+  R > 1,25     1336      -0.33   -1.3        -7.71           1.25
+  differenza di rendimento alta - resto: -1.10% (t -4.0)
+  FRENO (posizione dimezzata se R > 1,25), 53 strumenti:
+    rendimento/volatilita' medio: senza 0.151  con 0.200   migliora su 41/53
+    drawdown massimo medio:       senza -55.0%  con -50.1%   CAGR medio: senza 3.94%  con 5.46%
+
+=== VERIFICA (dal 2016) - il mese DOPO, per fascia del rapporto vol 21 / vol 252
+  fascia        casi   rend.medio%   t    drawdown medio%   vol dopo / vol lunga
+  R < 0,80     2528       0.87    6.1        -5.19           0.80
+  0,80-1,25    3558       0.88    6.8        -5.90           1.00
+  R > 1,25     1058       0.71    2.3        -7.84           1.33
+  differenza di rendimento alta - resto: -0.17% (t -0.5)
+  FRENO (posizione dimezzata se R > 1,25), 56 strumenti:
+    rendimento/volatilita' medio: senza 0.273  con 0.326   migliora su 44/56
+    drawdown massimo medio:       senza -48.6%  con -43.5%   CAGR medio: senza 6.39%  con 6.48%
+["('agitata', 100, 1.3)", "('agitata', 100, 1.9)", "('agitata', 100, 10.2)", "('agitata', 100, 101.1)", "('agitata', 100, 101.9)", "('agitata', 100, 103.5)"]
+
+=== studio
+  regime AGITATA (esistente)     casi  1625 (28.6%)  drawdown mese dopo  -7.83%  rend  0.03%
+  regime normale                 casi  1629 (28.7%)  drawdown mese dopo  -5.57%  rend  0.93%
+  regime calma                   casi  2421 (42.7%)  drawdown mese dopo  -4.58%  rend  0.64%
+  rapporto R>1,25 (nuovo)        casi   960 (16.9%)  drawdown mese dopo  -7.15%  rend -0.06%
+  R>1,25 MA regime non agitato   casi   176 ( 3.1%)  drawdown mese dopo  -3.58%  rend  1.90%
+  agitata MA R<=1,25             casi   841 (14.8%)  drawdown mese dopo  -7.71%  rend  0.53%
+  tutti                          casi  5675 (100.0%)  drawdown mese dopo  -5.79%  rend  0.55%
+=== verifica
+  regime AGITATA (esistente)     casi  2398 (34.3%)  drawdown mese dopo  -7.30%  rend  1.00%
+  regime normale                 casi  2347 (33.6%)  drawdown mese dopo  -5.72%  rend  0.69%
+  regime calma                   casi  2243 (32.1%)  drawdown mese dopo  -4.56%  rend  0.77%
+  rapporto R>1,25 (nuovo)        casi  1034 (14.8%)  drawdown mese dopo  -7.71%  rend  0.72%
+  R>1,25 MA regime non agitato   casi    95 ( 1.4%)  drawdown mese dopo  -5.07%  rend  0.45%
+  agitata MA R<=1,25             casi  1459 (20.9%)  drawdown mese dopo  -6.87%  rend  1.16%
+  tutti                          casi  6988 (100.0%)  drawdown mese dopo  -5.89%  rend  0.82%
