@@ -2631,3 +2631,17 @@ html.ptmod-on{overflow:hidden}
 .avv-i{flex:none;width:20px;height:20px;fill:none;stroke:var(--warn);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 .avv p{margin:0}.avv p+p{margin-top:4px}.avv b{color:var(--warn)}
 @media (max-width:600px){.avv{align-items:flex-start;padding:10px 12px;font-size:13px;gap:10px}}
+
+/* v7.66 Andamento portafoglio: tre riquadri (drawdown | mese | positivo). Sul telefono il mese va sopra a tutta larghezza. */
+.pmc-k.pkm .pk-v.flat{color:var(--ink)}
+@media (max-width:520px){.pmc-k.pkm{grid-template-columns:repeat(2,minmax(0,1fr))}.pmc-k.pkm>div:first-child{grid-column:auto}.pmc-k.pkm>.pk-m{grid-column:1/-1;order:-1}}
+.pmc-k.pkm .pk-m .pk-h em{color:var(--warn);border-color:color-mix(in srgb,var(--warn) 45%,transparent);background:color-mix(in srgb,var(--warn) 12%,transparent)}
+@media (max-width:520px){#port .pmc-t h3{flex-wrap:nowrap;gap:7px;font-size:13px;white-space:nowrap}}
+/* v7.66 "In corso": pallino arancione che lampeggia piano */
+.pmc-k.pkm .pk-m .pk-h em{display:inline-flex;align-items:center;gap:6px}
+.pmc-k.pkm .pk-m .pk-h em::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--warn);box-shadow:0 0 8px var(--warn);animation:pkLampo 1.6s ease-in-out infinite}
+@keyframes pkLampo{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.25;transform:scale(.7)}}
+@media (prefers-reduced-motion:reduce){.pmc-k.pkm .pk-m .pk-h em::before{animation:none}}
+/* v7.66 "In apertura" (mese nuovo deciso ma non ancora partito): bianco lampeggiante */
+.pmc-k.pkm .pk-ap .pk-h em{color:#fff;border-color:rgba(255,255,255,.45);background:rgba(255,255,255,.08)}
+.pmc-k.pkm .pk-ap .pk-h em::before{background:#fff;box-shadow:0 0 8px #fff}

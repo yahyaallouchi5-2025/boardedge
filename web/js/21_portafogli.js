@@ -256,7 +256,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const chiusi=(P.chiusure||[]).filter(x=>x.profili&&x.profili[p.id]).slice(-6).reverse();
   let termo="";
   if(m&&m.anni&&m.anni.length){const rs=m.anni.map(x=>x.r),lo=Math.min(...rs,c.r),hi=Math.max(...rs,c.r),sp=(hi-lo)||1,pos=v=>Math.max(3,Math.min(97,(v-lo)/sp*100)).toFixed(1);
-   termo=`<div class="pmc-f" data-lo="${lo}" data-sp="${sp}"><span class="pmc-pt" style="left:${pos(c.r)}%" title="Il mese in corso"></span><span class="pmc-e" style="left:3%;transform:none">${pc(lo)}</span><span class="pmc-e" style="left:${pos(m.media)}%">media ${pc(m.media)}</span><span class="pmc-e" style="left:97%;transform:translateX(-100%)">${pc(hi)}</span></div>
+   termo=`<div class="pmc-f" data-lo="${lo}" data-sp="${sp}"><span class="pmc-pt" style="left:${pos(c.r)}%" title="Il mese in corso"></span><span class="pmc-e" style="left:3%;transform:none">peggiore ${pc(lo)}</span><span class="pmc-e" style="left:50%">media ${pc(m.media)}</span><span class="pmc-e" style="left:97%;transform:translateX(-100%)">migliore ${pc(hi)}</span></div>
 `;}
   const wr=m&&m.n?Math.round(100*m.positivi/m.n):null;
   const k=(t,v,cls="")=>`<div><small>${t}</small><b class="${cls}">${v}</b></div>`;
@@ -264,18 +264,23 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   //   stesse altezze e stessa dimensione del valore in tutti e tre, cosi' i testi sono allineati in orizzontale
   const tk=(lab,tag,val,cls,piede)=>`<div class="pk"><div class="pk-h"><span>${lab}</span>${tag?`<em>${tag}</em>`:""}</div><b class="pk-v ${cls||""}">${val}</b><div class="pk-f">${piede||""}</div></div>`;
   const NM=MES(m&&m.mese||c.mese),pos=m&&m.n?`${m.positivi} anni su ${m.n}`:"storico non disponibile";
-  if(c.attesa)return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} in partenza <span class="pbprof">${esc(p.nome)}</span></h3>
-    <span class="pmc-b">Composizione decisa &middot; si entra il ${gg(c.dal)}</span></div>
-   <div class="pmc-k pk3">${tk("Giorni di borsa","",c.tot,"","nel mese")}${tk("Positivo",NM,wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",pos)}${tk("Media storica",NM,m&&m.media!=null?pc(m.media):"n/d",m&&m.media>=0?"up":"down","rendimento medio del mese")}</div>
+  if(c.attesa)return `<div class="card pmc"><div class="pmc-t"><h3>Andamento portafoglio <span class="pbprof">${esc(p.nome)}</span></h3>
+</div>
+   <div class="pmc-k pk3 pkm">
+    ${/* v7.66 mese chiuso, il nuovo non e' ancora partito: stessi tre riquadri, al centro "In apertura" (lampeggia in bianco) */""}
+    ${tk("Media storica","",m&&m.media!=null?pc(m.media):"n/d",m&&m.media>=0?"up":"down","negli anni passati")}
+    <div class="pk pk-m pk-ap"><div class="pk-h"><span>${MES(c.mese)}</span><em>In apertura</em></div><b class="pk-v">${gg(c.dal)}</b><div class="pk-f">giorno di ingresso</div></div>
+    ${tk("Anni positivi","",wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",m&&m.n?`${m.positivi} ${(m.mese||c.mese)} su ${m.n}`:pos)}</div>
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}</div>`;
-  return `<div class="card pmc"><div class="pmc-t"><h3>${MES(c.mese)} <span class="pbprof">${esc(p.nome)}</span><details class="info pmci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div><b>Risultato del mese</b> da inizio mese: ingresso alla chiusura del ${gg(c.dal)}, prezzi all'ultima chiusura (${gg(c.al)}). A borsa aperta il numero grande include anche la variazione di <b>oggi</b> (prezzi Xetra con circa 15 minuti di ritardo): &egrave; una stima, il risultato ufficiale usa le chiusure. <b>In corso</b>: il mese si chiude all'ultimo giorno di borsa. La barra sotto confronta il mese con gli stessi mesi degli anni passati (minimo, media, massimo).</div></details></h3>
-    <span class="pmc-b${c.live?"":" sim"}">${c.live?"In corso":"Simulazione &middot; il live parte il "+gg(P.prossima)}</span></div>
-   <div class="pmc-g"><b class="${cl}" data-chiusura="${c.r}">${pc(r)}</b>${fermi(c.al)?`<span><em class="pmc-al fermo" title="Prezzi non aggiornati: il risultato non include le ultime sedute">prezzi al ${gg(c.al)} (in aggiornamento)</em></span>`:""}</div>
+  return `<div class="card pmc"><div class="pmc-t"><h3>Andamento portafoglio <span class="pbprof">${esc(p.nome)}</span><details class="info pmci"><summary title="Come si legge" aria-label="Come si legge">i</summary><div><b>Risultato del mese</b> da inizio mese: ingresso alla chiusura del ${gg(c.dal)}, prezzi all'ultima chiusura (${gg(c.al)}). A borsa aperta il numero include anche la variazione di <b>oggi</b> (prezzi Xetra con circa 15 minuti di ritardo): &egrave; una stima, il risultato ufficiale usa le chiusure. <b>In corso</b>: il mese si chiude all'ultimo giorno di borsa. La barra sotto confronta il mese con gli stessi mesi degli anni passati (minimo, media, massimo).</div></details></h3>
+    ${c.live?"":`<span class="pmc-b sim">Simulazione &middot; il live parte il ${gg(P.prossima)}</span>`}</div>
    <div class="pmc-oggi" hidden></div>
-   <div class="pmc-k pk3 pk2">
-    ${/* v7.64 "Giorno di borsa" tolto: c'e' gia' nella card "Rotazione in corso" in alto (doppione) */""}
-    ${tk("Drawdown","",pc(c.dd),"down","dal massimo")}
-    ${tk("Positivo","",wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",pos)}</div>
+   <div class="pmc-k pk3 pkm">
+    ${/* v7.66 tre riquadri allineati: il risultato del mese sta in quello centrale (prima era un numero grande sopra);
+         "In corso" e' l'etichetta del riquadro, non piu' un bollino a parte. data-chiusura: lo aggiorna liveOggi */""}
+    ${tk("Drawdown","",pc(c.dd),"down","dal punto pi&ugrave; alto")}
+    <div class="pk pk-m"><div class="pk-h"><span>${MES(c.mese)}</span>${c.live?"<em>In corso</em>":""}</div><b class="pk-v ${cl}" data-chiusura="${c.r}">${pc(r)}</b><div class="pk-f">${fermi(c.al)?`<em class="pmc-al fermo" title="Prezzi non aggiornati: il risultato non include le ultime sedute">prezzi al ${gg(c.al)}</em>`:"da inizio mese"}</div></div>
+    ${tk("Anni positivi","",wr==null?"n/d":wr+"%",wr!=null&&wr>=50?"up":"",m&&m.n?`${m.positivi} ${(m.mese||c.mese)} su ${m.n}`:pos)}</div>
    ${termo?`<div class="pmc-fw"><span class="pmc-ft">${MES(m&&m.mese||c.mese)} negli anni passati</span>${termo}</div>`:""}
    ${chiusi.length?`<div class="pmc-h"><div class="pmc-ht">Mesi chiusi (live)</div>${chiusi.map(x=>{const r=x.profili[p.id];return `<div class="pmc-hr"><span>${MES(MESI[+x.mese.slice(5)-1])} ${x.mese.slice(0,4)}</span><b class="${r.r>=0?"up":"down"}">${pc(r.r)}</b><em>drawdown ${pc(r.dd)}</em></div>`;}).join("")}</div>`:""}
 </div>`;}
@@ -993,7 +998,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   const ora=new Date(t*1000).toLocaleTimeString("it-IT",{hour:"2-digit",minute:"2-digit"}),mese=((1+c.r/100)*(1+r/100)-1)*100;
   box.hidden=false;box.innerHTML=`<span class="plive on"><i></i>Oggi alle ${ora}</span><b class="${r>=0?"up":"down"}">${pc(r,2)}</b>`;
   // v7.64 il numero grande del mese include oggi (prima: due numeri del mese diversi, "-2,0%" e "mese stimato -3,2%")
-  const g=el.querySelector(".pmc-g b");if(g){g.textContent=pc(Math.abs(mese)<0.05?0:mese);g.className=mese>0.05?"up":mese<-0.05?"down":"flat";}
+  const g=el.querySelector(".pmc-k [data-chiusura]");if(g){g.textContent=pc(Math.abs(mese)<0.05?0:mese);g.className="pk-v "+(mese>0.05?"up":mese<-0.05?"down":"flat");}
   // i cursori del mese in corso seguono il numero di oggi
   const f=el.querySelector(".pmc-f[data-lo]");if(f){const pt=f.querySelector(".pmc-pt");if(pt)pt.style.left=Math.max(3,Math.min(97,(mese-(+f.dataset.lo))/(+f.dataset.sp)*100)).toFixed(1)+"%";}
   const hc=el.querySelector('.phmleg .pnow[data-modo="r"]');if(hc){hc.style.left=hmPos("r",mese).toFixed(1)+"%";hc.querySelector("em").textContent="ora "+pc(mese);}}
