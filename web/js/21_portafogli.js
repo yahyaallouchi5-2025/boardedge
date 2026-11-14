@@ -220,7 +220,7 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
   return `<span class="pnow" style="left:${hmPos(modo,v).toFixed(1)}%" data-modo="${modo}" title="${modo=="r"?"Risultato del mese in corso":"Drawdown del mese in corso"}"><em>ora ${pc(v)}</em></span>`;}
  function hmLeg(modo,c){return modo=="r"
   ?`<span>perdita</span><i style="background:linear-gradient(90deg,rgba(242,113,107,.9),rgba(242,113,107,.12) 48%,rgba(79,214,163,.12) 52%,rgba(79,214,163,.9))">${hmCur(modo,c)}</i><span>guadagno</span>`
-  :`<span>drawdown piccolo</span><i style="background:linear-gradient(90deg,rgba(242,113,107,.12),rgba(242,113,107,.9))">${hmCur(modo,c)}</i><span>drawdown grande</span>`;}
+  :`<span>lieve</span><i style="background:linear-gradient(90deg,rgba(242,113,107,.12),rgba(242,113,107,.9))">${hmCur(modo,c)}</i><span>forte</span>`;}
  function contro(p){const m=p.mese,c=p.corrente,s=p.stat.totale||{},o=p.stat.oos||{},ddTot=Math.min(s.maxdd??0,o.maxdd??0);
   if(!m)return `<div class="card pcontro"><h3>Rischio del mese</h3><div class="small">Storico non ancora sufficiente.</div></div>`;
   const peg=m.anni.reduce((a,x)=>x.dd<a.dd?x:a,m.anni[0]),lim=-p.dd_rif,oltre=m.dd_max<lim,wr=Math.round(100*m.positivi/m.n);
@@ -233,7 +233,8 @@ try{(function(){const P=D.port,el=$("port");if(!el)return;
    <div class="ptermo"><div class="ptermo-r" style="width:${pos(m.dd_max)}%"></div><span class="ptermo-l" style="left:${pos(lim)}%"></span>
     <span class="ptermo-e su" style="left:${pos(lim)}%">limite ${pc(lim,0)}</span><span class="ptermo-e giu" style="left:0;transform:none">0%</span>
     <span class="ptermo-e giu" style="left:${pos(m.dd_max)}%">${pc(m.dd_max)}</span>
-    ${c&&!c.attesa&&c.dd!=null?`<span class="pnow pnow-t" style="left:${Math.max(1,Math.min(99,pos(Math.min(0,c.dd))))}%" title="Drawdown del mese in corso"><em>ora ${pc(c.dd)}</em></span>`:""}</div>
+    ${/* v7.67 tolto il cursore "ora" da qui: era un doppione di quello sotto la griglia, che segue l'interruttore
+         (Risultato del mese -> risultato di adesso; Scenario peggiore -> drawdown di adesso). Un solo "ora" alla volta. */""}</div>
    <div class="phmtesta"><span>${m.mese[0].toUpperCase()+m.mese.slice(1)} anno per anno</span>
     <div class="phmsw" role="tablist"><button type="button" data-m="r" class="${hmModo=="r"?"on":""}" role="tab" aria-selected="${hmModo=="r"}">Risultato del mese</button><button type="button" data-m="dd" class="${hmModo=="dd"?"on":""}" role="tab" aria-selected="${hmModo=="dd"}">Scenario peggiore</button></div></div>
    <div class="phmbox"><div class="phm">${hmCelle(m,hmModo)}</div><div class="phmtip" hidden></div></div>
