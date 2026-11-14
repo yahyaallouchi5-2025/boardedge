@@ -1,0 +1,28 @@
+STUDI DI NOVEMBRE 2026 - riepilogo dei risultati (dati, non opinioni)
+Regola: una funzione entra nel sito solo se lo studio mostra un vantaggio che si ripete fuori campione.
+
+1) STAGIONALITA' ORARIA FUORI CAMPIONE (studio_fuori_campione_orari.py; dati orari corretti in UTC vero)
+   - caselle orarie con |z| >= 2,58: si ripetono nel 76% dei casi  -> TENUTE (soglia fissa 2,58)
+   - giorno della settimana: 86% (solo 14 casi)                    -> tenuto, campione piccolo
+   - giorno del mese, settimana, mese: circa 50%                   -> nessun vantaggio (resta la soglia severa)
+
+2) INTRADAY AL NETTO DEI COSTI (studio_intraday_costi.py, studio_intraday_ore.py)
+   - forex lordo +0,013% per operazione, ma il 61% delle operazioni cade tra le 22 e le 00 di Roma
+     (effetto della chiusura di New York, non negoziabile); senza quelle +0,004% contro un costo di 0,015%
+   -> SCHEDA INTRADAY NON GIUSTIFICATA
+
+3) BUFFETT (studio_buffett_libro.py + studi/risultati_buffett_parziale.txt)
+   - regole B1-B5 scartate (la migliore, B5: t 1,89 < 2)
+   - regole del libro contabile (debito/patrimonio < 0,5, ROE >= 8% per 5 anni, P/E < 15, P/B < 1,5): scartate
+
+4) PRING, 6 FASI DEL CICLO (studio_pring.py) e LARRY WILLIAMS (TDM, rottura di volatilita'): nessun vantaggio oggi
+
+5) STAGIONALITA' MATERIE PRIME, CAMMINATA IN AVANTI (studio_stagionalita_materie_prime.py)
+   - future: 908 finestre affidabili, 55,0% indovinate, +1,21% medio a 4 settimane (t 4,8)
+   - ETF: 49,3% (t 0,3): nullo
+   - migliori: maiali, benzina, mais, bovini, bovini da ingrasso
+   - ATTENZIONE: le serie continue di Yahoo contengono i salti di cambio contratto (maiali, benzina):
+     il risultato puo' essere in parte finto. DA CONFERMARE su dati per singolo contratto prima di integrarlo.
+
+6) PAESI EMERGENTI: 20 paesi su 24 hanno un ETF dedicato (mancano Ungheria e Repubblica Ceca; Egitto e Colombia
+   esistono ma non sono stati scaricati).
