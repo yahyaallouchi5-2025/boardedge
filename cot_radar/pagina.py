@@ -317,7 +317,9 @@ def build(data_source=load_all, demo=False, sito=False):
     payload = json.dumps(clean(data), ensure_ascii=False, separators=(",", ":"))
     ULTIMI.clear()
     ULTIMI.update(data=clean({"assets": assets, "pairs": pairs}), bt_dal=(bt or {}).get("dal"), bt_n=(bt or {}).get("n"),
-                  demo=demo, verifica=verifica)
+                  demo=demo, verifica=verifica,
+                  # v7.69 per le anteprime VERE della landing (vetrina.dentro): gli stessi oggetti della pagina
+                  extra={"port": port, "paesi": paesi_pag, "economie": quadro_pag, "market": market, "agenda": agenda_out})
     # "</" dentro <script> chiuderebbe il tag per errore: lo "spezziamo" in "<\/"
     return template().replace("{{DATA}}", payload.replace("</", "<\\/")), clean(stato)
 
