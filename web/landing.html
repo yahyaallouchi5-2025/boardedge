@@ -263,74 +263,51 @@ footer{padding:64px 0 40px;color:var(--mute);font-size:14px;border-top:1px solid
     <path class="linea" d="M0 92 L40 84 L80 88 L120 70 L160 74 L200 56 L240 62 L280 40 L320 46 L360 22 L400 14" fill="none" stroke="url(#lg)" stroke-width="3" stroke-linejoin="round"/>
    </svg></div>
    <div class="lista" id="lista"></div>
-   <button class="lucchetto" data-entra data-pos="anteprima"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Scopri quali mercati con il pass gratuito</button>
+   <button class="lucchetto" data-entra data-pos="anteprima"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>Apri il terminale per vedere i mercati</button>
   </div></div></div>
  </div>
 
  <!-- nastro: i mercati coperti (solo nomi, nessun segnale) -->
  <div class="nastro" aria-hidden="true" data-ev-vista="nastro"><div>{{NASTRO}}{{NASTRO}}</div></div>
 
- <!-- I TRE LIVELLI DEL VANTAGGIO -->
- <section id="vantaggio" data-ev-vista="vantaggio"><div class="box">
-  <div class="titsez appare"><small>Il vantaggio</small><h2>Cinque letture che di solito richiedono ore. In una schermata.</h2>
-   <p>Ogni segnale nasce dal posizionamento, viene filtrato dal contesto macro, misurato contro la stagionalità, letto insieme agli altri mercati e pesato sulla volatilità. Tu vedi solo la sintesi.</p></div>
-  <div class="livelli">
-   <div class="livello appare"><div class="n">01</div><div><span class="tag">Posizionamento COT</span><h3>Dove si posiziona il capitale istituzionale, prima che lo mostri il grafico.</h3></div>
-    <p>Hedger istituzionali e grandi speculatori dichiarano ogni settimana le loro posizioni sui futures. Sapere da che parte stanno, e da quante settimane, significa leggere la direzione su cui si sta costruendo il trend.</p></div>
-   <div class="livello appare" style="--d:.08s"><div class="n">02</div><div><span class="tag">Macro semplificata</span><h3>Il rumore di breve termine che allarga il drawdown, tradotto in un verdetto.</h3></div>
-    <p>Tassi, spread, volatilità e dati USA muovono il prezzo nel breve e allargano il drawdown, ma richiedono tempo per essere interpretati. BoardEdge li traduce in un verdetto chiaro: a favore, contro o neutro rispetto al segnale.</p></div>
-   <div class="livello appare" style="--d:.16s"><div class="n">03</div><div><span class="tag">Stagionalità accanto al segnale</span><h3>Come si è comportata questa stessa settimana negli anni passati.</h3></div>
-    <p>Dal venerdì in cui esce il report, per ogni mercato: quante volte è salito o sceso nella stessa settimana dell'anno. Favorevole, non favorevole o neutra, accanto a ogni segnale, aggiornata al ritmo del COT.</p></div>
-   <div class="livello appare" style="--d:.24s"><div class="n">04</div><div><span class="tag">Correlazioni tra mercati</span><h3>Cosa si muove insieme e cosa va in direzione opposta.</h3></div>
-    <p>La mappa delle correlazioni mostra quali mercati vengono comprati insieme e quali in direzione contraria, con legami che cambiano nel tempo e vengono ricalcolati a ogni report. Serve a non sommare lo stesso rischio su più posizioni e a costruire un portafoglio davvero diversificato.</p></div>
-   <div class="livello appare" style="--d:.32s"><div class="n">05</div><div><span class="tag">Volatilità nel breve e nel medio-lungo periodo</span><h3>Quanto si muove un mercato, adesso e nel tempo.</h3></div>
-    <p>Nel breve: il regime delle ultime settimane (calmo, normale o agitato), l'ultima seduta e la settimana tipica, in percentuale e in punti. Nel medio-lungo: la volatilità mese per mese e anno per anno. Insieme a quanto un segnale va contro prima di andare a favore, ti dice quanto spazio dare allo stop e quanto pesare la posizione.</p></div>
-  </div>
- </div></section>
-
- <!-- IL METODO: perche' serve la combinazione quantitativa per lo swing (quattro fonti indipendenti) -->
- <section id="metodo" data-ev-vista="metodo"><div class="box">
-  <div class="titsez appare"><small>Il metodo</small><h2>Quattro fonti indipendenti. Una sola direzione.</h2>
-   <p>Nessun indicatore, da solo, basta a reggere un'operazione di settimane. Il vantaggio statistico nasce quando fonti che non dipendono l'una dall'altra raccontano la stessa storia: è questo che BoardEdge misura, ogni giorno, su ogni mercato.</p></div>
-  <div class="pilastri">
-   <div class="flip appare" tabindex="0" role="button" aria-label="Report COT: mostra i dettagli"><div class="interno">
-    <div class="faccia fronte"><div class="ic"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c.8-3.5 3.2-5.5 6-5.5s5.2 2 6 5.5"/><path d="M16 4.5a3 3 0 0 1 0 6M18 14.8c1.7.8 2.7 2.6 3 5.2"/></svg></div><span class="dom">Chi compra e chi vende</span><h3>Report COT</h3><p class="breve">Il motore del segnale: dove si accumula il capitale istituzionale.</p><span class="gira"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Scopri di più</span></div>
-    <div class="faccia retro"><h3>Report COT</h3><p>Il posizionamento dichiarato da hedger istituzionali e grandi speculatori sui futures, settimana dopo settimana: mostra dove si sta accumulando il capitale e da quanto tempo.</p><span class="term">Nel terminale: punteggio COT, settimane di accumulo, Commercials agli estremi.</span></div>
-   </div></div>
-   <div class="flip appare" tabindex="0" role="button" aria-label="Politica monetaria: mostra i dettagli" style="--d:.08s"><div class="interno">
-    <div class="faccia fronte"><div class="ic"><svg viewBox="0 0 24 24"><path d="M3 21h18M5 21V10M9.5 21V10M14.5 21V10M19 21V10"/><path d="M2.5 10 12 3.5 21.5 10z"/></svg></div><span class="dom">Perché si muove il denaro</span><h3>Politica monetaria</h3><p class="breve">Tassi, differenziali e liquidità: le condizioni di fondo del mercato.</p><span class="gira"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Scopri di più</span></div>
-    <div class="faccia retro"><h3>Politica monetaria</h3><p>Tassi a 2 anni, differenziali tra valute, rendimenti reali e liquidità della Fed: le condizioni che rendono una valuta o un asset più o meno attraente nel tempo.</p><span class="term">Nel terminale: verdetto macro a favore, contro o neutro.</span></div>
-   </div></div>
-   <div class="flip appare" tabindex="0" role="button" aria-label="Notizie macro: mostra i dettagli" style="--d:.16s"><div class="interno">
-    <div class="faccia fronte"><div class="ic"><svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="2.5"/><path d="M3.5 10h17M8 3v4M16 3v4M8 14h3"/></svg></div><span class="dom">Quando sale la volatilità</span><h3>Notizie macro</h3><p class="breve">Il calendario delle giornate che possono muovere il prezzo.</p><span class="gira"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Scopri di più</span></div>
-    <div class="faccia retro"><h3>Notizie macro</h3><p>Fed, BCE, inflazione, occupazione, PIL: i dati che possono accelerare o mettere alla prova una posizione, con la reazione del mercato misurata dopo l'uscita.</p><span class="term">Su Telegram: agenda della settimana, pre-avviso ed esito.</span></div>
-   </div></div>
-   <div class="flip appare" tabindex="0" role="button" aria-label="Stagionalità: mostra i dettagli" style="--d:.24s"><div class="interno">
-    <div class="faccia fronte"><div class="ic"><svg viewBox="0 0 24 24"><path d="M4 19c3-9 5-9 8-4s5 5 8-6"/><path d="M4 4v15h16"/></svg></div><span class="dom">Come è andata in passato</span><h3>Stagionalità</h3><p class="breve">Il comportamento storico dello stesso periodo dell'anno.</p><span class="gira"><svg viewBox="0 0 24 24"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 4v5h-5"/></svg>Scopri di più</span></div>
-    <div class="faccia retro"><h3>Stagionalità</h3><p>Quante volte, negli anni, lo stesso mercato è salito o sceso nella stessa finestra di calendario: un vento a favore o contro che si somma al segnale.</p><span class="term">Nel terminale: favorevole, non favorevole o neutra accanto a ogni segnale.</span></div>
-   </div></div>
-  </div>
-  <div class="unione">
-   <div class="evid appare"><h3>Perché la combinazione conta, nello swing</h3>
-    <p>Su un orizzonte di giorni e settimane il prezzo attraversa inevitabilmente fasi contrarie. A fare la differenza non è indovinare il punto d'ingresso perfetto, ma sapere <b>da che parte sta la corrente</b> e <b>dove può nascere il rischio</b>.</p>
-    <p>Il segnale parte dal posizionamento COT; politica monetaria e notizie ne correggono la forza; la stagionalità dice se il calendario gioca a favore. Quando tutto concorda hai il vento alle spalle; quando qualcosa va contro, lo sai prima di aprire la posizione.</p></div>
-   <div class="appare" style="--d:.1s"><ul>
-    <li><i>1</i><span><b>Entrare con il flusso istituzionale</b>non contro chi ha la forza di muovere il mercato.</span></li>
-    <li><i>2</i><span><b>Conoscere in anticipo le giornate a rischio</b>gli annunci che possono allargare il drawdown.</span></li>
-    <li><i>3</i><span><b>Dimensionare lo stop sui dati</b>quanto va contro, storicamente, un segnale prima di andare a favore.</span></li>
-   </ul></div>
-  </div>
- </div></section>
-
- <!-- UNA SETTIMANA CON BOARDEDGE: linea del tempo che si riempie con lo scroll -->
- <section id="settimana" data-ev-vista="settimana"><div class="box">
-  <div class="titsez appare"><small>La settimana</small><h2>Un ciclo preciso. Ogni venerdì si riparte.</h2>
-   <p>Il report CFTC fotografa il martedì e viene pubblicato il venerdì. BoardEdge lavora sullo stesso ritmo.</p></div>
+ <!-- 1. PARTI DA ZERO: i quattro passi di chi non ha mai investito -->
+ <section id="zero" data-ev-vista="zero"><div class="box">
+  <div class="titsez appare"><small>Parti da zero</small><h2>Quattro passi. Nessuna esperienza richiesta.</h2>
+   <p>Non devi saper leggere un grafico. Il terminale ti dice cosa guardare, in quale ordine.</p></div>
   <div class="tempo" id="tempo"><div class="asse"><i></i></div>
-   <div class="tappa appare"><span class="q">Venerdì · 21:30</span><h3>Esce il report</h3><p>Le posizioni aggiornate di fondi, banche e produttori su tutti i mercati seguiti.</p></div>
-   <div class="tappa appare"><span class="q">Venerdì sera</span><h3>Nuovi segnali, nuova settimana</h3><p>Punteggi ricalcolati, segnali aperti, confermati o chiusi. Il riepilogo per categoria arriva sul canale Telegram.</p></div>
-   <div class="tappa appare"><span class="q">Lunedì → venerdì</span><h3>Il contesto ogni giorno</h3><p>Macro, notizie ad alto impatto e stagionalità della settimana accanto a ogni segnale, per scegliere il momento e reggere il drawdown.</p></div>
-   <div class="tappa appare"><span class="q">Venerdì successivo</span><h3>Conferma o cambio di rotta</h3><p>Il nuovo report dice se il posizionamento continua a costruirsi o si sta girando.</p></div>
+   <div class="tappa appare"><span class="q">Passo 1</span><h3>Scegli il tuo profilo</h3><p>Conservativo, Moderato o Aggressivo: cambia quanto il portafoglio può scendere nei momenti difficili.</p></div>
+   <div class="tappa appare"><span class="q">Passo 2</span><h3>Guarda il portafoglio del mese</h3><p>Cosa contiene, in che percentuale e perché: azioni, obbligazioni, oro, materie prime e liquidità.</p></div>
+   <div class="tappa appare"><span class="q">Passo 3</span><h3>Controlla il rischio prima di tutto</h3><p>Per ogni mese vedi il drawdown peggiore della storia e come sta andando adesso.</p></div>
+   <div class="tappa appare"><span class="q">Passo 4</span><h3>Torna una volta al mese</h3><p>Il portafoglio si aggiorna a ogni rotazione mensile: un conto alla rovescia ti dice quando.</p></div>
+  </div>
+ </div></section>
+
+ <!-- 2. I CINQUE PILASTRI: cosa offre il terminale, scheda per scheda -->
+ <section id="pilastri" data-ev-vista="pilastri"><div class="box">
+  <div class="titsez appare"><small>I pilastri</small><h2>Cinque strumenti. Un solo terminale.</h2>
+   <p>Ogni scheda risponde a una domanda semplice.</p></div>
+  <div class="livelli">
+   <div class="livello appare"><div class="n">01</div><div><span class="tag">Portafogli</span><h3>Come divido i miei soldi questo mese?</h3></div>
+    <p>Tre portafogli modello con composizione, pesi, andamento e rischio del mese. Mostrati in euro, aggiornati a ogni rotazione mensile.</p></div>
+   <div class="livello appare" style="--d:.08s"><div class="n">02</div><div><span class="tag">Dashboard</span><h3>Che aria tira sui mercati oggi?</h3></div>
+    <p>Clima di mercato, fase delle grandi economie, posizionamento dei grandi operatori (report COT), notizie in arrivo e prossima rotazione.</p></div>
+   <div class="livello appare" style="--d:.16s"><div class="n">03</div><div><span class="tag">Azionario</span><h3>Quali aziende hanno i numeri migliori?</h3></div>
+    <p>Le aziende ordinate per settore, con la scheda di ognuna: bilanci, dividendi e notizie. Cerchi un titolo e lo trovi subito.</p></div>
+   <div class="livello appare" style="--d:.24s"><div class="n">04</div><div><span class="tag">Stagionalità</span><h3>Come è andato questo periodo, negli anni?</h3></div>
+    <p>Per ogni mercato: ore, giorni, settimane e mesi storicamente più forti o più deboli, in ora italiana. Una mappa a colori, leggibile a colpo d'occhio.</p></div>
+   <div class="livello appare" style="--d:.32s"><div class="n">05</div><div><span class="tag">Economie e paesi</span><h3>Dove cresce l'economia e dove è agitata la borsa?</h3></div>
+    <p>Le grandi economie e 24 paesi emergenti: crescita, andamento della borsa, tendenza e volatilità di breve e di lungo periodo.</p></div>
+  </div>
+ </div></section>
+
+ <!-- 3. IL METODO: perche' fidarsi dei numeri (storico, registro live, idee scartate) -->
+ <section id="metodo" data-ev-vista="metodo"><div class="box">
+  <div class="titsez appare"><small>Il metodo</small><h2>Dati, non opinioni.</h2>
+   <p>Una regola entra nel terminale solo se supera le prove. Se non le supera, la scartiamo e lo scriviamo.</p></div>
+  <div class="per">
+   <div class="dato appare"><b>Provato sullo storico</b><p>Ogni regola è provata su anni di dati e poi verificata su un periodo che non ha mai visto, costi compresi.</p></div>
+   <div class="dato appare" style="--d:.08s"><b>Registro dal vivo</b><p>I risultati veri dei portafogli, mese per mese, restano scritti: anche i mesi negativi.</p></div>
+   <div class="dato appare" style="--d:.16s"><b>Idee scartate</b><p>Schede e regole senza un vantaggio dimostrato vengono tolte. Meno cose, ma misurate.</p></div>
   </div>
  </div></section>
 
